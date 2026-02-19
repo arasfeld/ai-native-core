@@ -1,0 +1,26 @@
+{
+  "name": "api",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "check-types": "tsc --noEmit",
+    "dev": "tsx watch server.ts",
+    "lint": "eslint --max-warnings 0",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "fastify": "^5.7.4",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@repo/config-eslint": "workspace:*",
+    "@repo/config-typescript": "workspace:*",
+    "@types/node": "^22.15.3",
+    "eslint": "^9.39.1",
+    "tsx": "^4.21.0",
+    "typescript": "5.9.2"
+  }
+}

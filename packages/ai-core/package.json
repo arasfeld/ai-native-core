@@ -1,0 +1,22 @@
+{
+  "name": "@repo/ai-core",
+  "version": "0.0.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "check-types": "tsc --noEmit",
+    "clean": "rm -rf dist node_modules",
+    "dev": "tsc --watch",
+    "lint": "eslint --ext ts,tsx"
+  },
+  "dependencies": {
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@repo/config-eslint": "workspace:*",
+    "@repo/config-typescript": "workspace:*",
+    "typescript": "5.9.2"
+  }
+}
