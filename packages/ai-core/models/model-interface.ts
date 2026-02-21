@@ -1,6 +1,4 @@
-export interface ModelContext {
-  prompt: string;
-}
+import { ModelContext } from "../types/ai-types";
 
 export interface ModelChunk {
   text: string;
@@ -8,6 +6,11 @@ export interface ModelChunk {
 
 export interface ModelResult {
   output: string;
+  toolCalls?: {
+    id: string;
+    name: string;
+    arguments: any;
+  }[];
 }
 
 export interface AIModel {
@@ -18,10 +21,12 @@ export interface AIModel {
 // Example: simple OpenAI stub
 export class OpenAIModelStub implements AIModel {
   async *stream(context: ModelContext) {
-    yield { text: `[OpenAI stub] ${context.prompt}` };
+    const lastMessage = context.messages[context.messages.length - 1];
+    yield { text: `[OpenAI stub] Response to: ${lastMessage?.content}` };
   }
 
   async generate(context: ModelContext) {
-    return { output: `[OpenAI stub] ${context.prompt}` };
+    const lastMessage = context.messages[context.messages.length - 1];
+    return { output: `[OpenAI stub] Response to: ${lastMessage?.content}` };
   }
 }

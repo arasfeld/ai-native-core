@@ -4,6 +4,7 @@
   "scripts": {
     "build": "turbo run build",
     "check-types": "turbo run check-types",
+    "clean": "turbo run clean && rm -rf node_modules",
     "dev": "turbo run dev",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "lint": "turbo run lint"

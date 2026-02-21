@@ -22,7 +22,7 @@ It provides:
         web/        # Next.js frontend
         api/        # Fastify AI orchestration server
       packages/
-        ai-core/    # Reusable AI runtime (coming next)
+        ai-core/    # Reusable AI runtime
         db/         # Database schema + client
         types/      # Shared TypeScript types
 
@@ -55,11 +55,21 @@ pnpm dev
 
 ---
 
+## Testing with Ollama (no paid API)
+
+The API uses an OpenAI-compatible adapter. To test without an OpenAI/Anthropic key:
+
+1. Start Ollama: `docker compose up -d ollama`
+2. Pull a model: `docker compose exec ollama ollama run llama3.2`
+3. Copy `.env.example` to `.env` and set:
+   - `OPENAI_BASE_URL=http://localhost:11434/v1`
+   - `OPENAI_MODEL=llama3.2` (optional; matches the model you pulled)
+4. Run the API: `pnpm --filter api dev` (or `pnpm dev` from root). The `/chat` endpoint will use Ollama.
+
+For real OpenAI, set `OPENAI_API_KEY` in `.env` and omit `OPENAI_BASE_URL`.
+
+---
+
 ## Roadmap
 
-- AI runtime engine (ai-core package)
-- Tool registry system
-- RAG implementation with pgvector
-- Memory system
-- Background agents
-- Observability + token tracking
+See **[ROADMAP.md](./ROADMAP.md)** for the full prioritized roadmap. Next focus: real model adapter, streaming `/chat`, and wiring context + memory into the agent runtime.

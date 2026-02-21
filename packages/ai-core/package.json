@@ -12,7 +12,9 @@
     "lint": "eslint --ext ts,tsx"
   },
   "dependencies": {
-    "zod": "^4.3.6"
+    "openai": "^4.77.0",
+    "zod": "^4.3.6",
+    "zod-to-json-schema": "^3.24.1"
   },
   "devDependencies": {
     "@repo/config-eslint": "workspace:*",

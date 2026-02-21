@@ -62,3 +62,7 @@ Example: `pnpm --filter @repo/ai-core dev`
 - **Backend:** Fastify, `tsx` for development.
 - **AI Core:** TypeScript-first, Zod-heavy.
 - **Infrastructure:** Turborepo for task orchestration and caching.
+
+## Roadmap
+
+See **[ROADMAP.md](./ROADMAP.md)** for a unified, prioritized roadmap (real model adapter, streaming, context/memory wiring, then RAG, observability, and background agents).

@@ -139,12 +139,7 @@ pnpm --filter @ai-native-core/ai-core dev
 
 ## 🔮 Roadmap
 
-- Structured prompt injection system
-- Advanced memory decay and summarization strategies
-- Hybrid RAG with multiple sources
-- Observable tool execution & debugging tools
-- Full integration with `apps/api` streaming endpoints
-- AI-native patterns for React and React Native frontends
+See the monorepo **[ROADMAP.md](../../ROADMAP.md)** for the full prioritized plan. It covers: real model adapters, streaming API, context/memory wiring, RAG (pgvector), observability, prompt injection, memory decay, and frontend integration.
 
 ---
 

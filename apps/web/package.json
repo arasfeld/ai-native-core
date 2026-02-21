@@ -6,11 +6,13 @@
   "scripts": {
     "build": "next build",
     "check-types": "next typegen && tsc --noEmit",
+    "clean": "rm -rf .next node_modules",
     "dev": "next dev --port 3000",
     "lint": "eslint --max-warnings 0",
     "start": "next start"
   },
   "dependencies": {
+    "@repo/ai-core": "workspace:^",
     "@repo/ui": "workspace:*",
     "next": "16.1.5",
     "react": "^19.2.0",
