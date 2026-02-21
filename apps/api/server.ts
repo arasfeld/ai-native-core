@@ -30,18 +30,37 @@ async function buildServer() {
 
   const chatBodySchema = z.object({
     message: z.string(),
+    systemPrompt: z.string().optional(),
   });
 
   fastify.post("/chat", async (request, reply) => {
-    const { message } = chatBodySchema.parse(request.body);
+    const { message, systemPrompt } = chatBodySchema.parse(request.body);
 
-    const model = createModel();
-    const result = await runAgent(model, {
-      messages: [{ role: "user", content: message }],
-      tools: getAllTools(),
+    reply.raw.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+      "X-Accel-Buffering": "no",
     });
 
-    return result;
+    const sendEvent = (event: string, data: object) => {
+      reply.raw.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+
+    const model = createModel();
+    try {
+      await runAgent(
+        model,
+        { messages: [{ role: "user", content: message }], tools: getAllTools(), systemPrompt },
+        { onChunk: (text) => sendEvent("text", { content: text }) },
+      );
+      sendEvent("done", {});
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      sendEvent("error", { message });
+    } finally {
+      reply.raw.end();
+    }
   });
 
   return fastify;

@@ -7,11 +7,17 @@ export interface AgentResult {
   history: ChatMessage[];
 }
 
+export interface AgentOptions {
+  maxIterations?: number;
+  onChunk?: (text: string) => void;
+}
+
 export async function runAgent(
   model: AIModel,
   context: ModelContext,
-  maxIterations: number = 5,
+  options: AgentOptions = {},
 ): Promise<AgentResult> {
+  const { maxIterations = 5, onChunk } = options;
   let currentMessages = [...context.messages];
   let iteration = 0;
 
@@ -36,6 +42,15 @@ export async function runAgent(
     });
 
     if (!result.toolCalls || result.toolCalls.length === 0) {
+      if (onChunk) {
+        let streamedOutput = "";
+        for await (const chunk of model.stream({ ...context, messages: currentMessages })) {
+          onChunk(chunk.text);
+          streamedOutput += chunk.text;
+        }
+        currentMessages.push({ role: "assistant", content: streamedOutput });
+        return { output: streamedOutput, history: currentMessages };
+      }
       return {
         output: result.output,
         history: currentMessages,
