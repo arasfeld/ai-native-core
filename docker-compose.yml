@@ -1,0 +1,17 @@
+# Ollama: local OpenAI-compatible API for testing without paid OpenAI/Anthropic.
+# Start: docker compose up -d ollama
+# Then pull a model: docker compose exec ollama ollama run llama3.2
+# API: http://localhost:11434/v1
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ai-native-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+volumes:
+  ollama_data:
