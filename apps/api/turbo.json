@@ -3,7 +3,10 @@
   "extends": ["//"],
   "tasks": {
     "dev": {
-      "env": ["OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL"]
+      "env": ["OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL", "PORT", "CORS_ORIGIN"]
+    },
+    "build": {
+      "env": ["OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL", "PORT", "CORS_ORIGIN"]
     }
   }
 }

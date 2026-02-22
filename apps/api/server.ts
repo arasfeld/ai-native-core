@@ -8,9 +8,15 @@ import {
 } from "@repo/ai-core";
 import { z } from "zod";
 
+const chatMessageSchema = z.object({
+  role: z.enum(["user", "assistant"]),
+  content: z.string(),
+});
+
 export const chatBodySchema = z.object({
   message: z.string(),
   systemPrompt: z.string().optional(),
+  history: z.array(chatMessageSchema).optional(),
 });
 
 function createModel() {
@@ -30,12 +36,20 @@ export async function buildServer() {
   // Register tools on startup
   registerWeatherTool();
 
+  fastify.addHook("onSend", async (_request, reply) => {
+    reply.header("Access-Control-Allow-Origin", process.env.CORS_ORIGIN ?? "http://localhost:3000");
+    reply.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    reply.header("Access-Control-Allow-Headers", "Content-Type");
+  });
+
+  fastify.options("*", async (_request, reply) => reply.send());
+
   fastify.get("/", async () => {
     return { hello: "world" };
   });
 
   fastify.post("/chat", async (request, reply) => {
-    const { message, systemPrompt } = chatBodySchema.parse(request.body);
+    const { message, systemPrompt, history } = chatBodySchema.parse(request.body);
 
     reply.raw.writeHead(200, {
       "Content-Type": "text/event-stream",
@@ -49,11 +63,15 @@ export async function buildServer() {
     };
 
     const model = createModel();
+    const messages = [
+      ...(history ?? []),
+      { role: "user" as const, content: message },
+    ];
     try {
       await runAgent(
         model,
         {
-          messages: [{ role: "user", content: message }],
+          messages,
           tools: getAllTools(),
           systemPrompt,
         },
@@ -74,7 +92,7 @@ export async function buildServer() {
 async function start() {
   const server = await buildServer();
   try {
-    await server.listen({ port: 3000 });
+    await server.listen({ port: Number(process.env.PORT ?? 3001) });
   } catch (err) {
     server.log.error(err);
     process.exit(1);
