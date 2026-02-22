@@ -9,7 +9,7 @@ export interface ModelResult {
   toolCalls?: {
     id: string;
     name: string;
-    arguments: any;
+    arguments: unknown;
   }[];
 }
 

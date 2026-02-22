@@ -1,5 +1,6 @@
-import { z, ZodSchema } from "zod";
+import type { ZodSchema } from "zod";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface Tool<T = any, R = any> {
   name: string;
   description: string;

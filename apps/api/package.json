@@ -5,12 +5,13 @@
   "private": true,
   "main": "dist/server.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --project tsconfig.build.json",
     "check-types": "tsc --noEmit",
     "clean": "rm -rf dist node_modules",
     "dev": "tsx watch server.ts",
     "lint": "eslint --max-warnings 0",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "test": "vitest run"
   },
   "dependencies": {
     "@repo/ai-core": "workspace:*",
@@ -20,9 +21,12 @@
   "devDependencies": {
     "@repo/config-eslint": "workspace:*",
     "@repo/config-typescript": "workspace:*",
+    "@repo/config-vitest": "workspace:*",
     "@types/node": "^22.15.3",
+    "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^9.39.1",
     "tsx": "^4.21.0",
-    "typescript": "5.9.2"
+    "typescript": "5.9.2",
+    "vitest": "^4.0.18"
   }
 }

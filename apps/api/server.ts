@@ -1,3 +1,4 @@
+import { fileURLToPath } from "url";
 import Fastify from "fastify";
 import {
   OpenAIAdapter,
@@ -6,6 +7,11 @@ import {
   getAllTools,
 } from "@repo/ai-core";
 import { z } from "zod";
+
+export const chatBodySchema = z.object({
+  message: z.string(),
+  systemPrompt: z.string().optional(),
+});
 
 function createModel() {
   const baseURL = process.env.OPENAI_BASE_URL;
@@ -18,7 +24,7 @@ function createModel() {
   });
 }
 
-async function buildServer() {
+export async function buildServer() {
   const fastify = Fastify({ logger: true });
 
   // Register tools on startup
@@ -28,18 +34,13 @@ async function buildServer() {
     return { hello: "world" };
   });
 
-  const chatBodySchema = z.object({
-    message: z.string(),
-    systemPrompt: z.string().optional(),
-  });
-
   fastify.post("/chat", async (request, reply) => {
     const { message, systemPrompt } = chatBodySchema.parse(request.body);
 
     reply.raw.writeHead(200, {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
-      "Connection": "keep-alive",
+      Connection: "keep-alive",
       "X-Accel-Buffering": "no",
     });
 
@@ -51,7 +52,11 @@ async function buildServer() {
     try {
       await runAgent(
         model,
-        { messages: [{ role: "user", content: message }], tools: getAllTools(), systemPrompt },
+        {
+          messages: [{ role: "user", content: message }],
+          tools: getAllTools(),
+          systemPrompt,
+        },
         { onChunk: (text) => sendEvent("text", { content: text }) },
       );
       sendEvent("done", {});
@@ -76,4 +81,7 @@ async function start() {
   }
 }
 
-start();
+// Only start the server when run directly, not when imported by tests
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  start();
+}

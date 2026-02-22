@@ -1,3 +1,3 @@
-import { config } from '@sprout/config-eslint/base';
+import { config } from "@repo/config-eslint/base";
 
 export default [...config];

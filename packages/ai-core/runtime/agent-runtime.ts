@@ -18,7 +18,7 @@ export async function runAgent(
   options: AgentOptions = {},
 ): Promise<AgentResult> {
   const { maxIterations = 5, onChunk } = options;
-  let currentMessages = [...context.messages];
+  const currentMessages = [...context.messages];
   let iteration = 0;
 
   while (iteration < maxIterations) {
@@ -44,7 +44,10 @@ export async function runAgent(
     if (!result.toolCalls || result.toolCalls.length === 0) {
       if (onChunk) {
         let streamedOutput = "";
-        for await (const chunk of model.stream({ ...context, messages: currentMessages })) {
+        for await (const chunk of model.stream({
+          ...context,
+          messages: currentMessages,
+        })) {
           onChunk(chunk.text);
           streamedOutput += chunk.text;
         }
@@ -60,7 +63,7 @@ export async function runAgent(
     // Handle tool calls
     for (const toolCall of result.toolCalls) {
       const tool = getToolByName(toolCall.name);
-      
+
       if (!tool) {
         console.error(`[AgentRuntime] Tool not found: ${toolCall.name}`);
         currentMessages.push({
@@ -76,7 +79,10 @@ export async function runAgent(
         const raw = toolCall.arguments;
         const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
         const input = tool.schema.parse(parsed);
-        console.log(`[AgentRuntime] Executing tool: ${tool.name} with args:`, input);
+        console.log(
+          `[AgentRuntime] Executing tool: ${tool.name} with args:`,
+          input,
+        );
         const output = await tool.execute(input);
 
         currentMessages.push({
@@ -85,13 +91,16 @@ export async function runAgent(
           name: tool.name,
           content: JSON.stringify(output),
         });
-      } catch (error: any) {
-        console.error(`[AgentRuntime] Tool execution failed: ${tool.name}`, error);
+      } catch (error) {
+        console.error(
+          `[AgentRuntime] Tool execution failed: ${tool.name}`,
+          error,
+        );
         currentMessages.push({
           role: "tool",
           toolCallId: toolCall.id,
           name: tool.name,
-          content: `Error: ${error.message}`,
+          content: `Error: ${error instanceof Error ? error.message : String(error)}`,
         });
       }
     }

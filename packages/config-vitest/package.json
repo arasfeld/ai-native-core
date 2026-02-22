@@ -1,0 +1,13 @@
+{
+  "name": "@repo/config-vitest",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./base": "./base.ts",
+    "./ui": "./ui.ts"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.18"
+  }
+}

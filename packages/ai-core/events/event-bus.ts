@@ -1,4 +1,4 @@
-export type EventPayload = any;
+export type EventPayload = unknown;
 
 type Listener = (payload: EventPayload) => void;
 

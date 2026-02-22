@@ -16,7 +16,9 @@ export interface OpenAIAdapterOptions {
 
 const defaultModel = "gpt-4o-mini";
 
-function toOpenAIMessages(messages: ChatMessage[]): OpenAI.ChatCompletionMessageParam[] {
+function toOpenAIMessages(
+  messages: ChatMessage[],
+): OpenAI.ChatCompletionMessageParam[] {
   return messages.map((m) => {
     if (m.role === "assistant" && m.toolCalls?.length) {
       return {
@@ -27,7 +29,10 @@ function toOpenAIMessages(messages: ChatMessage[]): OpenAI.ChatCompletionMessage
           type: "function" as const,
           function: {
             name: tc.name,
-            arguments: typeof tc.arguments === "string" ? tc.arguments : JSON.stringify(tc.arguments),
+            arguments:
+              typeof tc.arguments === "string"
+                ? tc.arguments
+                : JSON.stringify(tc.arguments),
           },
         })),
       };
@@ -53,7 +58,9 @@ function toOpenAITools(tools: Tool[]): OpenAI.ChatCompletionTool[] {
       name: t.name,
       description: t.description,
       // Cast for Zod 4 vs zod-to-json-schema typings
-      parameters: zodToJsonSchema(t.schema as never, { $refStrategy: "none" }) as OpenAI.ChatCompletionTool["function"]["parameters"],
+      parameters: zodToJsonSchema(t.schema as never, {
+        $refStrategy: "none",
+      }) as OpenAI.ChatCompletionTool["function"]["parameters"],
     },
   }));
 }
@@ -89,7 +96,8 @@ export class OpenAIAdapter implements AIModel {
       stream: true,
       temperature: context.temperature,
       max_tokens: context.maxTokens,
-      ...(context.tools && context.tools.length > 0 && { tools: toOpenAITools(context.tools) }),
+      ...(context.tools &&
+        context.tools.length > 0 && { tools: toOpenAITools(context.tools) }),
     });
 
     for await (const chunk of stream) {
@@ -110,7 +118,8 @@ export class OpenAIAdapter implements AIModel {
       stream: false,
       temperature: context.temperature,
       max_tokens: context.maxTokens,
-      ...(context.tools && context.tools.length > 0 && { tools: toOpenAITools(context.tools) }),
+      ...(context.tools &&
+        context.tools.length > 0 && { tools: toOpenAITools(context.tools) }),
       ...(context.tools && context.tools.length > 0 && { tool_choice: "auto" }),
     });
 
@@ -124,7 +133,7 @@ export class OpenAIAdapter implements AIModel {
     const toolCalls = msg.tool_calls?.map((tc) => ({
       id: tc.id,
       name: tc.function.name,
-      arguments: tc.function.arguments as any, // may be string; runtime will parse and validate
+      arguments: tc.function.arguments,
     }));
 
     return {

@@ -6,13 +6,14 @@ import { registerWeatherTool } from "../tools/weather-tool";
 class MockAgentModel implements AIModel {
   private callCount = 0;
 
-  async *stream(context: ModelContext): AsyncIterable<ModelChunk> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async *stream(_context: ModelContext): AsyncIterable<ModelChunk> {
     yield { text: "Mock response" };
   }
 
   async generate(context: ModelContext): Promise<ModelResult> {
     this.callCount++;
-    
+
     if (this.callCount === 1) {
       // First call: model decides to call the weather tool
       return {
@@ -27,7 +28,7 @@ class MockAgentModel implements AIModel {
       };
     } else {
       // Second call: model sees the tool result and gives a final answer
-      const toolResult = context.messages.find(m => m.role === "tool");
+      const toolResult = context.messages.find((m) => m.role === "tool");
       return {
         output: `The weather in San Francisco is sunny with a temperature of ${JSON.parse(toolResult?.content || "{}").temperature} degrees.`,
       };
@@ -37,14 +38,12 @@ class MockAgentModel implements AIModel {
 
 async function testAgent() {
   console.log("--- Starting Agent Test ---");
-  
+
   registerWeatherTool();
-  
+
   const model = new MockAgentModel();
   const context: ModelContext = {
-    messages: [
-      { role: "user", content: "What is the weather in SF?" }
-    ],
+    messages: [{ role: "user", content: "What is the weather in SF?" }],
   };
 
   try {

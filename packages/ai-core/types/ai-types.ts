@@ -13,7 +13,7 @@ export interface ChatMessage {
   content: string | null;
   toolCalls?: ToolCall[];
   toolCallId?: string; // For role: "tool"
-  name?: string;       // For role: "tool"
+  name?: string; // For role: "tool"
 }
 
 export interface ModelContext {
