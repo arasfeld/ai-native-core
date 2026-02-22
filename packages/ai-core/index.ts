@@ -6,3 +6,6 @@ export * from "./tools/weather-tool";
 export * from "./runtime/agent-runtime";
 export * from "./memory/memory-store";
 export * from "./context/assembler";
+export * from "./embeddings/embedding-interface";
+export * from "./embeddings/openai-embedding-adapter";
+export * from "./retrieval/retriever-interface";

@@ -52,19 +52,9 @@ export async function runAgent(
       messages: currentMessages,
     });
 
-    // Add assistant message to history
-    currentMessages.push({
-      role: "assistant",
-      content: result.output,
-      toolCalls: result.toolCalls?.map((tc) => ({
-        id: tc.id,
-        name: tc.name,
-        arguments: JSON.stringify(tc.arguments),
-      })),
-    });
-
     if (!result.toolCalls || result.toolCalls.length === 0) {
       if (onChunk) {
+        // Stream fresh — currentMessages still ends with the user message
         let streamedOutput = "";
         for await (const chunk of model.stream({
           ...effectiveContext,
@@ -77,12 +67,26 @@ export async function runAgent(
         await writeToMemory(streamedOutput);
         return { output: streamedOutput, history: currentMessages };
       }
+      // Non-streaming: use the generate result
+      currentMessages.push({ role: "assistant", content: result.output });
       await writeToMemory(result.output);
       return {
         output: result.output,
         history: currentMessages,
       };
     }
+
+    // Tool calls: push generate result (with toolCalls) so tool responses have context
+    // Note: tc.arguments is already a JSON string from the adapter — do NOT re-stringify
+    currentMessages.push({
+      role: "assistant",
+      content: result.output,
+      toolCalls: result.toolCalls.map((tc) => ({
+        id: tc.id,
+        name: tc.name,
+        arguments: String(tc.arguments),
+      })),
+    });
 
     // Handle tool calls
     for (const toolCall of result.toolCalls) {

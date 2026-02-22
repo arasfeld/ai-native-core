@@ -86,6 +86,16 @@ export function Chat() {
               }
               return next;
             });
+          } else if (eventMatch?.[1] === "error" && dataMatch?.[1]) {
+            const { message } = JSON.parse(dataMatch[1]) as { message: string };
+            setMessages((prev) => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              if (last?.role === "assistant") {
+                next[next.length - 1] = { ...last, content: `Error: ${message}` };
+              }
+              return next;
+            });
           }
         }
       }

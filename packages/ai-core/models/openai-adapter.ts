@@ -82,9 +82,12 @@ export class OpenAIAdapter implements AIModel {
       apiKey,
       ...(baseURL && { baseURL }),
     });
+
+    console.log(`[OpenAIAdapter] model=${model} baseURL=${baseURL ?? "(default)"} apiKey=${apiKey.slice(0, 8)}...`);
   }
 
   async *stream(context: ModelContext): AsyncIterable<ModelChunk> {
+    console.log(`[OpenAIAdapter] stream() messages=${context.messages.length} tools=${context.tools?.length ?? 0}`);
     const messages = toOpenAIMessages(context.messages);
     if (context.systemPrompt) {
       messages.unshift({ role: "system", content: context.systemPrompt });
@@ -107,6 +110,7 @@ export class OpenAIAdapter implements AIModel {
   }
 
   async generate(context: ModelContext): Promise<ModelResult> {
+    console.log(`[OpenAIAdapter] generate() messages=${context.messages.length} tools=${context.tools?.length ?? 0}`);
     const messages = toOpenAIMessages(context.messages);
     if (context.systemPrompt) {
       messages.unshift({ role: "system", content: context.systemPrompt });
@@ -136,6 +140,7 @@ export class OpenAIAdapter implements AIModel {
       arguments: tc.function.arguments,
     }));
 
+    console.log(`[OpenAIAdapter] generate() → output="${output.slice(0, 80)}" toolCalls=${toolCalls?.length ?? 0}`);
     return {
       output,
       ...(toolCalls && toolCalls.length > 0 && { toolCalls }),

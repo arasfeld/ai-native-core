@@ -9,7 +9,7 @@
 
 services:
   postgres:
-    image: postgres:17-alpine
+    image: pgvector/pgvector:pg17
     container_name: ai-native-postgres
     environment:
       POSTGRES_USER: postgres

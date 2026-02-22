@@ -12,6 +12,7 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
+    "@repo/ai-core": "workspace:*",
     "drizzle-orm": "^0.38.0",
     "postgres": "^3.4.5"
   },

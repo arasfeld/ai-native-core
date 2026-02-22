@@ -2,12 +2,14 @@ import { fileURLToPath } from "url";
 import Fastify from "fastify";
 import {
   OpenAIAdapter,
+  OpenAIEmbeddingAdapter,
   runAgent,
   registerWeatherTool,
   getAllTools,
   IMemoryStore,
+  buildRAGSystemPrompt,
 } from "@repo/ai-core";
-import { PgMemoryStore, migrate } from "@repo/db";
+import { PgMemoryStore, PgVectorStore, PgVectorRetriever, migrate } from "@repo/db";
 import { z } from "zod";
 
 const chatMessageSchema = z.object({
@@ -22,6 +24,11 @@ export const chatBodySchema = z.object({
   sessionId: z.string().optional(),
 });
 
+export const ingestBodySchema = z.object({
+  text: z.string(),
+  source: z.string().optional(),
+});
+
 function getMemory(sessionId: string): IMemoryStore {
   return new PgMemoryStore(sessionId);
 }
@@ -30,10 +37,18 @@ function createModel() {
   const baseURL = process.env.OPENAI_BASE_URL;
   const apiKey = process.env.OPENAI_API_KEY;
   const model = process.env.OPENAI_MODEL;
+  console.log(`[API] createModel: model=${model ?? "(default)"} baseURL=${baseURL ?? "(default)"} apiKey=${apiKey ? apiKey.slice(0, 8) + "..." : "(missing!)"}`);
   return new OpenAIAdapter({
     model: model || undefined,
     baseURL: baseURL || undefined,
     apiKey: apiKey || undefined,
+  });
+}
+
+function createEmbedder() {
+  return new OpenAIEmbeddingAdapter({
+    apiKey: process.env.OPENAI_API_KEY || undefined,
+    baseURL: process.env.OPENAI_BASE_URL || undefined,
   });
 }
 
@@ -58,8 +73,18 @@ export async function buildServer() {
     return { hello: "world" };
   });
 
+  fastify.post("/ingest", async (request) => {
+    const { text, source } = ingestBodySchema.parse(request.body);
+    const embedder = createEmbedder();
+    const store = new PgVectorStore();
+    const embedding = await embedder.embed(text);
+    await store.insert(text, embedding, source);
+    return { ok: true };
+  });
+
   fastify.post("/chat", async (request, reply) => {
     const { message, systemPrompt, history, sessionId } = chatBodySchema.parse(request.body);
+    console.log(`[API] /chat sessionId=${sessionId ?? "none"} historyLen=${history?.length ?? 0} message="${message.slice(0, 80)}"`);
 
     reply.raw.writeHead(200, {
       "Content-Type": "text/event-stream",
@@ -79,13 +104,19 @@ export async function buildServer() {
       { role: "user" as const, content: message },
     ];
     const memory = sessionId ? getMemory(sessionId) : undefined;
+
+    const retriever = new PgVectorRetriever(new PgVectorStore(), createEmbedder());
+    const chunks = await retriever.retrieve(message, 3);
+    // Build RAG-augmented base prompt (empty memory — runAgent will hydrate memory on top)
+    const ragSystemPrompt = buildRAGSystemPrompt(chunks, [], systemPrompt);
+
     try {
       await runAgent(
         model,
         {
           messages,
           tools: getAllTools(),
-          systemPrompt,
+          systemPrompt: ragSystemPrompt || undefined,
         },
         {
           onChunk: (text) => sendEvent("text", { content: text }),
@@ -95,6 +126,7 @@ export async function buildServer() {
       sendEvent("done", {});
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
+      console.error(`[API] /chat error:`, err);
       sendEvent("error", { message });
     } finally {
       reply.raw.end();
