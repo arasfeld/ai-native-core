@@ -1,7 +1,7 @@
 import { AIModel } from "../models/model-interface";
 import { getToolByName } from "../tools/tool-registry";
 import { ChatMessage, ModelContext } from "../types/ai-types";
-import { MemoryStore } from "../memory/memory-store";
+import { IMemoryStore } from "../memory/memory-store";
 import { buildSystemPrompt } from "../context/assembler";
 
 export interface AgentResult {
@@ -12,7 +12,7 @@ export interface AgentResult {
 export interface AgentOptions {
   maxIterations?: number;
   onChunk?: (text: string) => void;
-  memory?: MemoryStore;
+  memory?: IMemoryStore;
 }
 
 export async function runAgent(
@@ -23,7 +23,7 @@ export async function runAgent(
   const { maxIterations = 5, onChunk, memory } = options;
 
   const effectiveSystemPrompt = buildSystemPrompt(
-    memory ? memory.getAll() : [],
+    memory ? await memory.getAll() : [],
     context.systemPrompt,
   );
   const effectiveContext: ModelContext = {
@@ -34,13 +34,13 @@ export async function runAgent(
   const currentMessages = [...context.messages];
   let iteration = 0;
 
-  function writeToMemory(output: string): void {
+  async function writeToMemory(output: string): Promise<void> {
     if (!memory) return;
     const userTurn = context.messages[context.messages.length - 1];
     if (userTurn?.role === "user" && typeof userTurn.content === "string") {
-      memory.add(`User: ${userTurn.content}`);
+      await memory.add(`User: ${userTurn.content}`);
     }
-    memory.add(`Assistant: ${output}`);
+    await memory.add(`Assistant: ${output}`);
   }
 
   while (iteration < maxIterations) {
@@ -74,10 +74,10 @@ export async function runAgent(
           streamedOutput += chunk.text;
         }
         currentMessages.push({ role: "assistant", content: streamedOutput });
-        writeToMemory(streamedOutput);
+        await writeToMemory(streamedOutput);
         return { output: streamedOutput, history: currentMessages };
       }
-      writeToMemory(result.output);
+      await writeToMemory(result.output);
       return {
         output: result.output,
         history: currentMessages,

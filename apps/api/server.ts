@@ -5,8 +5,9 @@ import {
   runAgent,
   registerWeatherTool,
   getAllTools,
-  MemoryStore,
+  IMemoryStore,
 } from "@repo/ai-core";
+import { PgMemoryStore, migrate } from "@repo/db";
 import { z } from "zod";
 
 const chatMessageSchema = z.object({
@@ -21,15 +22,8 @@ export const chatBodySchema = z.object({
   sessionId: z.string().optional(),
 });
 
-const sessionMemory = new Map<string, MemoryStore>();
-
-function getOrCreateMemory(sessionId: string): MemoryStore {
-  let store = sessionMemory.get(sessionId);
-  if (!store) {
-    store = new MemoryStore();
-    sessionMemory.set(sessionId, store);
-  }
-  return store;
+function getMemory(sessionId: string): IMemoryStore {
+  return new PgMemoryStore(sessionId);
 }
 
 function createModel() {
@@ -45,6 +39,9 @@ function createModel() {
 
 export async function buildServer() {
   const fastify = Fastify({ logger: true });
+
+  // Ensure DB schema exists
+  await migrate();
 
   // Register tools on startup
   registerWeatherTool();
@@ -81,7 +78,7 @@ export async function buildServer() {
       ...(history ?? []),
       { role: "user" as const, content: message },
     ];
-    const memory = sessionId ? getOrCreateMemory(sessionId) : undefined;
+    const memory = sessionId ? getMemory(sessionId) : undefined;
     try {
       await runAgent(
         model,

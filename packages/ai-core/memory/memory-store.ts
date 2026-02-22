@@ -1,12 +1,17 @@
-export class MemoryStore {
+export interface IMemoryStore {
+  add(entry: string): Promise<void>;
+  getAll(): Promise<string[]>;
+}
+
+export class MemoryStore implements IMemoryStore {
   private memory: string[] = [];
 
-  add(entry: string) {
+  async add(entry: string): Promise<void> {
     this.memory.push(entry);
     console.log("[MemoryStore] Added:", entry);
   }
 
-  getAll() {
+  async getAll(): Promise<string[]> {
     return this.memory;
   }
 }

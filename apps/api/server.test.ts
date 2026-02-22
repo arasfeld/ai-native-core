@@ -7,10 +7,14 @@ vi.mock("@repo/ai-core", () => ({
   runAgent: mockRunAgent,
   registerWeatherTool: vi.fn(),
   getAllTools: vi.fn().mockReturnValue([]),
-  MemoryStore: class MockMemoryStore {
-    private entries: string[] = [];
-    add(entry: string) { this.entries.push(entry); }
-    getAll() { return this.entries; }
+}));
+
+vi.mock("@repo/db", () => ({
+  migrate: vi.fn().mockResolvedValue(undefined),
+  PgMemoryStore: class MockPgMemoryStore {
+    constructor(public readonly sessionId: string) {}
+    async add(_entry: string) {}
+    async getAll() { return []; }
   },
 }));
 
@@ -138,7 +142,7 @@ describe("POST /chat — session memory", () => {
     await server.close();
   });
 
-  it("passes a MemoryStore when sessionId is provided", async () => {
+  it("passes a memory store when sessionId is provided", async () => {
     const server = await buildServer();
     await server.inject({
       method: "POST",
@@ -150,7 +154,7 @@ describe("POST /chat — session memory", () => {
     await server.close();
   });
 
-  it("same sessionId reuses the same MemoryStore instance", async () => {
+  it("same sessionId produces stores with matching sessionId", async () => {
     const server = await buildServer();
     await server.inject({
       method: "POST",
@@ -164,11 +168,12 @@ describe("POST /chat — session memory", () => {
     });
     const mem1 = mockRunAgent.mock.calls[0]![2]!.memory;
     const mem2 = mockRunAgent.mock.calls[1]![2]!.memory;
-    expect(mem1).toBe(mem2);
+    expect(mem1.sessionId).toBe("same-session");
+    expect(mem2.sessionId).toBe("same-session");
     await server.close();
   });
 
-  it("different sessionIds get different MemoryStore instances", async () => {
+  it("different sessionIds get stores with different sessionIds", async () => {
     const server = await buildServer();
     await server.inject({
       method: "POST",
@@ -182,7 +187,8 @@ describe("POST /chat — session memory", () => {
     });
     const mem1 = mockRunAgent.mock.calls[0]![2]!.memory;
     const mem2 = mockRunAgent.mock.calls[1]![2]!.memory;
-    expect(mem1).not.toBe(mem2);
+    expect(mem1.sessionId).toBe("session-a");
+    expect(mem2.sessionId).toBe("session-b");
     await server.close();
   });
 });

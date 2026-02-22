@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@repo/ai-core": "workspace:*",
+    "@repo/db": "workspace:*",
     "fastify": "^5.7.4",
     "zod": "^4.3.6"
   },

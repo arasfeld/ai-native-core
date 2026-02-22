@@ -8,25 +8,25 @@ describe("MemoryStore", () => {
     store = new MemoryStore();
   });
 
-  it("starts empty", () => {
-    expect(store.getAll()).toEqual([]);
+  it("starts empty", async () => {
+    expect(await store.getAll()).toEqual([]);
   });
 
-  it("add() stores a single entry", () => {
-    store.add("hello");
-    expect(store.getAll()).toContain("hello");
+  it("add() stores a single entry", async () => {
+    await store.add("hello");
+    expect(await store.getAll()).toContain("hello");
   });
 
-  it("add() accumulates multiple entries in order", () => {
-    store.add("first");
-    store.add("second");
-    expect(store.getAll()).toEqual(["first", "second"]);
+  it("add() accumulates multiple entries in order", async () => {
+    await store.add("first");
+    await store.add("second");
+    expect(await store.getAll()).toEqual(["first", "second"]);
   });
 
-  it("getAll() reflects all adds", () => {
-    store.add("a");
-    store.add("b");
-    store.add("c");
-    expect(store.getAll()).toHaveLength(3);
+  it("getAll() reflects all adds", async () => {
+    await store.add("a");
+    await store.add("b");
+    await store.add("c");
+    expect(await store.getAll()).toHaveLength(3);
   });
 });

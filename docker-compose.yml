@@ -1,9 +1,26 @@
+# Postgres: primary database for session memory persistence.
+# Start: docker compose up -d postgres
+# Connection: postgresql://postgres:postgres@localhost:5432/aicore
+#
 # Ollama: local OpenAI-compatible API for testing without paid OpenAI/Anthropic.
 # Start: docker compose up -d ollama
 # Then pull a model: docker compose exec ollama ollama run llama3.2
 # API: http://localhost:11434/v1
 
 services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: ai-native-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: aicore
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
   ollama:
     image: ollama/ollama:latest
     container_name: ai-native-ollama
@@ -14,4 +31,5 @@ services:
     restart: unless-stopped
 
 volumes:
+  postgres_data:
   ollama_data:

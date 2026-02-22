@@ -128,8 +128,8 @@ describe("runAgent — streaming", () => {
 describe("runAgent — memory integration", () => {
   it("injects memory entries into system prompt (non-streaming)", async () => {
     const memory = new MemoryStore();
-    memory.add("User: previous question");
-    memory.add("Assistant: previous answer");
+    await memory.add("User: previous question");
+    await memory.add("Assistant: previous answer");
 
     const model = makeModel({
       generate: vi.fn().mockResolvedValue({ output: "reply" }),
@@ -145,8 +145,8 @@ describe("runAgent — memory integration", () => {
 
   it("injects memory entries into system prompt (streaming)", async () => {
     const memory = new MemoryStore();
-    memory.add("User: past");
-    memory.add("Assistant: remembered");
+    await memory.add("User: past");
+    await memory.add("Assistant: remembered");
 
     const model = makeModel({
       generate: vi.fn().mockResolvedValue({ output: "" }),
@@ -169,7 +169,7 @@ describe("runAgent — memory integration", () => {
     });
     await runAgent(model, baseContext, { memory });
 
-    const entries = memory.getAll();
+    const entries = await memory.getAll();
     expect(entries).toContain("User: hello");
     expect(entries).toContain("Assistant: my answer");
   });
@@ -185,7 +185,7 @@ describe("runAgent — memory integration", () => {
     });
     await runAgent(model, baseContext, { onChunk: () => {}, memory });
 
-    const entries = memory.getAll();
+    const entries = await memory.getAll();
     expect(entries).toContain("User: hello");
     expect(entries).toContain("Assistant: streamed");
   });
@@ -208,7 +208,7 @@ describe("runAgent — memory integration", () => {
 
   it("preserves base systemPrompt alongside memory entries", async () => {
     const memory = new MemoryStore();
-    memory.add("User: past");
+    await memory.add("User: past");
 
     const model = makeModel({
       generate: vi.fn().mockResolvedValue({ output: "ok" }),
