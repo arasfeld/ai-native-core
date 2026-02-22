@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
 import { runAgent } from "./agent-runtime";
 import { registerTool } from "../tools/tool-registry";
+import { MemoryStore } from "../memory/memory-store";
 import type { AIModel } from "../models/model-interface";
 
 // Minimal mock model factory
@@ -121,5 +122,102 @@ describe("runAgent — streaming", () => {
     const streamCtx = (model.stream as ReturnType<typeof vi.fn>).mock
       .calls[0]![0]!;
     expect(streamCtx.systemPrompt).toBe("Be brief.");
+  });
+});
+
+describe("runAgent — memory integration", () => {
+  it("injects memory entries into system prompt (non-streaming)", async () => {
+    const memory = new MemoryStore();
+    memory.add("User: previous question");
+    memory.add("Assistant: previous answer");
+
+    const model = makeModel({
+      generate: vi.fn().mockResolvedValue({ output: "reply" }),
+    });
+    await runAgent(model, baseContext, { memory });
+
+    const generateCtx = (model.generate as ReturnType<typeof vi.fn>).mock
+      .calls[0]![0]!;
+    expect(generateCtx.systemPrompt).toContain("Past conversation:");
+    expect(generateCtx.systemPrompt).toContain("User: previous question");
+    expect(generateCtx.systemPrompt).toContain("Assistant: previous answer");
+  });
+
+  it("injects memory entries into system prompt (streaming)", async () => {
+    const memory = new MemoryStore();
+    memory.add("User: past");
+    memory.add("Assistant: remembered");
+
+    const model = makeModel({
+      generate: vi.fn().mockResolvedValue({ output: "" }),
+      stream: vi.fn().mockImplementation(async function* () {
+        yield { text: "streamed" };
+      }),
+    });
+    await runAgent(model, baseContext, { onChunk: () => {}, memory });
+
+    const streamCtx = (model.stream as ReturnType<typeof vi.fn>).mock
+      .calls[0]![0]!;
+    expect(streamCtx.systemPrompt).toContain("Past conversation:");
+    expect(streamCtx.systemPrompt).toContain("User: past");
+  });
+
+  it("writes user turn and assistant reply to store after non-streaming return", async () => {
+    const memory = new MemoryStore();
+    const model = makeModel({
+      generate: vi.fn().mockResolvedValue({ output: "my answer" }),
+    });
+    await runAgent(model, baseContext, { memory });
+
+    const entries = memory.getAll();
+    expect(entries).toContain("User: hello");
+    expect(entries).toContain("Assistant: my answer");
+  });
+
+  it("writes user turn and assistant reply to store after streaming return", async () => {
+    const memory = new MemoryStore();
+    const model = makeModel({
+      generate: vi.fn().mockResolvedValue({ output: "" }),
+      stream: vi.fn().mockImplementation(async function* () {
+        yield { text: "stream" };
+        yield { text: "ed" };
+      }),
+    });
+    await runAgent(model, baseContext, { onChunk: () => {}, memory });
+
+    const entries = memory.getAll();
+    expect(entries).toContain("User: hello");
+    expect(entries).toContain("Assistant: streamed");
+  });
+
+  it("does not write to memory when memory option is absent", async () => {
+    const model = makeModel({
+      generate: vi.fn().mockResolvedValue({ output: "no memory" }),
+    });
+    // Should not throw when no memory provided
+    await expect(runAgent(model, baseContext)).resolves.toBeDefined();
+  });
+
+  it("does not throw when store is empty", async () => {
+    const memory = new MemoryStore();
+    const model = makeModel({
+      generate: vi.fn().mockResolvedValue({ output: "ok" }),
+    });
+    await expect(runAgent(model, baseContext, { memory })).resolves.toBeDefined();
+  });
+
+  it("preserves base systemPrompt alongside memory entries", async () => {
+    const memory = new MemoryStore();
+    memory.add("User: past");
+
+    const model = makeModel({
+      generate: vi.fn().mockResolvedValue({ output: "ok" }),
+    });
+    await runAgent(model, { ...baseContext, systemPrompt: "Be helpful." }, { memory });
+
+    const generateCtx = (model.generate as ReturnType<typeof vi.fn>).mock
+      .calls[0]![0]!;
+    expect(generateCtx.systemPrompt).toContain("Be helpful.");
+    expect(generateCtx.systemPrompt).toContain("Past conversation:");
   });
 });

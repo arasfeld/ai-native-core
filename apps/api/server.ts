@@ -5,6 +5,7 @@ import {
   runAgent,
   registerWeatherTool,
   getAllTools,
+  MemoryStore,
 } from "@repo/ai-core";
 import { z } from "zod";
 
@@ -17,7 +18,19 @@ export const chatBodySchema = z.object({
   message: z.string(),
   systemPrompt: z.string().optional(),
   history: z.array(chatMessageSchema).optional(),
+  sessionId: z.string().optional(),
 });
+
+const sessionMemory = new Map<string, MemoryStore>();
+
+function getOrCreateMemory(sessionId: string): MemoryStore {
+  let store = sessionMemory.get(sessionId);
+  if (!store) {
+    store = new MemoryStore();
+    sessionMemory.set(sessionId, store);
+  }
+  return store;
+}
 
 function createModel() {
   const baseURL = process.env.OPENAI_BASE_URL;
@@ -49,7 +62,7 @@ export async function buildServer() {
   });
 
   fastify.post("/chat", async (request, reply) => {
-    const { message, systemPrompt, history } = chatBodySchema.parse(request.body);
+    const { message, systemPrompt, history, sessionId } = chatBodySchema.parse(request.body);
 
     reply.raw.writeHead(200, {
       "Content-Type": "text/event-stream",
@@ -67,6 +80,7 @@ export async function buildServer() {
       ...(history ?? []),
       { role: "user" as const, content: message },
     ];
+    const memory = sessionId ? getOrCreateMemory(sessionId) : undefined;
     try {
       await runAgent(
         model,
@@ -75,7 +89,10 @@ export async function buildServer() {
           tools: getAllTools(),
           systemPrompt,
         },
-        { onChunk: (text) => sendEvent("text", { content: text }) },
+        {
+          onChunk: (text) => sendEvent("text", { content: text }),
+          memory,
+        },
       );
       sendEvent("done", {});
     } catch (err) {

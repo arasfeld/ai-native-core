@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
-import { assembleContext } from "./assembler";
+import { assembleContext, buildSystemPrompt } from "./assembler";
 
 describe("assembleContext", () => {
   it("includes the user input", () => {
@@ -51,5 +51,32 @@ describe("assembleContext", () => {
     expect(result).toContain("Memory: ctx");
     expect(result).toContain("calc");
     expect(result).toContain("User input: go");
+  });
+});
+
+describe("buildSystemPrompt", () => {
+  it("returns empty string with no args", () => {
+    expect(buildSystemPrompt([])).toBe("");
+  });
+
+  it("returns base when no entries", () => {
+    expect(buildSystemPrompt([], "Be concise.")).toBe("Be concise.");
+  });
+
+  it("returns memory block when no base", () => {
+    const result = buildSystemPrompt(["User: hi", "Assistant: hello"]);
+    expect(result).toContain("Past conversation:");
+    expect(result).toContain("User: hi");
+    expect(result).toContain("Assistant: hello");
+  });
+
+  it("joins both with double newline separator", () => {
+    const result = buildSystemPrompt(["User: hi"], "Be brief.");
+    expect(result).toBe("Be brief.\n\nPast conversation:\nUser: hi");
+  });
+
+  it("joins multiple entries with newline", () => {
+    const result = buildSystemPrompt(["User: a", "Assistant: b", "User: c"]);
+    expect(result).toBe("Past conversation:\nUser: a\nAssistant: b\nUser: c");
   });
 });

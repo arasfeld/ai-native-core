@@ -18,3 +18,11 @@ export function assembleContext({
   prompt += `User input: ${userInput}`;
   return prompt;
 }
+
+export function buildSystemPrompt(entries: string[], base?: string): string {
+  const parts: string[] = [];
+  if (base) parts.push(base);
+  if (entries.length > 0)
+    parts.push(`Past conversation:\n${entries.join("\n")}`);
+  return parts.join("\n\n");
+}

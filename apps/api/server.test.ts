@@ -7,6 +7,11 @@ vi.mock("@repo/ai-core", () => ({
   runAgent: mockRunAgent,
   registerWeatherTool: vi.fn(),
   getAllTools: vi.fn().mockReturnValue([]),
+  MemoryStore: class MockMemoryStore {
+    private entries: string[] = [];
+    add(entry: string) { this.entries.push(entry); }
+    getAll() { return this.entries; }
+  },
 }));
 
 import { chatBodySchema, buildServer } from "./server.js";
@@ -116,6 +121,68 @@ describe("POST /chat", () => {
     });
     const context = mockRunAgent.mock.calls[0]![1]!;
     expect(context.systemPrompt).toBe("Be brief.");
+    await server.close();
+  });
+});
+
+describe("POST /chat — session memory", () => {
+  it("passes undefined memory when no sessionId", async () => {
+    const server = await buildServer();
+    await server.inject({
+      method: "POST",
+      url: "/chat",
+      payload: { message: "hi" },
+    });
+    const opts = mockRunAgent.mock.calls[0]![2]!;
+    expect(opts.memory).toBeUndefined();
+    await server.close();
+  });
+
+  it("passes a MemoryStore when sessionId is provided", async () => {
+    const server = await buildServer();
+    await server.inject({
+      method: "POST",
+      url: "/chat",
+      payload: { message: "hi", sessionId: "s1" },
+    });
+    const opts = mockRunAgent.mock.calls[0]![2]!;
+    expect(opts.memory).toBeDefined();
+    await server.close();
+  });
+
+  it("same sessionId reuses the same MemoryStore instance", async () => {
+    const server = await buildServer();
+    await server.inject({
+      method: "POST",
+      url: "/chat",
+      payload: { message: "first", sessionId: "same-session" },
+    });
+    await server.inject({
+      method: "POST",
+      url: "/chat",
+      payload: { message: "second", sessionId: "same-session" },
+    });
+    const mem1 = mockRunAgent.mock.calls[0]![2]!.memory;
+    const mem2 = mockRunAgent.mock.calls[1]![2]!.memory;
+    expect(mem1).toBe(mem2);
+    await server.close();
+  });
+
+  it("different sessionIds get different MemoryStore instances", async () => {
+    const server = await buildServer();
+    await server.inject({
+      method: "POST",
+      url: "/chat",
+      payload: { message: "hi", sessionId: "session-a" },
+    });
+    await server.inject({
+      method: "POST",
+      url: "/chat",
+      payload: { message: "hi", sessionId: "session-b" },
+    });
+    const mem1 = mockRunAgent.mock.calls[0]![2]!.memory;
+    const mem2 = mockRunAgent.mock.calls[1]![2]!.memory;
+    expect(mem1).not.toBe(mem2);
     await server.close();
   });
 });
