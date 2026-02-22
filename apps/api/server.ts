@@ -69,6 +69,7 @@ export async function buildServer() {
       "Cache-Control": "no-cache",
       Connection: "keep-alive",
       "X-Accel-Buffering": "no",
+      "Access-Control-Allow-Origin": process.env.CORS_ORIGIN ?? "http://localhost:3000",
     });
 
     const sendEvent = (event: string, data: object) => {

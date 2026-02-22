@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
 import styles from "./chat.module.css";
 
 type Message = {
@@ -15,10 +16,27 @@ export function Chat() {
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const [sessionId] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    const stored = localStorage.getItem("ai-chat-session-id");
+    if (stored) return stored;
+    const id = crypto.randomUUID();
+    localStorage.setItem("ai-chat-session-id", id);
+    return id;
+  });
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [input]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -37,7 +55,7 @@ export function Chat() {
       const res = await fetch(`${API_URL}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, history: messages }),
+        body: JSON.stringify({ message: text, history: messages, sessionId }),
       });
 
       if (!res.body) throw new Error("No response body");
@@ -88,6 +106,13 @@ export function Chat() {
     }
   }
 
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e as unknown as React.FormEvent);
+    }
+  }
+
   return (
     <div className={styles.container}>
       <div className={styles.messages}>
@@ -99,20 +124,32 @@ export function Chat() {
             key={i}
             className={`${styles.bubble} ${msg.role === "user" ? styles.user : styles.assistant}`}
           >
-            {msg.content || <span className={styles.cursor}>▋</span>}
+            {msg.role === "assistant" ? (
+              msg.content ? (
+                <div className={styles.markdown}>
+                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                </div>
+              ) : (
+                <span className={styles.cursor}>▋</span>
+              )
+            ) : (
+              msg.content
+            )}
           </div>
         ))}
         <div ref={bottomRef} />
       </div>
       <form className={styles.form} onSubmit={handleSubmit}>
-        <input
+        <textarea
+          ref={textareaRef}
           className={styles.input}
-          type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Type a message…"
+          onKeyDown={handleKeyDown}
+          placeholder="Type a message… (Enter to send, Shift+Enter for newline)"
           disabled={isStreaming}
           autoFocus
+          rows={1}
         />
         <button
           className={styles.button}
