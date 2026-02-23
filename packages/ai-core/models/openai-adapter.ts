@@ -2,7 +2,11 @@ import OpenAI from "openai";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import type { AIModel, ModelChunk, ModelResult } from "./model-interface";
 import type { Tool } from "../tools/tool-registry";
-import type { ChatMessage, ModelContext, UsageMetrics } from "../types/ai-types";
+import type {
+  ChatMessage,
+  ModelContext,
+  UsageMetrics,
+} from "../types/ai-types";
 
 /** Options for the OpenAI-compatible adapter (OpenAI or Ollama). */
 export interface OpenAIAdapterOptions {
@@ -57,10 +61,11 @@ function toOpenAITools(tools: Tool[]): OpenAI.ChatCompletionTool[] {
     function: {
       name: t.name,
       description: t.description,
-      // Cast for Zod 4 vs zod-to-json-schema typings
+      // Cast for Zod 4 vs zod-to-json-schema typings.
+      // Extract the function-tool variant to avoid indexing the ChatCompletionTool union (v6+).
       parameters: zodToJsonSchema(t.schema as never, {
         $refStrategy: "none",
-      }) as OpenAI.ChatCompletionTool["function"]["parameters"],
+      }) as Extract<OpenAI.ChatCompletionTool, { type: "function" }>["function"]["parameters"],
     },
   }));
 }
@@ -83,11 +88,15 @@ export class OpenAIAdapter implements AIModel {
       ...(baseURL && { baseURL }),
     });
 
-    console.log(`[OpenAIAdapter] model=${model} baseURL=${baseURL ?? "(default)"} apiKey=${apiKey.slice(0, 8)}...`);
+    console.log(
+      `[OpenAIAdapter] model=${model} baseURL=${baseURL ?? "(default)"} apiKey=${apiKey.slice(0, 8)}...`,
+    );
   }
 
   async *stream(context: ModelContext): AsyncIterable<ModelChunk> {
-    console.log(`[OpenAIAdapter] stream() messages=${context.messages.length} tools=${context.tools?.length ?? 0}`);
+    console.log(
+      `[OpenAIAdapter] stream() messages=${context.messages.length} tools=${context.tools?.length ?? 0}`,
+    );
     const messages = toOpenAIMessages(context.messages);
     if (context.systemPrompt) {
       messages.unshift({ role: "system", content: context.systemPrompt });
@@ -126,7 +135,9 @@ export class OpenAIAdapter implements AIModel {
   }
 
   async generate(context: ModelContext): Promise<ModelResult> {
-    console.log(`[OpenAIAdapter] generate() messages=${context.messages.length} tools=${context.tools?.length ?? 0}`);
+    console.log(
+      `[OpenAIAdapter] generate() messages=${context.messages.length} tools=${context.tools?.length ?? 0}`,
+    );
     const messages = toOpenAIMessages(context.messages);
     if (context.systemPrompt) {
       messages.unshift({ role: "system", content: context.systemPrompt });
@@ -151,11 +162,18 @@ export class OpenAIAdapter implements AIModel {
 
     const msg = choice.message;
     const output = typeof msg.content === "string" ? msg.content : "";
-    const toolCalls = msg.tool_calls?.map((tc) => ({
-      id: tc.id,
-      name: tc.function.name,
-      arguments: tc.function.arguments,
-    }));
+    // Extract the function-call variant of the union to safely access .function (v6+).
+    type FunctionToolCall = Extract<
+      OpenAI.ChatCompletionMessageToolCall,
+      { type: "function" }
+    >;
+    const toolCalls = msg.tool_calls
+      ?.filter((tc): tc is FunctionToolCall => tc.type === "function")
+      .map((tc) => ({
+        id: tc.id,
+        name: tc.function.name,
+        arguments: tc.function.arguments,
+      }));
 
     const usage: UsageMetrics | undefined = response.usage
       ? {
@@ -166,7 +184,9 @@ export class OpenAIAdapter implements AIModel {
         }
       : undefined;
 
-    console.log(`[OpenAIAdapter] generate() → output="${output.slice(0, 80)}" toolCalls=${toolCalls?.length ?? 0}`);
+    console.log(
+      `[OpenAIAdapter] generate() → output="${output.slice(0, 80)}" toolCalls=${toolCalls?.length ?? 0}`,
+    );
     return {
       output,
       ...(toolCalls && toolCalls.length > 0 && { toolCalls }),

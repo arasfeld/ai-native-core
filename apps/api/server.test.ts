@@ -13,8 +13,10 @@ vi.mock("@repo/db", () => ({
   migrate: vi.fn().mockResolvedValue(undefined),
   PgMemoryStore: class MockPgMemoryStore {
     constructor(public readonly sessionId: string) {}
-    async add(_entry: string) {}
-    async getAll() { return []; }
+    async add() {}
+    async getAll() {
+      return [];
+    }
   },
 }));
 

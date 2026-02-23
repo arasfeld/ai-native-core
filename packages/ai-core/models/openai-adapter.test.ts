@@ -46,6 +46,7 @@ describe("OpenAIAdapter — generate()", () => {
             tool_calls: [
               {
                 id: "call-1",
+                type: "function" as const,
                 function: {
                   name: "get_weather",
                   arguments: '{"location":"Tokyo"}',
