@@ -111,7 +111,7 @@ export async function buildServer() {
     const ragSystemPrompt = buildRAGSystemPrompt(chunks, [], systemPrompt);
 
     try {
-      await runAgent(
+      const result = await runAgent(
         model,
         {
           messages,
@@ -123,6 +123,10 @@ export async function buildServer() {
           memory,
         },
       );
+      if (result.usage) {
+        const u = result.usage;
+        console.log(`[API] /chat usage: prompt=${u.promptTokens} completion=${u.completionTokens} total=${u.totalTokens} duration=${u.durationMs}ms`);
+      }
       sendEvent("done", {});
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";

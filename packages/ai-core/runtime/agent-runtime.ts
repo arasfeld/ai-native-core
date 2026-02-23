@@ -1,18 +1,30 @@
 import { AIModel } from "../models/model-interface";
 import { getToolByName } from "../tools/tool-registry";
-import { ChatMessage, ModelContext } from "../types/ai-types";
+import { ChatMessage, ModelContext, UsageMetrics } from "../types/ai-types";
 import { IMemoryStore } from "../memory/memory-store";
 import { buildSystemPrompt } from "../context/assembler";
 
 export interface AgentResult {
   output: string;
   history: ChatMessage[];
+  usage?: UsageMetrics;
 }
 
 export interface AgentOptions {
   maxIterations?: number;
   onChunk?: (text: string) => void;
   memory?: IMemoryStore;
+  onUsage?: (usage: UsageMetrics, iteration: number) => void;
+}
+
+function addUsage(a: UsageMetrics | undefined, b: UsageMetrics): UsageMetrics {
+  if (!a) return b;
+  return {
+    promptTokens: a.promptTokens + b.promptTokens,
+    completionTokens: a.completionTokens + b.completionTokens,
+    totalTokens: a.totalTokens + b.totalTokens,
+    durationMs: a.durationMs + b.durationMs,
+  };
 }
 
 export async function runAgent(
@@ -20,7 +32,8 @@ export async function runAgent(
   context: ModelContext,
   options: AgentOptions = {},
 ): Promise<AgentResult> {
-  const { maxIterations = 5, onChunk, memory } = options;
+  const { maxIterations = 5, onChunk, memory, onUsage } = options;
+  let accumulatedUsage: UsageMetrics | undefined;
 
   const effectiveSystemPrompt = buildSystemPrompt(
     memory ? await memory.getAll() : [],
@@ -52,20 +65,35 @@ export async function runAgent(
       messages: currentMessages,
     });
 
+    if (result.usage) {
+      accumulatedUsage = addUsage(accumulatedUsage, result.usage);
+      onUsage?.(result.usage, iteration);
+    }
+
     if (!result.toolCalls || result.toolCalls.length === 0) {
       if (onChunk) {
         // Stream fresh — currentMessages still ends with the user message
         let streamedOutput = "";
+        let streamUsage: UsageMetrics | undefined;
         for await (const chunk of model.stream({
           ...effectiveContext,
           messages: currentMessages,
         })) {
-          onChunk(chunk.text);
-          streamedOutput += chunk.text;
+          if (chunk.usage) {
+            streamUsage = chunk.usage;
+          }
+          if (chunk.text) {
+            onChunk(chunk.text);
+            streamedOutput += chunk.text;
+          }
+        }
+        if (streamUsage) {
+          accumulatedUsage = addUsage(accumulatedUsage, streamUsage);
+          onUsage?.(streamUsage, iteration);
         }
         currentMessages.push({ role: "assistant", content: streamedOutput });
         await writeToMemory(streamedOutput);
-        return { output: streamedOutput, history: currentMessages };
+        return { output: streamedOutput, history: currentMessages, usage: accumulatedUsage };
       }
       // Non-streaming: use the generate result
       currentMessages.push({ role: "assistant", content: result.output });
@@ -73,6 +101,7 @@ export async function runAgent(
       return {
         output: result.output,
         history: currentMessages,
+        usage: accumulatedUsage,
       };
     }
 

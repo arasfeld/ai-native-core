@@ -1,7 +1,9 @@
-import { ModelContext } from "../types/ai-types";
+import { ModelContext, UsageMetrics } from "../types/ai-types";
 
 export interface ModelChunk {
   text: string;
+  /** Present only on the final chunk when usage tracking is enabled; text will be "". */
+  usage?: UsageMetrics;
 }
 
 export interface ModelResult {
@@ -11,6 +13,7 @@ export interface ModelResult {
     name: string;
     arguments: unknown;
   }[];
+  usage?: UsageMetrics;
 }
 
 export interface AIModel {

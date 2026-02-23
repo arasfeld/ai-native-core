@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import type { AIModel, ModelChunk, ModelResult } from "./model-interface";
 import type { Tool } from "../tools/tool-registry";
-import type { ChatMessage, ModelContext } from "../types/ai-types";
+import type { ChatMessage, ModelContext, UsageMetrics } from "../types/ai-types";
 
 /** Options for the OpenAI-compatible adapter (OpenAI or Ollama). */
 export interface OpenAIAdapterOptions {
@@ -93,19 +93,35 @@ export class OpenAIAdapter implements AIModel {
       messages.unshift({ role: "system", content: context.systemPrompt });
     }
 
+    const startMs = Date.now();
     const stream = await this.client.chat.completions.create({
       model: this.model,
       messages,
       stream: true,
+      stream_options: { include_usage: true },
       temperature: context.temperature,
       max_tokens: context.maxTokens,
       ...(context.tools &&
         context.tools.length > 0 && { tools: toOpenAITools(context.tools) }),
     });
 
+    let capturedUsage: OpenAI.CompletionUsage | null = null;
     for await (const chunk of stream) {
+      if (chunk.usage) {
+        capturedUsage = chunk.usage;
+      }
       const delta = chunk.choices[0]?.delta?.content;
       if (delta) yield { text: delta };
+    }
+
+    if (capturedUsage) {
+      const usage: UsageMetrics = {
+        promptTokens: capturedUsage.prompt_tokens,
+        completionTokens: capturedUsage.completion_tokens,
+        totalTokens: capturedUsage.total_tokens,
+        durationMs: Date.now() - startMs,
+      };
+      yield { text: "", usage };
     }
   }
 
@@ -116,6 +132,7 @@ export class OpenAIAdapter implements AIModel {
       messages.unshift({ role: "system", content: context.systemPrompt });
     }
 
+    const startMs = Date.now();
     const response = await this.client.chat.completions.create({
       model: this.model,
       messages,
@@ -140,10 +157,20 @@ export class OpenAIAdapter implements AIModel {
       arguments: tc.function.arguments,
     }));
 
+    const usage: UsageMetrics | undefined = response.usage
+      ? {
+          promptTokens: response.usage.prompt_tokens,
+          completionTokens: response.usage.completion_tokens,
+          totalTokens: response.usage.total_tokens,
+          durationMs: Date.now() - startMs,
+        }
+      : undefined;
+
     console.log(`[OpenAIAdapter] generate() → output="${output.slice(0, 80)}" toolCalls=${toolCalls?.length ?? 0}`);
     return {
       output,
       ...(toolCalls && toolCalls.length > 0 && { toolCalls }),
+      ...(usage && { usage }),
     };
   }
 }

@@ -4,6 +4,14 @@ import { runAgent } from "./agent-runtime";
 import { registerTool } from "../tools/tool-registry";
 import { MemoryStore } from "../memory/memory-store";
 import type { AIModel } from "../models/model-interface";
+import type { UsageMetrics } from "../types/ai-types";
+
+const sampleUsage: UsageMetrics = {
+  promptTokens: 10,
+  completionTokens: 5,
+  totalTokens: 15,
+  durationMs: 100,
+};
 
 // Minimal mock model factory
 function makeModel(overrides: Partial<AIModel> = {}): AIModel {
@@ -122,6 +130,73 @@ describe("runAgent — streaming", () => {
     const streamCtx = (model.stream as ReturnType<typeof vi.fn>).mock
       .calls[0]![0]!;
     expect(streamCtx.systemPrompt).toBe("Be brief.");
+  });
+});
+
+describe("runAgent — usage tracking", () => {
+  it("returns usage from generate() in non-streaming mode", async () => {
+    const model = makeModel({
+      generate: vi.fn().mockResolvedValue({ output: "hello", usage: sampleUsage }),
+    });
+    const result = await runAgent(model, baseContext);
+    expect(result.usage).toEqual(sampleUsage);
+  });
+
+  it("returns undefined usage when model does not emit it", async () => {
+    const model = makeModel({
+      generate: vi.fn().mockResolvedValue({ output: "hello" }),
+    });
+    const result = await runAgent(model, baseContext);
+    expect(result.usage).toBeUndefined();
+  });
+
+  it("calls onUsage callback once per iteration (non-streaming)", async () => {
+    const model = makeModel({
+      generate: vi.fn().mockResolvedValue({ output: "hello", usage: sampleUsage }),
+    });
+    const onUsage = vi.fn();
+    await runAgent(model, baseContext, { onUsage });
+    expect(onUsage).toHaveBeenCalledTimes(1);
+    expect(onUsage).toHaveBeenCalledWith(sampleUsage, 1);
+  });
+
+  it("accumulates usage across two iterations (tool call loop)", async () => {
+    const toolUsage: UsageMetrics = { promptTokens: 20, completionTokens: 3, totalTokens: 23, durationMs: 50 };
+    const finalUsage: UsageMetrics = { promptTokens: 25, completionTokens: 8, totalTokens: 33, durationMs: 80 };
+    const model = makeModel({
+      generate: vi
+        .fn()
+        .mockResolvedValueOnce({
+          output: "",
+          toolCalls: [{ id: "c1", name: "rt-echo", arguments: { msg: "ping" } }],
+          usage: toolUsage,
+        })
+        .mockResolvedValueOnce({ output: "pong", usage: finalUsage }),
+    });
+    const onUsage = vi.fn();
+    const result = await runAgent(model, baseContext, { onUsage });
+    expect(onUsage).toHaveBeenCalledTimes(2);
+    expect(result.usage).toEqual({
+      promptTokens: 45,
+      completionTokens: 11,
+      totalTokens: 56,
+      durationMs: 130,
+    });
+  });
+
+  it("captures usage from the final stream chunk", async () => {
+    const streamUsage: UsageMetrics = { promptTokens: 12, completionTokens: 6, totalTokens: 18, durationMs: 60 };
+    const model = makeModel({
+      generate: vi.fn().mockResolvedValue({ output: "" }),
+      stream: vi.fn().mockImplementation(async function* () {
+        yield { text: "streamed" };
+        yield { text: "", usage: streamUsage };
+      }),
+    });
+    const onUsage = vi.fn();
+    const result = await runAgent(model, baseContext, { onChunk: () => {}, onUsage });
+    expect(result.usage).toEqual(streamUsage);
+    expect(onUsage).toHaveBeenCalledWith(streamUsage, 1);
   });
 });
 

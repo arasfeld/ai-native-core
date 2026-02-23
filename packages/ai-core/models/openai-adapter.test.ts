@@ -146,6 +146,33 @@ describe("OpenAIAdapter — generate()", () => {
       content: '{"temp":20}',
     });
   });
+
+  it("returns usage when API response includes it", async () => {
+    mockCreate.mockResolvedValue({
+      choices: [{ message: { content: "Hello!", tool_calls: null } }],
+      usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
+    });
+    const adapter = new OpenAIAdapter({ apiKey: "test" });
+    const result = await adapter.generate({
+      messages: [{ role: "user", content: "hi" }],
+    });
+    expect(result.usage).toBeDefined();
+    expect(result.usage?.promptTokens).toBe(10);
+    expect(result.usage?.completionTokens).toBe(5);
+    expect(result.usage?.totalTokens).toBe(15);
+    expect(result.usage?.durationMs).toBeGreaterThanOrEqual(0);
+  });
+
+  it("returns no usage when API response omits it", async () => {
+    mockCreate.mockResolvedValue({
+      choices: [{ message: { content: "Hello!", tool_calls: null } }],
+    });
+    const adapter = new OpenAIAdapter({ apiKey: "test" });
+    const result = await adapter.generate({
+      messages: [{ role: "user", content: "hi" }],
+    });
+    expect(result.usage).toBeUndefined();
+  });
 });
 
 describe("OpenAIAdapter — stream()", () => {
@@ -185,5 +212,48 @@ describe("OpenAIAdapter — stream()", () => {
       role: "system",
       content: "You are helpful.",
     });
+  });
+
+  it("emits a final chunk with usage when API provides it", async () => {
+    async function* fakeStream() {
+      yield { choices: [{ delta: { content: "Hi" } }] };
+      yield { choices: [{ delta: { content: " there" } }] };
+      yield { choices: [], usage: { prompt_tokens: 8, completion_tokens: 4, total_tokens: 12 } };
+    }
+    mockCreate.mockResolvedValue(fakeStream());
+    const adapter = new OpenAIAdapter({ apiKey: "test" });
+    const allChunks: Array<{ text: string; usage?: unknown }> = [];
+    for await (const chunk of adapter.stream({
+      messages: [{ role: "user", content: "hi" }],
+    })) {
+      allChunks.push(chunk);
+    }
+    // Text chunks come first
+    expect(allChunks[0]?.text).toBe("Hi");
+    expect(allChunks[1]?.text).toBe(" there");
+    // Final usage chunk
+    const usageChunk = allChunks[allChunks.length - 1];
+    expect(usageChunk?.text).toBe("");
+    expect(usageChunk?.usage).toBeDefined();
+    const u = usageChunk?.usage as { promptTokens: number; completionTokens: number; totalTokens: number };
+    expect(u.promptTokens).toBe(8);
+    expect(u.completionTokens).toBe(4);
+    expect(u.totalTokens).toBe(12);
+  });
+
+  it("does not emit a usage chunk when API omits usage", async () => {
+    async function* fakeStream() {
+      yield { choices: [{ delta: { content: "Hi" } }] };
+    }
+    mockCreate.mockResolvedValue(fakeStream());
+    const adapter = new OpenAIAdapter({ apiKey: "test" });
+    const allChunks: Array<{ text: string; usage?: unknown }> = [];
+    for await (const chunk of adapter.stream({
+      messages: [{ role: "user", content: "hi" }],
+    })) {
+      allChunks.push(chunk);
+    }
+    expect(allChunks).toHaveLength(1);
+    expect(allChunks[0]?.usage).toBeUndefined();
   });
 });

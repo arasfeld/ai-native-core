@@ -2,6 +2,13 @@ import type { Tool } from "../tools/tool-registry";
 
 export type MessageRole = "user" | "assistant" | "system" | "tool";
 
+export interface UsageMetrics {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  durationMs: number;
+}
+
 export interface ToolCall {
   id: string;
   name: string;
