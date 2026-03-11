@@ -3,6 +3,12 @@ import os
 import structlog
 from arq.connections import RedisSettings
 
+from .logging import configure_logging
+
+configure_logging(
+    json_logs=os.getenv("LOG_FORMAT", "console") == "json",
+    log_level=os.getenv("LOG_LEVEL", "INFO"),
+)
 log = structlog.get_logger()
 
 REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379")

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 import asyncpg
 import structlog
@@ -20,37 +22,65 @@ CREATE TABLE IF NOT EXISTS chat_sessions (
 );
 CREATE INDEX IF NOT EXISTS chat_sessions_session_id_idx
     ON chat_sessions (session_id, created_at);
+
+CREATE TABLE IF NOT EXISTS session_token_usage (
+    id          BIGSERIAL PRIMARY KEY,
+    session_id  TEXT        NOT NULL,
+    tokens      INTEGER     NOT NULL,
+    recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS session_token_usage_session_id_idx
+    ON session_token_usage (session_id);
 """
 
 
 class SessionStore:
     """Stores and retrieves per-session conversation turns from Postgres.
 
+    Accepts an optional ``asyncpg.Pool`` for connection reuse.  Falls back to
+    opening a single connection per call when no pool is supplied.
+
     Usage::
 
-        store = SessionStore()
-        await store.ensure_table()   # once at startup
+        # With a shared pool (preferred in long-running servers)
+        pool = await asyncpg.create_pool(database_url)
+        store = SessionStore(pool=pool)
+        await store.ensure_table()
+
         history = await store.get_messages(session_id)
         await store.add_message(session_id, "human", text)
         await store.add_message(session_id, "assistant", reply)
     """
 
-    def __init__(self, database_url: str | None = None) -> None:
+    def __init__(
+        self,
+        pool: asyncpg.Pool | None = None,
+        database_url: str | None = None,
+    ) -> None:
+        self._pool = pool
         self._database_url = database_url or os.environ["DATABASE_URL"]
+
+    @asynccontextmanager
+    async def _conn(self) -> AsyncIterator[asyncpg.Connection]:
+        if self._pool is not None:
+            async with self._pool.acquire() as conn:
+                yield conn
+        else:
+            conn = await asyncpg.connect(self._database_url)
+            try:
+                yield conn
+            finally:
+                await conn.close()
 
     async def ensure_table(self) -> None:
         """Create the chat_sessions table if it does not exist."""
-        conn = await asyncpg.connect(self._database_url)
-        try:
+        async with self._conn() as conn:
             await conn.execute(_CREATE_TABLE)
             log.debug("memory.session.table_ready")
-        finally:
-            await conn.close()
 
     async def get_messages(self, session_id: str) -> list[BaseMessage]:
         """Return full conversation history for a session, oldest-first."""
-        conn = await asyncpg.connect(self._database_url)
-        try:
+        async with self._conn() as conn:
             rows = await conn.fetch(
                 """
                 SELECT role, content
@@ -60,8 +90,6 @@ class SessionStore:
                 """,
                 session_id,
             )
-        finally:
-            await conn.close()
 
         messages: list[BaseMessage] = []
         for row in rows:
@@ -73,8 +101,7 @@ class SessionStore:
 
     async def add_message(self, session_id: str, role: str, content: str) -> None:
         """Append a single turn to the session history."""
-        conn = await asyncpg.connect(self._database_url)
-        try:
+        async with self._conn() as conn:
             await conn.execute(
                 """
                 INSERT INTO chat_sessions (session_id, role, content)
@@ -84,17 +111,30 @@ class SessionStore:
                 role,
                 content,
             )
-        finally:
-            await conn.close()
 
     async def clear(self, session_id: str) -> None:
         """Delete all messages for a session."""
-        conn = await asyncpg.connect(self._database_url)
-        try:
+        async with self._conn() as conn:
             await conn.execute(
                 "DELETE FROM chat_sessions WHERE session_id = $1",
                 session_id,
             )
-            log.info("memory.session.cleared", session_id=session_id)
-        finally:
-            await conn.close()
+        log.info("memory.session.cleared", session_id=session_id)
+
+    async def add_token_usage(self, session_id: str, tokens: int) -> None:
+        """Record token consumption for a session turn."""
+        async with self._conn() as conn:
+            await conn.execute(
+                "INSERT INTO session_token_usage (session_id, tokens) VALUES ($1, $2)",
+                session_id,
+                tokens,
+            )
+
+    async def get_token_usage(self, session_id: str) -> int:
+        """Return total tokens consumed by a session."""
+        async with self._conn() as conn:
+            row = await conn.fetchrow(
+                "SELECT COALESCE(SUM(tokens), 0) AS total FROM session_token_usage WHERE session_id = $1",
+                session_id,
+            )
+        return int(row["total"])

@@ -1,6 +1,5 @@
 import structlog
-from ai import get_llm
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 from rag import PgVectorRetriever, chunk_text
 
@@ -20,11 +19,10 @@ class IngestResponse(BaseModel):
 
 
 @router.post("", response_model=IngestResponse)
-async def ingest(req: IngestRequest) -> IngestResponse:
+async def ingest(req: IngestRequest, request: Request) -> IngestResponse:
     """Chunk, embed, and store text content in pgvector."""
+    retriever: PgVectorRetriever = request.app.state.retriever
     chunks = chunk_text(req.content, chunk_size=req.chunk_size, overlap=req.chunk_overlap)
-    llm = get_llm()
-    retriever = PgVectorRetriever(llm=llm)
     stored = await retriever.store(chunks, metadata=req.metadata)
     log.info("ingest.complete", chunks=stored)
     return IngestResponse(chunks_stored=stored)

@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import asyncio
+import json
 import os
 
 from ai import BaseLLM
@@ -19,9 +22,39 @@ class RetrievedChunk(BaseModel):
 class PgVectorRetriever:
     """Retrieves relevant document chunks from pgvector using cosine similarity."""
 
-    def __init__(self, llm: BaseLLM, database_url: str | None = None) -> None:
+    def __init__(
+        self,
+        llm: BaseLLM,
+        database_url: str | None = None,
+        embedding_dim: int = 768,
+    ) -> None:
         self.llm = llm
         self.database_url = database_url or os.environ["DATABASE_URL"]
+        self.embedding_dim = embedding_dim
+
+    async def ensure_table(self) -> None:
+        """Create the document_chunks table and index if they do not exist."""
+        import asyncpg
+
+        conn = await asyncpg.connect(self.database_url)
+        try:
+            await conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
+            await conn.execute(f"""
+                CREATE TABLE IF NOT EXISTS document_chunks (
+                    id          BIGSERIAL PRIMARY KEY,
+                    content     TEXT        NOT NULL,
+                    embedding   vector({self.embedding_dim}),
+                    metadata    JSONB       NOT NULL DEFAULT '{{}}',
+                    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                )
+            """)
+            await conn.execute("""
+                CREATE INDEX IF NOT EXISTS document_chunks_embedding_idx
+                ON document_chunks
+                USING hnsw (embedding vector_cosine_ops)
+            """)
+        finally:
+            await conn.close()
 
     async def retrieve(self, query: str, top_k: int = 3) -> list[RetrievedChunk]:
         """Embed query and find top-k similar chunks from pgvector."""
@@ -43,7 +76,11 @@ class PgVectorRetriever:
                 top_k,
             )
             return [
-                RetrievedChunk(content=r["content"], metadata=r["metadata"] or {}, score=r["score"])
+                RetrievedChunk(
+                    content=r["content"],
+                    metadata=json.loads(r["metadata"]) if r["metadata"] else {},
+                    score=r["score"],
+                )
                 for r in rows
             ]
         finally:
@@ -56,17 +93,19 @@ class PgVectorRetriever:
         # Embed all chunks in parallel
         embeddings = await asyncio.gather(*[self.llm.embed(chunk) for chunk in chunks])
 
+        meta_json = json.dumps(metadata or {})
+
         conn = await asyncpg.connect(self.database_url)
         try:
             for chunk, embedding in zip(chunks, embeddings, strict=True):
                 await conn.execute(
                     """
                     INSERT INTO document_chunks (content, embedding, metadata)
-                    VALUES ($1, $2::vector, $3)
+                    VALUES ($1, $2::vector, $3::jsonb)
                     """,
                     chunk,
                     _vec_str(embedding),
-                    metadata or {},
+                    meta_json,
                 )
             return len(chunks)
         finally:

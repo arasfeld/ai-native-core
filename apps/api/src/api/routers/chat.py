@@ -1,10 +1,10 @@
 import structlog
 from agents import ChatState, RAGState, build_chat_graph, build_rag_graph
 from ai import get_llm
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 from langchain_core.messages import HumanMessage
-from memory import SessionStore
+from memory import BudgetExceeded, SessionStore, SummaryCompressor, TokenBudget, estimate_tokens
 from pydantic import BaseModel
 from rag import PgVectorRetriever
 
@@ -25,13 +25,28 @@ class ChatResponse(BaseModel):
 
 
 @router.post("")
-async def chat(req: ChatRequest) -> StreamingResponse:
+async def chat(req: ChatRequest, request: Request) -> StreamingResponse:
     """Stream a chat response via Server-Sent Events."""
     llm = get_llm()
-    store = SessionStore()
+    store: SessionStore = request.app.state.session_store
+    compressor: SummaryCompressor = request.app.state.compressor
+    budget: TokenBudget = request.app.state.budget
+    retriever: PgVectorRetriever = request.app.state.retriever
 
-    # Load conversation history for this session
+    # Enforce token budget before doing any work
+    try:
+        await budget.check(req.session_id)
+    except BudgetExceeded as exc:
+        msg = str(exc)
+
+        async def budget_error():
+            yield f"data: Error: {msg}\n\n"
+
+        return StreamingResponse(budget_error(), media_type="text/event-stream")
+
+    # Load and compress conversation history for this session
     history = await store.get_messages(req.session_id)
+    history = await compressor.compress(history)
     await store.add_message(req.session_id, "human", req.message)
 
     async def generate():
@@ -40,7 +55,6 @@ async def chat(req: ChatRequest) -> StreamingResponse:
             messages = [*history, HumanMessage(content=req.message)]
 
             if req.use_rag:
-                retriever = PgVectorRetriever(llm=llm)
                 chunks = await retriever.retrieve(req.message)
                 agent = build_rag_graph(llm=llm)
                 state: RAGState = {
@@ -61,9 +75,12 @@ async def chat(req: ChatRequest) -> StreamingResponse:
                 accumulated.append(token)
                 yield f"data: {token}\n\n"
 
-            # Persist the full assistant reply
             full_reply = "".join(accumulated)
             await store.add_message(req.session_id, "assistant", full_reply)
+
+            # Record token usage (input + output estimate)
+            tokens_used = estimate_tokens(req.message) + estimate_tokens(full_reply)
+            await budget.record(req.session_id, tokens_used)
 
             yield "data: [DONE]\n\n"
 

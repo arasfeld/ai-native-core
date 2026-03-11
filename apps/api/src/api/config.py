@@ -8,6 +8,10 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://postgres:postgres@localhost:5432/aicore"
     cors_origin: str = "http://localhost:3000"
     port: int = 8000
+    log_level: str = "INFO"
+    log_format: str = "console"  # "console" | "json"
+    session_token_budget: int = 100_000  # max tokens per session (0 = unlimited)
+    embedding_dim: int = 768  # nomic-embed-text=768, text-embedding-3-small=1536
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 

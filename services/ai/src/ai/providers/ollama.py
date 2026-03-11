@@ -12,9 +12,11 @@ class OllamaProvider:
 
     def __init__(self) -> None:
         base_url = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
+        timeout = float(os.environ.get("OLLAMA_TIMEOUT", "60"))
         self.client = AsyncOpenAI(
             api_key="ollama",  # Ollama doesn't require a real key
             base_url=f"{base_url}/v1",
+            timeout=timeout,
         )
         self.model = os.environ.get("OLLAMA_MODEL", "llama3.2")
         self.embed_model = os.environ.get("OLLAMA_EMBED_MODEL", "nomic-embed-text")
