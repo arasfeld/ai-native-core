@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://postgres:postgres@localhost:5432/aicore"
     cors_origin: str = "http://localhost:3000"
     port: int = 8000
+    redis_url: str = "redis://localhost:6379"
     log_level: str = "INFO"
     log_format: str = "console"  # "console" | "json"
     session_token_budget: int = 100_000  # max tokens per session (0 = unlimited)

@@ -3,14 +3,15 @@ from contextlib import asynccontextmanager
 import asyncpg
 import structlog
 from ai import get_llm
+from arq.connections import create_pool as arq_create_pool
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from memory import SessionStore, SummaryCompressor, TokenBudget
+from memory import EpisodicStore, MemoryExtractor, SessionStore, SummaryCompressor, TokenBudget
 from rag import PgVectorRetriever
 
 from .config import settings
 from .logging import configure_logging
-from .routers import chat, health, ingest
+from .routers import chat, health, ingest, jobs
 
 configure_logging(
     json_logs=settings.log_format == "json",
@@ -29,14 +30,23 @@ async def lifespan(app: FastAPI):
     retriever = PgVectorRetriever(llm=llm, embedding_dim=settings.embedding_dim)
     await retriever.ensure_table()
 
+    episodic = EpisodicStore(llm=llm, pool=pool, embedding_dim=settings.embedding_dim)
+    await episodic.ensure_table()
+
+    arq = await arq_create_pool(settings.redis_url)
+
     app.state.session_store = store
     app.state.compressor = SummaryCompressor(llm=llm)
     app.state.budget = TokenBudget(store, limit=settings.session_token_budget)
     app.state.retriever = retriever
+    app.state.episodic = episodic
+    app.state.extractor = MemoryExtractor(llm=llm, episodic=episodic)
+    app.state.arq = arq
 
     log.info("api.startup", provider=settings.llm_provider, port=settings.port)
     yield
 
+    await arq.close()
     await pool.close()
     log.info("api.shutdown")
 
@@ -59,3 +69,4 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(chat.router, prefix="/chat")
 app.include_router(ingest.router, prefix="/ingest")
+app.include_router(jobs.router, prefix="/jobs")

@@ -1,10 +1,12 @@
+import asyncio
+
 import structlog
 from agents import ChatState, RAGState, build_chat_graph, build_rag_graph
 from ai import get_llm
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
-from langchain_core.messages import HumanMessage
-from memory import BudgetExceeded, SessionStore, SummaryCompressor, TokenBudget, estimate_tokens
+from langchain_core.messages import HumanMessage, SystemMessage
+from memory import BudgetExceeded, EpisodicStore, MemoryExtractor, SessionStore, SummaryCompressor, TokenBudget, estimate_tokens
 from pydantic import BaseModel
 from rag import PgVectorRetriever
 
@@ -32,6 +34,8 @@ async def chat(req: ChatRequest, request: Request) -> StreamingResponse:
     compressor: SummaryCompressor = request.app.state.compressor
     budget: TokenBudget = request.app.state.budget
     retriever: PgVectorRetriever = request.app.state.retriever
+    episodic: EpisodicStore = request.app.state.episodic
+    extractor: MemoryExtractor = request.app.state.extractor
 
     # Enforce token budget before doing any work
     try:
@@ -48,6 +52,13 @@ async def chat(req: ChatRequest, request: Request) -> StreamingResponse:
     history = await store.get_messages(req.session_id)
     history = await compressor.compress(history)
     await store.add_message(req.session_id, "human", req.message)
+
+    # Retrieve relevant long-term memories and prepend as a system message
+    long_term_facts = await episodic.search(req.message, top_k=5)
+    if long_term_facts:
+        facts_text = "\n".join(f"- {f.content}" for f in long_term_facts)
+        memory_msg = SystemMessage(content=f"Relevant facts from previous conversations:\n{facts_text}")
+        history = [memory_msg, *history]
 
     async def generate():
         accumulated: list[str] = []
@@ -81,6 +92,15 @@ async def chat(req: ChatRequest, request: Request) -> StreamingResponse:
             # Record token usage (input + output estimate)
             tokens_used = estimate_tokens(req.message) + estimate_tokens(full_reply)
             await budget.record(req.session_id, tokens_used)
+
+            # Extract and store long-term memories in the background
+            asyncio.ensure_future(
+                extractor.extract_and_store(
+                    human_message=req.message,
+                    assistant_reply=full_reply,
+                    session_id=req.session_id,
+                )
+            )
 
             yield "data: [DONE]\n\n"
 

@@ -30,10 +30,66 @@ async def ingest_document(ctx, document_url: str, tenant_id: str = "default") ->
     return {"chunks_stored": stored}
 
 
+async def run_agent(
+    ctx,
+    message: str,
+    session_id: str = "background",
+    use_rag: bool = False,
+) -> dict:
+    """Background task: run a full agent turn and return the complete reply.
+
+    Useful for long-running tasks where SSE streaming isn't practical
+    (e.g. scheduled summaries, batch processing, webhook callbacks).
+    """
+    from agents import ChatState, RAGState, build_chat_graph, build_rag_graph
+    from ai import get_llm
+    from langchain_core.messages import HumanMessage
+    from memory import SessionStore, SummaryCompressor
+    from rag import PgVectorRetriever
+
+    log.info("worker.run_agent.start", session_id=session_id, use_rag=use_rag)
+    llm = get_llm()
+    store = SessionStore()
+    compressor = SummaryCompressor(llm=llm)
+
+    history = await store.get_messages(session_id)
+    history = await compressor.compress(history)
+    await store.add_message(session_id, "human", message)
+
+    messages = [*history, HumanMessage(content=message)]
+    tokens: list[str] = []
+
+    if use_rag:
+        retriever = PgVectorRetriever(llm=llm)
+        chunks = await retriever.retrieve(message)
+        agent = build_rag_graph(llm=llm)
+        state: RAGState = {
+            "messages": messages,
+            "session_id": session_id,
+            "context_chunks": [c.content for c in chunks],
+        }
+    else:
+        agent = build_chat_graph(llm=llm)
+        state: ChatState = {
+            "messages": messages,
+            "session_id": session_id,
+            "system_prompt": "",
+        }
+
+    async for token in agent.stream(state):
+        tokens.append(token)
+
+    reply = "".join(tokens)
+    await store.add_message(session_id, "assistant", reply)
+
+    log.info("worker.run_agent.complete", session_id=session_id, tokens=len(tokens))
+    return {"reply": reply, "session_id": session_id}
+
+
 class WorkerSettings:
     """ARQ worker configuration."""
 
-    functions = [ingest_document]
+    functions = [ingest_document, run_agent]
     redis_settings = RedisSettings.from_dsn(REDIS_URL)
     max_jobs = 10
     job_timeout = 300  # 5 minutes
