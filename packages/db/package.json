@@ -11,10 +11,10 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsc -p tsconfig.build.json --watch",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "migrate": "tsx src/migrate.ts"
   },
   "dependencies": {
-    "@repo/ai-core": "workspace:*",
     "drizzle-orm": "^0.45.1",
     "postgres": "^3.4.5"
   },
@@ -22,6 +22,7 @@
     "@repo/config-typescript": "workspace:*",
     "@types/node": "^22.15.3",
     "drizzle-kit": "^0.31.9",
+    "tsx": "^4.0.0",
     "typescript": "5.9.2"
   }
 }

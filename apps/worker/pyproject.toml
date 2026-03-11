@@ -1,0 +1,31 @@
+[project]
+name = "worker"
+version = "0.1.0"
+description = "ARQ background job processor"
+requires-python = ">=3.11"
+dependencies = [
+    "agents",
+    "rag",
+    "tools",
+    "arq>=0.26",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "structlog>=24.0",
+    "asyncpg>=0.29",
+    "python-dotenv>=1.0",
+]
+
+[tool.uv.sources]
+agents = { workspace = true }
+rag = { workspace = true }
+tools = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/worker"]
+
+[project.scripts]
+worker-start = "worker.__main__:main"

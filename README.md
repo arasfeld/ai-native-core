@@ -1,75 +1,74 @@
 # AI Native Core
 
-AI Native Core is a production-ready, AI-native monorepo template
-designed for building intelligent web and mobile applications.
+A production-ready monorepo template for building AI-native applications. Fork it, configure your LLM provider, and ship.
 
-It provides:
+## Stack
 
-- AI orchestration infrastructure
-- Typed tool execution system
-- Retrieval (RAG) foundations
-- Memory persistence architecture
-- Streaming-first API design
-- Multi-model abstraction support
-- Turborepo monorepo structure
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Next.js (App Router) + Tailwind v4 + shadcn/ui |
+| API | FastAPI (Python) with SSE streaming |
+| AI orchestration | LangGraph agents |
+| Model abstraction | `packages/ai` — OpenAI, Anthropic, OpenRouter, Ollama |
+| RAG | pgvector + `packages/rag` |
+| Background jobs | ARQ worker |
+| Database | Postgres + pgvector (Drizzle ORM for migrations) |
+| Monorepo | Turborepo + pnpm (TS) + uv (Python) |
 
----
+## Quick Start
 
-## Monorepo Structure
+```bash
+# 1. Start infrastructure
+docker compose up -d
+ollama pull llama3.2 && ollama pull nomic-embed-text
 
-    ai-native-core/
-      apps/
-        web/        # Next.js frontend
-        api/        # Fastify AI orchestration server
-      packages/
-        ai-core/    # Reusable AI runtime
-        db/         # Database schema + client
-        types/      # Shared TypeScript types
+# 2. Configure environment
+cp .env.example .env
+# Default: LLM_PROVIDER=ollama — no API keys needed
 
----
+# 3. Install dependencies
+pnpm install && uv sync
 
-## Philosophy
+# 4. Run migrations
+pnpm --filter @repo/db migrate
 
-AI Native Core is built on the belief that:
-
-- Intelligence should be a system primitive.
-- Models influence control flow.
-- Tool execution must be typed and observable.
-- Memory should persist and evolve.
-- Streaming is first-class.
-
-This repository is meant to serve as a reusable foundation for any
-AI-native product going forward.
-
----
-
-## Development
-
-Install dependencies:
-
-pnpm install
-
-Run all apps in development:
-
+# 5. Start everything
 pnpm dev
+```
 
----
+| Service | URL |
+|---------|-----|
+| Web | http://localhost:3000 |
+| API | http://localhost:8000 |
+| API docs | http://localhost:8000/docs |
 
-## Testing with Ollama (no paid API)
+## Providers
 
-The API uses an OpenAI-compatible adapter. To test without an OpenAI/Anthropic key:
+Switch models by setting `LLM_PROVIDER` in `.env`:
 
-1. Start Ollama: `docker compose up -d ollama`
-2. Pull a model: `docker compose exec ollama ollama run llama3.2`
-3. Copy `.env.example` to `.env` and set:
-   - `OPENAI_BASE_URL=http://localhost:11434/v1`
-   - `OPENAI_MODEL=llama3.2` (optional; matches the model you pulled)
-4. Run the API: `pnpm --filter api dev` (or `pnpm dev` from root). The `/chat` endpoint will use Ollama.
+| Value | Provider | Requires |
+|-------|----------|---------|
+| `ollama` | Local (Ollama) | Docker + Ollama |
+| `openai` | OpenAI | `OPENAI_API_KEY` |
+| `anthropic` | Anthropic | `ANTHROPIC_API_KEY` |
+| `openrouter` | OpenRouter | `OPENROUTER_API_KEY` |
 
-For real OpenAI, set `OPENAI_API_KEY` in `.env` and omit `OPENAI_BASE_URL`.
+## Structure
 
----
+```
+apps/
+  web/       Next.js frontend
+  api/       FastAPI server
+  worker/    ARQ background jobs
+packages/
+  ai/        Python: LLM provider abstraction
+  agents/    Python: LangGraph agent workflows
+  rag/       Python: chunking + pgvector retrieval
+  tools/     Python: reusable agent tools
+  prompts/   Shared Jinja2 prompt templates
+  db/        Postgres schema + migrations
+  ui/        Shared React components
+  types/     TypeScript types (generated from OpenAPI)
+```
 
-## Roadmap
-
-See **[ROADMAP.md](./ROADMAP.md)** for the full prioritized roadmap. Next focus: real model adapter, streaming `/chat`, and wiring context + memory into the agent runtime.
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full design.

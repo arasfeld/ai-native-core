@@ -1,9 +1,0 @@
-{
-  "$schema": "https://turborepo.dev/schema.v2.json",
-  "extends": ["//"],
-  "tasks": {
-    "dev": {
-      "env": ["OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL"]
-    }
-  }
-}

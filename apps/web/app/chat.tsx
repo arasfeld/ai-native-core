@@ -9,7 +9,7 @@ type Message = {
   content: string;
 };
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -43,19 +43,16 @@ export function Chat() {
     const text = input.trim();
     if (!text || isStreaming) return;
 
-    const userMessage: Message = { role: "user", content: text };
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages((prev) => [...prev, { role: "user", content: text }]);
     setInput("");
     setIsStreaming(true);
-
-    // Add placeholder for assistant message
     setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
     try {
       const res = await fetch(`${API_URL}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, history: messages, sessionId }),
+        body: JSON.stringify({ message: text, session_id: sessionId }),
       });
 
       if (!res.body) throw new Error("No response body");
@@ -71,32 +68,18 @@ export function Chat() {
         const parts = buf.split("\n\n");
         buf = parts.pop() ?? "";
         for (const part of parts) {
-          const eventMatch = part.match(/^event: (\w+)/m);
           const dataMatch = part.match(/^data: (.+)/m);
-          if (eventMatch?.[1] === "text" && dataMatch?.[1]) {
-            const { content } = JSON.parse(dataMatch[1]) as { content: string };
-            setMessages((prev) => {
-              const next = [...prev];
-              const last = next[next.length - 1];
-              if (last?.role === "assistant") {
-                next[next.length - 1] = {
-                  ...last,
-                  content: last.content + content,
-                };
-              }
-              return next;
-            });
-          } else if (eventMatch?.[1] === "error" && dataMatch?.[1]) {
-            const { message } = JSON.parse(dataMatch[1]) as { message: string };
-            setMessages((prev) => {
-              const next = [...prev];
-              const last = next[next.length - 1];
-              if (last?.role === "assistant") {
-                next[next.length - 1] = { ...last, content: `Error: ${message}` };
-              }
-              return next;
-            });
-          }
+          if (!dataMatch) continue;
+          const token = dataMatch[1];
+          if (token === "[DONE]") continue;
+          setMessages((prev) => {
+            const next = [...prev];
+            const last = next[next.length - 1];
+            if (last?.role === "assistant") {
+              next[next.length - 1] = { ...last, content: last.content + token };
+            }
+            return next;
+          });
         }
       }
     } catch (err) {

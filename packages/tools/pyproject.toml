@@ -1,0 +1,22 @@
+[project]
+name = "tools"
+version = "0.1.0"
+description = "Reusable LangGraph-compatible agent tools"
+requires-python = ">=3.11"
+dependencies = [
+    "ai",
+    "langchain-core>=0.3",
+    "pydantic>=2.0",
+    "httpx>=0.27",
+    "structlog>=24.0",
+]
+
+[tool.uv.sources]
+ai = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tools"]

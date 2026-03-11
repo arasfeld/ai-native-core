@@ -22,7 +22,16 @@
     },
     "test": {
       "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
+      "outputs": ["coverage/**", "htmlcov/**"]
+    },
+    "py:lint": {
+      "cache": false
+    },
+    "py:format": {
+      "cache": false
+    },
+    "py:test": {
+      "outputs": ["htmlcov/**"]
     }
   }
 }
