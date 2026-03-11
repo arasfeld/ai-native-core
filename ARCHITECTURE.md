@@ -1,6 +1,6 @@
 # Architecture
 
-AI Native Core is a production-ready monorepo template for building AI-native applications. It provides a complete stack from LLM abstraction to frontend, designed to be forked and adapted for client-facing AI products.
+AI Native Core is a production-ready monorepo template for building AI-native applications. It provides a complete multi-platform stack — web, mobile, desktop, API, and worker — designed to be forked and adapted for AI products.
 
 ---
 
@@ -8,19 +8,27 @@ AI Native Core is a production-ready monorepo template for building AI-native ap
 
 ### Purpose
 
-AI Native Core is a **reusable template** for building AI-powered applications. The goal is to provide a well-structured starting point that handles the hard parts of AI integration — model abstraction, agent orchestration, RAG pipelines, tool calling, and streaming — so that product teams can focus on business logic.
+AI Native Core is a **reusable template** for rapidly building AI-powered applications. The goal is to handle the hard parts — model abstraction, agent orchestration, RAG pipelines, tool calling, streaming, multi-platform scaffolding — so teams can focus on business logic.
+
+Typical workflow:
+1. Clone the template
+2. Remove apps not needed (`mobile`, `desktop`, `playground`, etc.)
+3. Configure prompts and agents
+4. Deploy
 
 ### Design Philosophy
 
+- **Multi-platform by default** — web, mobile, and desktop apps are included; remove what you don't need.
 - **Intelligence as a system primitive** — AI is not an add-on; it's wired into every layer of the stack.
 - **Local-first development** — everything runs locally via Docker + Ollama, no cloud credentials needed to get started.
 - **Provider-agnostic** — swap between OpenAI, Anthropic, OpenRouter, or Ollama via a single env var.
-- **Abstraction over convenience** — no direct SDK calls in app code; all model access goes through `packages/ai`.
-- **Modularity** — packages have narrow responsibilities and clean dependency boundaries.
+- **Abstraction over convenience** — no direct SDK calls in app code; all model access goes through `services/ai`.
+- **AI logic separate from API** — the API is an orchestration layer; AI services live in `services/`.
+- **Modularity** — packages and services have narrow responsibilities and clean dependency boundaries.
 
 ### Who It's For
 
-Solo developers and small teams building AI-powered client products: chatbots, copilots, document Q&A, autonomous agents, and similar systems.
+Solo developers and small teams building AI-powered products: chatbots, copilots, document Q&A, autonomous agents, mobile AI assistants, and desktop productivity tools.
 
 ---
 
@@ -29,26 +37,48 @@ Solo developers and small teams building AI-powered client products: chatbots, c
 ```
 ai-native-core/
 ├── apps/
-│   ├── web/                    # Next.js (App Router) + Tailwind v4 + shadcn/ui + React Query
+│   ├── web/                    # Next.js (App Router) + Tailwind v4 + shadcn/ui + Vercel AI SDK
+│   ├── mobile/                 # Expo + React Native — mobile AI assistant
+│   ├── desktop/                # Tauri — desktop productivity app
 │   ├── api/                    # FastAPI — AI orchestration server (Python)
-│   └── worker/                 # ARQ background job processor (Python)
+│   ├── worker/                 # ARQ background job processor (Python)
+│   └── playground/             # AI development sandbox — prompt testing, agent debugging
 │
-├── packages/
-│   ├── ai/                     # Python: model abstraction layer
+├── packages/                   # Shared code (primarily TypeScript / frontend)
+│   ├── ui/                     # Shared React components (shadcn/ui base)
+│   │   └── src/components/     # Button, Card, Chat, Message, etc.
+│   │
+│   ├── types/                  # Shared TypeScript types (generated from OpenAPI)
+│   │   ├── src/api.ts          # API request/response types
+│   │   └── openapi.yaml        # OpenAPI spec (source of truth for TS↔Python interop)
+│   │
+│   ├── prompts/                # Shared prompt library (Jinja2)
+│   │   ├── src/prompts/
+│   │   │   ├── system/         # Base system prompts
+│   │   │   └── templates/      # Jinja2 templates
+│   │   └── pyproject.toml
+│   │
+│   └── db/                     # Database schema + SQL migrations
+│       ├── src/                # TypeScript Drizzle schema (for TS consumers)
+│       ├── migrations/         # SQL files — usable from TS (Drizzle) and Python (raw SQL)
+│       └── package.json
+│
+├── services/                   # Python AI service layer
+│   ├── ai/                     # LLM abstraction layer
 │   │   ├── src/ai/
 │   │   │   ├── base.py         # BaseLLM protocol / ABC
 │   │   │   ├── factory.py      # get_llm() — selects provider from LLM_PROVIDER env
 │   │   │   └── providers/      # openai.py, anthropic.py, openrouter.py, ollama.py
 │   │   └── pyproject.toml
 │   │
-│   ├── agents/                 # Python: LangGraph agent workflows
+│   ├── agents/                 # LangGraph agent workflows
 │   │   ├── src/agents/
 │   │   │   ├── base_agent.py   # Abstract StateGraph agent
 │   │   │   ├── chat_agent.py   # Conversational agent
 │   │   │   └── rag_agent.py    # RAG-augmented agent
 │   │   └── pyproject.toml
 │   │
-│   ├── rag/                    # Python: ingestion + retrieval pipeline
+│   ├── rag/                    # Ingestion + retrieval pipeline
 │   │   ├── src/rag/
 │   │   │   ├── ingest/         # Loaders (PDF, web, markdown, text)
 │   │   │   ├── chunking.py     # Text splitters
@@ -56,7 +86,7 @@ ai-native-core/
 │   │   │   └── retriever.py    # PgVector retriever
 │   │   └── pyproject.toml
 │   │
-│   ├── tools/                  # Python: reusable LangGraph-compatible tools
+│   ├── tools/                  # Reusable LangGraph-compatible tools
 │   │   ├── src/tools/
 │   │   │   ├── base.py         # Tool base class + registry
 │   │   │   ├── web_search.py   # Tavily / SerpAPI
@@ -65,56 +95,57 @@ ai-native-core/
 │   │   │   └── database.py     # SQL query tool
 │   │   └── pyproject.toml
 │   │
-│   ├── prompts/                # Shared prompt library
-│   │   ├── src/prompts/
-│   │   │   ├── system/         # Base system prompts
-│   │   │   └── templates/      # Jinja2 templates
-│   │   └── pyproject.toml
-│   │
-│   ├── db/                     # Database schema + SQL migrations
-│   │   ├── src/                # TypeScript Drizzle schema (for TS consumers)
-│   │   ├── migrations/         # SQL files — usable from TS (Drizzle) and Python (raw SQL)
-│   │   └── package.json
-│   │
-│   ├── ui/                     # Shared React components (shadcn/ui base)
-│   │   └── src/components/     # Button, Card, Chat, Message, etc.
-│   │
-│   └── types/                  # Shared TypeScript types (generated from OpenAPI)
-│       ├── src/api.ts          # API request/response types
-│       └── openapi.yaml        # OpenAPI spec (source of truth for TS↔Python interop)
+│   └── memory/                 # Conversation and long-term memory
+│       ├── src/memory/
+│       │   ├── session.py      # Session history (Postgres)
+│       │   ├── episodic.py     # Episode memory (vector embeddings)
+│       │   └── compression.py  # Summary compression for long sessions
+│       └── pyproject.toml
+│
+├── infra/
+│   ├── docker/                 # Docker configs (compose files, Dockerfiles)
+│   └── scripts/                # Dev scripts: setup, seed, migrate
+│
+├── docs/
+│   ├── ARCHITECTURE.md         # This file
+│   ├── AI_DEVELOPMENT.md       # AI development guide (prompts, agents, tools)
+│   └── PROJECT_CONTEXT.md      # Project context for AI assistants
 │
 ├── config/
 │   ├── eslint/                 # Shared ESLint config
 │   └── typescript/             # Shared tsconfig bases
 │
-├── scripts/                    # Dev scripts: setup, seed, migrate
-├── docker-compose.yml          # Postgres/pgvector + Ollama
 ├── turbo.json                  # Task orchestration (TS + Python via uv run)
 ├── pnpm-workspace.yaml         # pnpm workspace config
 ├── pyproject.toml              # Root uv workspace (members: all Python packages)
 └── .env.example
 ```
 
-### Package Dependency Rules
+### Package / Service Dependency Rules
 
 ```
 apps/web        → packages/ui, packages/types
-apps/api        → packages/ai, packages/agents, packages/rag, packages/tools, packages/prompts
-apps/worker     → packages/agents, packages/tools
-packages/agents → packages/ai, packages/tools, packages/prompts
-packages/rag    → packages/ai
-packages/tools  → packages/ai (optional)
-packages/ai     → (no internal deps)
+apps/mobile     → packages/ui, packages/types
+apps/desktop    → packages/types
+apps/api        → services/ai, services/agents, services/rag, services/tools, services/memory, packages/prompts
+apps/worker     → services/agents, services/tools
+apps/playground → services/ai, services/agents, packages/prompts
+services/agents → services/ai, services/tools, packages/prompts
+services/rag    → services/ai
+services/tools  → services/ai (optional)
+services/memory → services/ai, services/rag
+services/ai     → (no internal deps — base layer)
 packages/db     → (no internal deps, SQL only)
 packages/ui     → (no internal deps)
 packages/types  → (no internal deps, generated)
+packages/prompts → (no internal deps)
 ```
 
 **Rules:**
 - No circular dependencies.
-- `packages/ai` has no internal dependencies — it is the base layer.
-- App code never imports directly from provider SDKs (openai, anthropic) — always via `packages/ai`.
-- Python packages and TypeScript packages are independent; they communicate at runtime via HTTP (FastAPI ↔ Next.js).
+- `services/ai` has no internal dependencies — it is the base layer.
+- App code never imports directly from provider SDKs (`openai`, `anthropic`) — always via `services/ai`.
+- Python services and TypeScript packages are independent; they communicate at runtime via HTTP (FastAPI ↔ Next.js).
 
 ### TypeScript ↔ Python Type Sharing
 
@@ -127,14 +158,69 @@ pnpm --filter @repo/types generate
 
 ---
 
-## 3. AI Architecture
+## 3. Applications
+
+### Web (`apps/web`)
+
+Next.js App Router + Tailwind v4 + shadcn/ui + Vercel AI SDK. The primary interface for AI systems.
+
+- AI chat interface with streaming
+- Admin dashboards
+- Agent testing UI
+- RAG debugging
+
+### Mobile (`apps/mobile`)
+
+Expo + React Native. Shares UI components with `apps/web` via `packages/ui` where possible.
+
+- Mobile AI assistants
+- Push notifications
+- Mobile-first workflows
+
+### Desktop (`apps/desktop`)
+
+Tauri. Small bundle, native OS integration, secure architecture.
+
+- Desktop productivity tools
+- Offline-capable AI features
+- Native file system access
+
+### Playground (`apps/playground`)
+
+AI development sandbox — not intended for end users.
+
+- Prompt testing and iteration
+- Agent debugging
+- RAG experiments
+- Model comparisons
+
+### API (`apps/api`)
+
+FastAPI + Pydantic + LangGraph. Thin orchestration layer — AI logic lives in `services/`.
+
+- REST + SSE endpoints
+- Authentication middleware
+- Agent execution
+- Request validation
+
+### Worker (`apps/worker`)
+
+ARQ background job processor. Handles long-running tasks that would block the API.
+
+- Document ingestion and embedding
+- Scheduled agent runs
+- Automation pipelines
+
+---
+
+## 4. AI Architecture
 
 ### Model Abstraction Layer
 
-All LLM access goes through `packages/ai`. The `BaseLLM` protocol defines the interface:
+All LLM access goes through `services/ai`. The `BaseLLM` protocol defines the interface:
 
 ```python
-# packages/ai/src/ai/base.py
+# services/ai/src/ai/base.py
 from typing import Protocol, AsyncIterator
 from pydantic import BaseModel
 
@@ -157,12 +243,7 @@ class BaseLLM(Protocol):
 The active provider is selected via the `LLM_PROVIDER` environment variable:
 
 ```python
-# packages/ai/src/ai/factory.py
-from .providers.openai import OpenAIProvider
-from .providers.anthropic import AnthropicProvider
-from .providers.openrouter import OpenRouterProvider
-from .providers.ollama import OllamaProvider
-
+# services/ai/src/ai/factory.py
 def get_llm() -> BaseLLM:
     provider = os.environ.get("LLM_PROVIDER", "openai")
     match provider:
@@ -190,7 +271,7 @@ Agents are defined as LangGraph `StateGraph`s. Each agent has:
 - **Edges**: Conditional routing between nodes
 
 ```python
-# packages/agents/src/agents/chat_agent.py (simplified)
+# services/agents/src/agents/chat_agent.py (simplified)
 from langgraph.graph import StateGraph, END
 from typing import TypedDict, Annotated
 from langchain_core.messages import BaseMessage
@@ -233,27 +314,20 @@ Document Input
 
 Embeddings are stored in the `document_chunks` table (Postgres + pgvector). The retriever uses cosine similarity search.
 
+### Memory Service
+
+`services/memory` provides three layers of memory:
+
+- **Session memory**: per-conversation message history stored in Postgres
+- **Episode memory**: conversation summaries stored as vector embeddings, retrieved by semantic similarity
+- **Summary compression**: when session history exceeds token budget, older messages are summarized and compressed
+
 ### Tool System
 
 Tools are Pydantic-validated, LangGraph-compatible functions. Each tool:
 1. Has a `name` and `description` (used by the LLM to decide when to call it).
 2. Accepts a Pydantic `BaseModel` as input (validated automatically).
 3. Returns a string result consumed by the agent.
-
-```python
-# packages/tools/src/tools/base.py
-from pydantic import BaseModel
-from langchain_core.tools import BaseTool
-
-class ToolRegistry:
-    _tools: dict[str, BaseTool] = {}
-
-    def register(self, tool: BaseTool) -> None:
-        self._tools[tool.name] = tool
-
-    def get_all(self) -> list[BaseTool]:
-        return list(self._tools.values())
-```
 
 ### Observability
 
@@ -263,19 +337,19 @@ class ToolRegistry:
 
 ---
 
-## 4. Data Flow
+## 5. Data Flow
 
 ### Chat (streaming)
 
 ```
 User types message
-    → Next.js sends POST /chat {message, session_id}
+    → Frontend sends POST /chat {message, session_id}
     → FastAPI router receives request
-    → Loads session memory from Postgres
+    → Loads session memory from Postgres (services/memory)
     → Retrieves RAG context (top-3 chunks)
     → Builds LangGraph ChatAgent with memory + context
     → Agent streams tokens via SSE (text/event-stream)
-    → Next.js consumes SSE, updates UI incrementally
+    → Frontend consumes SSE, updates UI incrementally
     → Final message saved to memory table
 ```
 
@@ -284,7 +358,7 @@ User types message
 ```
 User uploads document (or API call with text)
     → POST /ingest {content, metadata}
-    → FastAPI splits into chunks
+    → FastAPI splits into chunks (or enqueues worker job)
     → Embedder converts chunks to vectors
     → PgVector stores chunks in document_chunks table
     → Returns {chunks_stored: N}
@@ -304,7 +378,7 @@ Agent receives LLM response with tool_call
 
 ---
 
-## 5. Local Development Workflow
+## 6. Local Development Workflow
 
 ### Prerequisites
 
@@ -353,6 +427,7 @@ pnpm dev
 | Web frontend | http://localhost:3000 | Next.js dev server |
 | API | http://localhost:8000 | FastAPI with auto-reload |
 | API docs | http://localhost:8000/docs | Swagger UI |
+| Playground | http://localhost:3001 | AI dev sandbox |
 | Ollama | http://localhost:11434 | Local LLM inference |
 | Postgres | localhost:5432 | pgvector enabled |
 
@@ -379,7 +454,7 @@ LANGCHAIN_API_KEY=ls-...
 
 ---
 
-## 6. Deployment Architecture
+## 7. Deployment Architecture
 
 ### Recommended Production Setup
 
@@ -387,6 +462,7 @@ LANGCHAIN_API_KEY=ls-...
 ┌─────────────────┐     ┌──────────────────┐     ┌──────────────────┐
 │   Vercel        │────▶│  Railway / Fly    │────▶│  Neon / Supabase │
 │   (Next.js)     │     │  (FastAPI + ARQ)  │     │  (Postgres)      │
+│   (mobile PWA)  │     │                  │     │                  │
 └─────────────────┘     └──────────────────┘     └──────────────────┘
                                   │
                                   ▼
@@ -398,25 +474,17 @@ LANGCHAIN_API_KEY=ls-...
 
 | Component | Provider | Notes |
 |-----------|----------|-------|
-| Frontend | [Vercel](https://vercel.com) | Zero-config Next.js deployment |
+| Web / Playground | [Vercel](https://vercel.com) | Zero-config Next.js deployment |
+| Mobile | App Store / Play Store | Expo EAS build |
+| Desktop | Direct distribution | Tauri generates platform binaries |
 | API + Worker | [Railway](https://railway.app) or [Fly.io](https://fly.io) | Dockerfile in `apps/api/` |
 | Database | [Neon](https://neon.tech) or [Supabase](https://supabase.com) | pgvector supported on both |
 | LLM (prod) | [OpenRouter](https://openrouter.ai) | Pay-per-use, access to all major models |
 | LLM (local) | [Ollama](https://ollama.com) | Self-hosted, GPU optional |
 
-### Docker Deployment
-
-```bash
-# Build API image
-docker build -t ai-native-api ./apps/api
-
-# Run with env vars
-docker run -p 8000:8000 --env-file .env ai-native-api
-```
-
 ---
 
-## 7. Coding Standards
+## 8. Coding Standards
 
 ### TypeScript
 
@@ -448,13 +516,13 @@ docker run -p 8000:8000 --env-file .env ai-native-api
 
 ### Critical Rules
 
-- **Never import `openai`, `anthropic`, or other AI SDKs directly in app code.** Use `packages/ai`.
+- **Never import `openai`, `anthropic`, or other AI SDKs directly in app code.** Use `services/ai`.
 - **Never write raw SQL in agent/router code.** Use the Drizzle ORM (TS) or parameterized queries via `asyncpg`/`psycopg` (Python).
 - **Never commit secrets.** Use `.env` locally; inject via platform env vars in production.
 
 ---
 
-## 8. AI Development Standards
+## 9. AI Development Standards
 
 ### Prompts
 
@@ -502,7 +570,7 @@ system_prompt = f"You are a helpful assistant for {user.name}."
 
 ---
 
-## 9. Testing Strategy
+## 10. Testing Strategy
 
 ### Python (pytest)
 
@@ -511,7 +579,7 @@ system_prompt = f"You are a helpful assistant for {user.name}."
 uv run pytest
 
 # Run specific package
-uv run pytest packages/agents/tests/
+uv run pytest services/agents/tests/
 
 # With coverage
 uv run pytest --cov=src --cov-report=html
@@ -563,7 +631,7 @@ pnpm --filter @repo/ui test
 
 ---
 
-## 10. Future Extensions
+## 11. Future Extensions
 
 ### Multi-tenancy
 
@@ -612,3 +680,9 @@ Tasks are enqueued from the API and processed by `apps/worker`.
 - Add image support: pass image URLs/base64 to providers that support vision (GPT-4o, Claude).
 - Audio: Whisper transcription → text → agent pipeline.
 - Structured outputs: use provider JSON mode or Instructor for reliable Pydantic extraction.
+
+### Evaluation Pipelines
+
+- Run agent outputs against ground-truth datasets.
+- Track pass/fail rates over time.
+- Use LangSmith or a custom eval harness.

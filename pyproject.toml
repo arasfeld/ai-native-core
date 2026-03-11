@@ -6,10 +6,10 @@ requires-python = ">=3.11"
 
 [tool.uv.workspace]
 members = [
-    "packages/ai",
-    "packages/agents",
-    "packages/rag",
-    "packages/tools",
+    "services/ai",
+    "services/agents",
+    "services/rag",
+    "services/tools",
     "packages/prompts",
     "apps/api",
     "apps/worker",
@@ -42,5 +42,5 @@ quote-style = "double"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["packages", "apps"]
+testpaths = ["services", "packages", "apps"]
 python_files = ["test_*.py", "*_test.py"]

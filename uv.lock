@@ -17,7 +17,7 @@ members = [
 [[package]]
 name = "agents"
 version = "0.1.0"
-source = { editable = "packages/agents" }
+source = { editable = "services/agents" }
 dependencies = [
     { name = "ai" },
     { name = "langchain-core" },
@@ -29,7 +29,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "ai", editable = "packages/ai" },
+    { name = "ai", editable = "services/ai" },
     { name = "langchain-core", specifier = ">=0.3" },
     { name = "langgraph", specifier = ">=0.2" },
     { name = "prompts", editable = "packages/prompts" },
@@ -40,7 +40,7 @@ requires-dist = [
 [[package]]
 name = "ai"
 version = "0.1.0"
-source = { editable = "packages/ai" }
+source = { editable = "services/ai" }
 dependencies = [
     { name = "anthropic" },
     { name = "httpx" },
@@ -154,17 +154,17 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "agents", editable = "packages/agents" },
-    { name = "ai", editable = "packages/ai" },
+    { name = "agents", editable = "services/agents" },
+    { name = "ai", editable = "services/ai" },
     { name = "asyncpg", specifier = ">=0.29" },
     { name = "fastapi", specifier = ">=0.115" },
     { name = "prompts", editable = "packages/prompts" },
     { name = "pydantic", specifier = ">=2.0" },
     { name = "pydantic-settings", specifier = ">=2.0" },
     { name = "python-dotenv", specifier = ">=1.0" },
-    { name = "rag", editable = "packages/rag" },
+    { name = "rag", editable = "services/rag" },
     { name = "structlog", specifier = ">=24.0" },
-    { name = "tools", editable = "packages/tools" },
+    { name = "tools", editable = "services/tools" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
 ]
 
@@ -1352,7 +1352,7 @@ wheels = [
 [[package]]
 name = "rag"
 version = "0.1.0"
-source = { editable = "packages/rag" }
+source = { editable = "services/rag" }
 dependencies = [
     { name = "ai" },
     { name = "asyncpg" },
@@ -1362,7 +1362,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "ai", editable = "packages/ai" },
+    { name = "ai", editable = "services/ai" },
     { name = "asyncpg", specifier = ">=0.29" },
     { name = "pydantic", specifier = ">=2.0" },
     { name = "structlog", specifier = ">=24.0" },
@@ -1547,7 +1547,7 @@ wheels = [
 [[package]]
 name = "tools"
 version = "0.1.0"
-source = { editable = "packages/tools" }
+source = { editable = "services/tools" }
 dependencies = [
     { name = "ai" },
     { name = "httpx" },
@@ -1558,7 +1558,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "ai", editable = "packages/ai" },
+    { name = "ai", editable = "services/ai" },
     { name = "httpx", specifier = ">=0.27" },
     { name = "langchain-core", specifier = ">=0.3" },
     { name = "pydantic", specifier = ">=2.0" },
@@ -1862,15 +1862,15 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "agents", editable = "packages/agents" },
+    { name = "agents", editable = "services/agents" },
     { name = "arq", specifier = ">=0.26" },
     { name = "asyncpg", specifier = ">=0.29" },
     { name = "pydantic", specifier = ">=2.0" },
     { name = "pydantic-settings", specifier = ">=2.0" },
     { name = "python-dotenv", specifier = ">=1.0" },
-    { name = "rag", editable = "packages/rag" },
+    { name = "rag", editable = "services/rag" },
     { name = "structlog", specifier = ">=24.0" },
-    { name = "tools", editable = "packages/tools" },
+    { name = "tools", editable = "services/tools" },
 ]
 
 [[package]]
