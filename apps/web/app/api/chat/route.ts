@@ -6,10 +6,16 @@ import {
 } from "ai";
 import { nanoid } from "nanoid";
 import type { NextRequest } from "next/server";
+import { auth } from "@/auth";
 
 const API_URL = process.env.API_URL ?? "http://localhost:8000";
 
 export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
   const body = await req.json();
   const messages: UIMessage[] = body.messages ?? [];
   const lastMessage = messages[messages.length - 1];
@@ -17,12 +23,16 @@ export async function POST(req: NextRequest) {
   const text = lastMessage?.parts?.filter(isTextUIPart).map((p) => p.text).join("") ?? "";
 
   const sessionId = req.cookies.get("session-id")?.value ?? crypto.randomUUID();
+  const accessToken = (session as { accessToken?: string }).accessToken;
 
   let fastApiRes: Response;
   try {
     fastApiRes = await fetch(`${API_URL}/chat`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
       body: JSON.stringify({ message: text, session_id: sessionId }),
     });
   } catch {

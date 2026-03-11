@@ -5,6 +5,14 @@ export async function migrate(): Promise<void> {
   const db = getDb();
   await db.execute(sql`CREATE EXTENSION IF NOT EXISTS vector`);
   await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS users (
+      id         BIGSERIAL   PRIMARY KEY,
+      email      TEXT        NOT NULL UNIQUE,
+      password   TEXT        NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await db.execute(sql`
     CREATE TABLE IF NOT EXISTS memory_entries (
       id SERIAL PRIMARY KEY,
       session_id TEXT NOT NULL,

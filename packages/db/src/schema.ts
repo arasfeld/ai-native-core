@@ -1,4 +1,11 @@
-import { pgTable, serial, text, timestamp, vector } from "drizzle-orm/pg-core";
+import { bigserial, pgTable, serial, text, timestamp, vector } from "drizzle-orm/pg-core";
+
+export const users = pgTable("users", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  email: text("email").notNull().unique(),
+  password: text("password").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
 
 export const memoryEntries = pgTable("memory_entries", {
   id: serial("id").primaryKey(),

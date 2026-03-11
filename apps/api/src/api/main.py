@@ -11,7 +11,7 @@ from rag import PgVectorRetriever
 
 from .config import settings
 from .logging import configure_logging
-from .routers import chat, health, ingest, jobs
+from .routers import auth, chat, health, ingest, jobs
 
 configure_logging(
     json_logs=settings.log_format == "json",
@@ -19,10 +19,24 @@ configure_logging(
 )
 log = structlog.get_logger()
 
+_CREATE_USERS = """
+CREATE TABLE IF NOT EXISTS users (
+    id          BIGSERIAL   PRIMARY KEY,
+    email       TEXT        NOT NULL UNIQUE,
+    password    TEXT        NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+"""
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     pool = await asyncpg.create_pool(settings.database_url)
+
+    # Ensure all tables exist
+    async with pool.acquire() as conn:
+        await conn.execute(_CREATE_USERS)
+
     store = SessionStore(pool=pool)
     await store.ensure_table()
 
@@ -35,6 +49,7 @@ async def lifespan(app: FastAPI):
 
     arq = await arq_create_pool(settings.redis_url)
 
+    app.state.db_pool = pool
     app.state.session_store = store
     app.state.compressor = SummaryCompressor(llm=llm)
     app.state.budget = TokenBudget(store, limit=settings.session_token_budget)
@@ -67,6 +82,7 @@ app.add_middleware(
 )
 
 app.include_router(health.router)
+app.include_router(auth.router, prefix="/auth")
 app.include_router(chat.router, prefix="/chat")
 app.include_router(ingest.router, prefix="/ingest")
 app.include_router(jobs.router, prefix="/jobs")
