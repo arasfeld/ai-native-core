@@ -16,6 +16,7 @@ class ChatRequest(BaseModel):
     message: str
     session_id: str = "default"
     use_rag: bool = False
+    system_prompt: str = ""
 
 
 class ChatResponse(BaseModel):
@@ -52,7 +53,7 @@ async def chat(req: ChatRequest) -> StreamingResponse:
                 state: ChatState = {
                     "messages": messages,
                     "session_id": req.session_id,
-                    "system_prompt": "",
+                    "system_prompt": req.system_prompt,
                 }
 
             log.info("chat.stream.start", session_id=req.session_id, use_rag=req.use_rag)

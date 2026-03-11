@@ -10,7 +10,8 @@
   "scripts": {
     "check-types": "tsc --noEmit",
     "clean": "rm -rf dist node_modules",
-    "lint": "eslint . --max-warnings 0"
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "@radix-ui/react-use-controllable-state": "^1.2.2",

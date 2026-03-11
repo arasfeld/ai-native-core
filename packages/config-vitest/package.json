@@ -7,6 +7,9 @@
     "./base": "./base.ts",
     "./ui": "./ui.ts"
   },
+  "scripts": {
+    "format": "prettier --write ."
+  },
   "devDependencies": {
     "vitest": "^4.0.18"
   }

@@ -9,6 +9,7 @@
     "clean": "rm -rf .next node_modules",
     "dev": "next dev --port 3000",
     "lint": "eslint --max-warnings 0",
+    "format": "prettier --write .",
     "start": "next start"
   },
   "dependencies": {

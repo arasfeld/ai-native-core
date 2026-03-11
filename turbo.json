@@ -17,24 +17,18 @@
       "cache": false,
       "persistent": true
     },
+    "format": {
+      "cache": false
+    },
+    "generate": {
+      "cache": false
+    },
     "lint": {
       "dependsOn": ["^lint"]
     },
     "test": {
       "dependsOn": ["^build"],
       "outputs": ["coverage/**", "htmlcov/**"]
-    },
-    "py:lint": {
-      "cache": false
-    },
-    "py:format": {
-      "cache": false
-    },
-    "py:test": {
-      "outputs": ["htmlcov/**"]
-    },
-    "generate": {
-      "cache": false
     }
   }
 }

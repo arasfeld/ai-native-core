@@ -6,7 +6,7 @@
     "check-types": "turbo run check-types",
     "clean": "turbo run clean && rm -rf node_modules",
     "dev": "turbo run dev",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "format": "turbo run format",
     "lint": "turbo run lint",
     "test": "turbo run test"
   },

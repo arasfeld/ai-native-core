@@ -34,7 +34,7 @@ import {
   useRef,
   useState,
 } from "react"
-import { Button } from "~/components/ui/button"
+import { Button } from "@repo/ui/components/button"
 import {
   Command,
   CommandEmpty,
@@ -43,28 +43,28 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
-} from "~/components/ui/command"
+} from "@repo/ui/components/command"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu"
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "~/components/ui/hover-card"
+} from "@repo/ui/components/dropdown-menu"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@repo/ui/components/hover-card"
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupTextarea,
-} from "~/components/ui/input-group"
+} from "@repo/ui/components/input-group"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "~/components/ui/select"
-import { cn } from "~/lib/utils"
+} from "@repo/ui/components/select"
+import { cn } from "@repo/ui/lib/utils"
 
 // ============================================================================
 // Provider Context & Types

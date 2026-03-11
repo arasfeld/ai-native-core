@@ -12,6 +12,7 @@
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsc -p tsconfig.build.json --watch",
     "check-types": "tsc --noEmit",
+    "format": "prettier --write .",
     "migrate": "tsx src/migrate.ts"
   },
   "dependencies": {

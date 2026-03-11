@@ -11,9 +11,9 @@ import {
   CommandList,
   CommandSeparator,
   CommandShortcut,
-} from "~/components/ui/command"
-import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "~/components/ui/dialog"
-import { cn } from "~/lib/utils"
+} from "@repo/ui/components/command"
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@repo/ui/components/dialog"
+import { cn } from "@repo/ui/lib/utils"
 
 export type ModelSelectorProps = ComponentProps<typeof Dialog>
 
@@ -171,7 +171,7 @@ export const ModelSelectorName = ({ className, ...props }: ModelSelectorNameProp
 
 import { CheckIcon } from "lucide-react"
 import { useState } from "react"
-import { Button } from "~/components/ui/button"
+import { Button } from "@repo/ui/components/button"
 
 const models = [
   {

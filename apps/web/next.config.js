@@ -8,17 +8,6 @@ const uiSrc = path.resolve(__dirname, "../../packages/ui/src");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ["@repo/ui"],
-  turbopack: {
-    resolveAlias: {
-      "~/components/ui": path.join(uiSrc, "components"),
-      "~": uiSrc,
-    },
-  },
-  webpack(config) {
-    config.resolve.alias["~/components/ui"] = path.join(uiSrc, "components");
-    config.resolve.alias["~"] = uiSrc;
-    return config;
-  },
 };
 
 export default nextConfig;
