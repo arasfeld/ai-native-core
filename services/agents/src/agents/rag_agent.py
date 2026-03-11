@@ -7,7 +7,7 @@ from ai import BaseLLM, get_llm
 from langchain_core.messages import AIMessage, BaseMessage
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
-from prompts import render_template
+from prompts import render_prompt
 
 from .base_agent import BaseAgent
 from .utils import lc_to_messages
@@ -37,7 +37,7 @@ class RAGAgent(BaseAgent):
 
     def _build_system_prompt(self, chunks: list[str]) -> str:
         context = "\n\n---\n\n".join(chunks) if chunks else ""
-        return render_template("chat.j2", {"context": context})
+        return render_prompt("chat", context={"context": context})
 
     async def _agent_node(self, state: RAGState) -> dict[str, Any]:
         system = self._build_system_prompt(state.get("context_chunks", []))

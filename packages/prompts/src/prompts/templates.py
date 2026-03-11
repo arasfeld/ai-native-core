@@ -1,23 +1,23 @@
-from pathlib import Path
+"""Backward-compatible render_template helper.
 
-from jinja2 import Environment, FileSystemLoader, select_autoescape
+New code should use ``render_prompt`` from the registry instead::
 
-_templates_dir = Path(__file__).parent / "system"
+    from prompts import render_prompt
+    text = render_prompt("chat", context={"user_name": "Ada"})
+"""
 
-_env = Environment(
-    loader=FileSystemLoader(str(_templates_dir)),
-    autoescape=select_autoescape(enabled_extensions=()),
-    trim_blocks=True,
-    lstrip_blocks=True,
-)
+from .registry import render_prompt
 
 
 def render_template(name: str, context: dict | None = None) -> str:
-    """Render a Jinja2 template from the system prompts directory.
+    """Render a prompt template by filename.
 
-    Args:
-        name: Template filename relative to prompts/system/ (e.g. "chat.j2")
-        context: Variables to inject into the template.
+    Accepts the legacy ``{name}.j2`` form and resolves it to the latest
+    versioned template (e.g. ``"chat.j2"`` → latest ``chat.vN.j2``).
+
+    .. deprecated::
+        Use :func:`prompts.render_prompt` instead.
     """
-    template = _env.get_template(name)
-    return template.render(**(context or {}))
+    # Strip the .j2 suffix to get the prompt name
+    prompt_name = name.removesuffix(".j2")
+    return render_prompt(prompt_name, context=context)
