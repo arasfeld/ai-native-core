@@ -8,6 +8,7 @@ requires-python = ">=3.11"
 members = [
     "services/ai",
     "services/agents",
+    "services/memory",
     "services/rag",
     "services/tools",
     "packages/prompts",

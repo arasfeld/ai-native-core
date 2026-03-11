@@ -1,6 +1,7 @@
 import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from memory import SessionStore
 
 from .config import settings
 from .routers import chat, health, ingest
@@ -29,3 +30,4 @@ app.include_router(ingest.router, prefix="/ingest")
 @app.on_event("startup")
 async def startup() -> None:
     log.info("api.startup", provider=settings.llm_provider, port=settings.port)
+    await SessionStore().ensure_table()

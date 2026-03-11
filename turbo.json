@@ -32,6 +32,9 @@
     },
     "py:test": {
       "outputs": ["htmlcov/**"]
+    },
+    "generate": {
+      "cache": false
     }
   }
 }

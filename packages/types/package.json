@@ -6,6 +6,9 @@
   "type": "module",
   "main": "./src/api.ts",
   "types": "./src/api.ts",
+  "exports": {
+    ".": "./src/api.ts"
+  },
   "scripts": {
     "generate": "openapi-typescript http://localhost:8000/openapi.json -o src/api.ts",
     "generate:local": "openapi-typescript ./openapi.yaml -o src/api.ts"

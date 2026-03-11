@@ -4,6 +4,7 @@ from ai import get_llm
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from langchain_core.messages import HumanMessage
+from memory import SessionStore
 from pydantic import BaseModel
 from rag import PgVectorRetriever
 
@@ -26,29 +27,43 @@ class ChatResponse(BaseModel):
 async def chat(req: ChatRequest) -> StreamingResponse:
     """Stream a chat response via Server-Sent Events."""
     llm = get_llm()
+    store = SessionStore()
+
+    # Load conversation history for this session
+    history = await store.get_messages(req.session_id)
+    await store.add_message(req.session_id, "human", req.message)
 
     async def generate():
+        accumulated: list[str] = []
         try:
+            messages = [*history, HumanMessage(content=req.message)]
+
             if req.use_rag:
                 retriever = PgVectorRetriever(llm=llm)
                 chunks = await retriever.retrieve(req.message)
                 agent = build_rag_graph(llm=llm)
                 state: RAGState = {
-                    "messages": [HumanMessage(content=req.message)],
+                    "messages": messages,
                     "session_id": req.session_id,
                     "context_chunks": [c.content for c in chunks],
                 }
             else:
                 agent = build_chat_graph(llm=llm)
                 state: ChatState = {
-                    "messages": [HumanMessage(content=req.message)],
+                    "messages": messages,
                     "session_id": req.session_id,
                     "system_prompt": "",
                 }
 
             log.info("chat.stream.start", session_id=req.session_id, use_rag=req.use_rag)
             async for token in agent.stream(state):
+                accumulated.append(token)
                 yield f"data: {token}\n\n"
+
+            # Persist the full assistant reply
+            full_reply = "".join(accumulated)
+            await store.add_message(req.session_id, "assistant", full_reply)
+
             yield "data: [DONE]\n\n"
 
         except Exception as e:

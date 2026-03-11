@@ -6,6 +6,7 @@ requires-python = ">=3.11"
 dependencies = [
     "ai",
     "agents",
+    "memory",
     "rag",
     "tools",
     "prompts",
@@ -21,6 +22,7 @@ dependencies = [
 [tool.uv.sources]
 ai = { workspace = true }
 agents = { workspace = true }
+memory = { workspace = true }
 rag = { workspace = true }
 tools = { workspace = true }
 prompts = { workspace = true }
