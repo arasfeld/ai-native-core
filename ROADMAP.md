@@ -7,82 +7,64 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full system design.
 ## Completed
 
 - Monorepo (Turborepo + pnpm + uv)
-- `packages/ai` → (target: `services/ai`) — BaseLLM protocol + provider factory (OpenAI, Anthropic, OpenRouter, Ollama)
-- `packages/agents` → (target: `services/agents`) — LangGraph `ChatAgent` and `RAGAgent`
-- `packages/rag` → (target: `services/rag`) — chunking, pgvector retriever, document loaders
-- `packages/tools` → (target: `services/tools`) — tool registry, web search tool
-- `packages/prompts` — Jinja2 template engine, system prompt templates
-- `apps/api` — FastAPI server with `/chat` (SSE), `/ingest`, `/health`
-- `apps/worker` — ARQ background job processor
+- `services/ai` — BaseLLM protocol + provider factory (OpenAI, Anthropic, OpenRouter, Ollama)
+- `services/agents` — LangGraph `ChatAgent` and `RAGAgent`
+- `services/rag` — chunking, pgvector retriever, document loaders
+- `services/tools` — tool registry, web search tool
+- `services/memory` — session memory, episodic memory, summary compression, token budget
+- `packages/prompts` — Jinja2 template engine, versioned prompt registry
 - `packages/db` — Postgres + pgvector schema, Drizzle ORM migrations
 - `packages/types` — TypeScript types (generated from FastAPI OpenAPI spec)
+- `apps/api` — FastAPI server with `/chat` (SSE), `/ingest`, `/auth`, `/billing`, `/jobs`
+- `apps/worker` — ARQ background job processor (`ingest_document`, `run_agent`)
+- `apps/web` — Next.js + Tailwind v4 + shadcn/ui + Vercel AI SDK + NextAuth v5
+- `apps/mobile` — Expo + React Native
+- `apps/desktop` — Tauri
+- `apps/playground` — AI dev sandbox
+- **Phase 7** — Structured logging (structlog), token budget, prompt versioning
+- **Phase 8** — Auth (JWT + NextAuth v5), multi-tenancy (tenants table), Stripe billing, long-term memory, background agents
 
 ---
 
-## Phase 4 — Frontend Upgrade
+## Phase 9 — Multi-modal
 
-Goal: Upgrade the Next.js frontend with Tailwind v4 + shadcn/ui + Vercel AI SDK + React Query.
+Goal: Add image and audio support so agents can see, hear, and speak.
 
 | Priority | Item | Notes |
 |----------|------|-------|
-| 10 | **Tailwind v4 migration** | Replace vanilla CSS with Tailwind v4 in `apps/web` |
-| 11 | **shadcn/ui integration** | Add shadcn/ui components to `packages/ui` |
-| 12 | **Vercel AI SDK** | Replace raw fetch with `ai` SDK for streaming + hooks |
-| 13 | **React Query provider** | `@tanstack/react-query` for non-streaming data |
-| 14 | **Chat UI components** | Proper Chat, Message, Thinking indicator components |
-| 15 | **`packages/types` generation** | `openapi-typescript` from FastAPI spec → TS types |
+| 36 | **Image input** | Accept image uploads in chat; pass to vision-capable models (GPT-4o, Claude 3.5) |
+| 37 | **Image generation** | DALL-E / Stable Diffusion tool in `services/tools` |
+| 38 | **Audio transcription** | Whisper (OpenAI or local) for voice-to-text input |
+| 39 | **Text-to-speech** | Stream TTS audio back via SSE for voice responses |
 
 ---
 
-## Phase 5 — Services Restructure
+## Phase 10 — Location and Ambient Context
 
-Goal: Move Python AI packages from `packages/` to `services/` and add the memory service.
+Goal: Let agents be aware of where the user is and surface location-relevant information.
 
 | Priority | Item | Notes |
 |----------|------|-------|
-| 16 | **Move `packages/ai` → `services/ai`** | Update all imports in apps/api, apps/worker |
-| 17 | **Move `packages/agents` → `services/agents`** | Update workspace pyproject.toml |
-| 18 | **Move `packages/rag` → `services/rag`** | Update workspace pyproject.toml |
-| 19 | **Move `packages/tools` → `services/tools`** | Update workspace pyproject.toml |
-| 20 | **Add `services/memory`** | Session memory + episodic memory + summary compression |
-| 21 | **Wire memory service into API** | Replace ad-hoc session handling with `services/memory` |
+| 40 | **Web geolocation** | Browser `navigator.geolocation` → send lat/lng with each chat request |
+| 41 | **Mobile location** | Expo `expo-location` → same lat/lng contract, foreground + background |
+| 42 | **Reverse geocoding** | lat/lng → human-readable place (city, neighbourhood) via OSM Nominatim or Google |
+| 43 | **Weather tool** | LangGraph tool in `services/tools`: current weather + forecast via Open-Meteo (free) or OpenWeatherMap |
+| 44 | **Location-aware system prompt** | Inject resolved place + weather into system prompt when location is available |
+| 45 | **Nearby POI tool** | Overpass API (OSM) or Google Places — "restaurants near me", "pharmacies open now" |
+| 46 | **Location history** | Optionally store locations in episodic memory ("User is usually in NYC") |
 
 ---
 
-## Phase 6 — New Apps
+## Phase 11 — Evaluation Pipelines
 
-Goal: Add mobile, desktop, and playground applications.
-
-| Priority | Item | Notes |
-|----------|------|-------|
-| 22 | **`apps/playground`** | Next.js app for prompt testing, agent debugging, RAG experiments |
-| 23 | **`apps/mobile`** | Expo + React Native; shares `packages/ui` and `packages/types` |
-| 24 | **`apps/desktop`** | Tauri; wraps web app or standalone desktop UI |
-
----
-
-## Phase 7 — Observability and Robustness
+Goal: Measure and improve agent quality continuously.
 
 | Priority | Item | Notes |
 |----------|------|-------|
-| 25 | **LangSmith tracing** | Optional; set `LANGCHAIN_TRACING_V2=true` |
-| 26 | **Structured logging** | `structlog` in Python, consistent JSON log format |
-| 27 | **Token budget enforcement** | Per-session limits; alert on overage |
-| 28 | **Prompt versioning** | Formalize prompt naming/versioning in `packages/prompts` |
-
----
-
-## Phase 8 — Scale and Product
-
-| Priority | Item | Notes |
-|----------|------|-------|
-| 29 | **Authentication** | NextAuth.js (frontend) + FastAPI-Users (backend) |
-| 30 | **Multi-tenancy** | `tenant_id` on all DB tables, row-level security |
-| 31 | **Billing** | Stripe integration, token usage → cost tracking |
-| 32 | **Long-term memory** | Episode memory, summary compression (via `services/memory`) |
-| 33 | **Background agents** | ARQ task queue for async agent runs |
-| 34 | **Multi-modal** | Image + audio support via vision-capable models |
-| 35 | **Evaluation pipelines** | Golden-answer tests, LangSmith evals |
+| 47 | **Golden-answer test suite** | `pytest` fixtures with reference Q&A pairs; assert semantic similarity |
+| 48 | **LangSmith evals** | Push eval datasets + runs to LangSmith for dataset-level scoring |
+| 49 | **Regression CI** | Run eval suite on every PR; fail if score drops below threshold |
+| 50 | **Prompt A/B testing** | Use prompt versioning registry to compare v1 vs v2 on same dataset |
 
 ---
 
