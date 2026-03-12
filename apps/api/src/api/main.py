@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 import asyncpg
 import structlog
 from ai import get_llm
-from arq.connections import create_pool as arq_create_pool
+from arq.connections import RedisSettings, create_pool as arq_create_pool
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from memory import EpisodicStore, MemoryExtractor, SessionStore, SummaryCompressor, TokenBudget
@@ -61,7 +61,7 @@ async def lifespan(app: FastAPI):
     episodic = EpisodicStore(llm=llm, pool=pool, embedding_dim=settings.embedding_dim)
     await episodic.ensure_table()
 
-    arq = await arq_create_pool(settings.redis_url)
+    arq = await arq_create_pool(RedisSettings.from_dsn(settings.redis_url))
 
     app.state.db_pool = pool
     app.state.session_store = store
