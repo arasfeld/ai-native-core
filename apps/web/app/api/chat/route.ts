@@ -25,6 +25,10 @@ export async function POST(req: NextRequest) {
   const sessionId = req.cookies.get("session-id")?.value ?? crypto.randomUUID();
   const accessToken = (session as { accessToken?: string }).accessToken;
 
+  // Forward optional location from the client
+  const lat: number | undefined = body.lat;
+  const lng: number | undefined = body.lng;
+
   let fastApiRes: Response;
   try {
     fastApiRes = await fetch(`${API_URL}/chat`, {
@@ -33,7 +37,11 @@ export async function POST(req: NextRequest) {
         "Content-Type": "application/json",
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       },
-      body: JSON.stringify({ message: text, session_id: sessionId }),
+      body: JSON.stringify({
+        message: text,
+        session_id: sessionId,
+        ...(lat !== undefined && lng !== undefined ? { lat, lng } : {}),
+      }),
     });
   } catch {
     return new Response("Failed to connect to AI service", { status: 502 });

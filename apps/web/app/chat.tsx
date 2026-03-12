@@ -2,6 +2,7 @@
 
 import { useChat } from "@ai-sdk/react";
 import { isReasoningUIPart, isTextUIPart, type SourceUrlUIPart } from "ai";
+import { useGeolocation } from "@/hooks/use-geolocation";
 import {
   Attachment,
   AttachmentPreview,
@@ -54,7 +55,10 @@ const SUGGESTIONS = [
 ];
 
 export function Chat() {
-  const { messages, sendMessage, stop, status } = useChat();
+  const { coords } = useGeolocation();
+  const { messages, sendMessage, stop, status } = useChat({
+    body: coords ? { lat: coords.lat, lng: coords.lng } : undefined,
+  });
 
   const isLoading = status === "streaming" || status === "submitted";
   const lastMessage = messages[messages.length - 1];

@@ -9,6 +9,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from memory import BudgetExceeded, EpisodicStore, MemoryExtractor, SessionStore, SummaryCompressor, TokenBudget, estimate_tokens  # noqa: F401 (estimate_tokens used inline)
 from pydantic import BaseModel
 from rag import PgVectorRetriever
+from tools import get_location_context
 
 from ..auth import CurrentUser
 
@@ -21,6 +22,8 @@ class ChatRequest(BaseModel):
     session_id: str = "default"
     use_rag: bool = False
     system_prompt: str = ""
+    lat: float | None = None
+    lng: float | None = None
 
 
 class ChatResponse(BaseModel):
@@ -70,6 +73,15 @@ async def chat(req: ChatRequest, request: Request, current_user: CurrentUser) ->
         facts_text = "\n".join(f"- {f.content}" for f in long_term_facts)
         memory_msg = SystemMessage(content=f"Relevant facts from previous conversations:\n{facts_text}")
         history = [memory_msg, *history]
+
+    # Inject location + weather context when the client provides coordinates
+    if req.lat is not None and req.lng is not None:
+        try:
+            location_ctx = await get_location_context(req.lat, req.lng)
+            history = [SystemMessage(content=location_ctx), *history]
+            log.debug("chat.location_context", lat=req.lat, lng=req.lng)
+        except Exception as exc:
+            log.warning("chat.location_context.error", error=str(exc))
 
     async def generate():
         accumulated: list[str] = []
