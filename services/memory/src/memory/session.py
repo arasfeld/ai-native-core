@@ -30,6 +30,8 @@ CREATE TABLE IF NOT EXISTS session_token_usage (
     tokens      INTEGER     NOT NULL,
     recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+ALTER TABLE session_token_usage
+    ADD COLUMN IF NOT EXISTS tenant_id BIGINT;
 CREATE INDEX IF NOT EXISTS session_token_usage_session_id_idx
     ON session_token_usage (session_id);
 CREATE INDEX IF NOT EXISTS session_token_usage_tenant_id_idx
