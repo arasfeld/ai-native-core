@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     port: int = 8000
     redis_url: str = "redis://localhost:6379"
     auth_secret: str = "change-me-in-production"
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+    stripe_pro_price_id: str = ""       # Stripe Price ID for the "pro" plan
+    web_url: str = "http://localhost:3000"
     log_level: str = "INFO"
     log_format: str = "console"  # "console" | "json"
     session_token_budget: int = 100_000  # max tokens per session (0 = unlimited)

@@ -21,6 +21,7 @@ _bearer = HTTPBearer(auto_error=False)
 class AuthUser(BaseModel):
     id: int
     email: str
+    tenant_id: int
 
 
 async def get_current_user(
@@ -48,12 +49,12 @@ async def get_current_user(
 
     pool: asyncpg.Pool = request.app.state.db_pool
     row = await pool.fetchrow(
-        "SELECT id, email FROM users WHERE id = $1", int(payload["sub"])
+        "SELECT id, email, tenant_id FROM users WHERE id = $1", int(payload["sub"])
     )
     if row is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
 
-    return AuthUser(id=row["id"], email=row["email"])
+    return AuthUser(id=row["id"], email=row["email"], tenant_id=row["tenant_id"])
 
 
 async def get_optional_user(

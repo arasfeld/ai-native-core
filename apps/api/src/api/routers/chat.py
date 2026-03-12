@@ -6,7 +6,7 @@ from ai import get_llm
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 from langchain_core.messages import HumanMessage, SystemMessage
-from memory import BudgetExceeded, EpisodicStore, MemoryExtractor, SessionStore, SummaryCompressor, TokenBudget, estimate_tokens
+from memory import BudgetExceeded, EpisodicStore, MemoryExtractor, SessionStore, SummaryCompressor, TokenBudget, estimate_tokens  # noqa: F401 (estimate_tokens used inline)
 from pydantic import BaseModel
 from rag import PgVectorRetriever
 
@@ -32,9 +32,9 @@ class ChatResponse(BaseModel):
 async def chat(req: ChatRequest, request: Request, current_user: CurrentUser) -> StreamingResponse:
     """Stream a chat response via Server-Sent Events."""
     llm = get_llm()
+    pool = request.app.state.db_pool
     store: SessionStore = request.app.state.session_store
     compressor: SummaryCompressor = request.app.state.compressor
-    budget: TokenBudget = request.app.state.budget
     retriever: PgVectorRetriever = request.app.state.retriever
     episodic: EpisodicStore = request.app.state.episodic
     extractor: MemoryExtractor = request.app.state.extractor
@@ -42,7 +42,13 @@ async def chat(req: ChatRequest, request: Request, current_user: CurrentUser) ->
     # Scope session to the authenticated user
     session_id = f"{current_user.id}:{req.session_id}"
 
-    # Enforce token budget before doing any work
+    # Load per-tenant token limit and enforce budget
+    tenant_row = await pool.fetchrow(
+        "SELECT token_limit FROM tenants WHERE id = $1", current_user.tenant_id
+    )
+    token_limit = tenant_row["token_limit"] if tenant_row else 100_000
+    budget = TokenBudget(store, limit=token_limit)
+
     try:
         await budget.check(session_id)
     except BudgetExceeded as exc:
@@ -94,9 +100,9 @@ async def chat(req: ChatRequest, request: Request, current_user: CurrentUser) ->
             full_reply = "".join(accumulated)
             await store.add_message(session_id, "assistant", full_reply)
 
-            # Record token usage (input + output estimate)
+            # Record token usage tagged with tenant for billing aggregation
             tokens_used = estimate_tokens(req.message) + estimate_tokens(full_reply)
-            await budget.record(session_id, tokens_used)
+            await store.add_token_usage(session_id, tokens_used, tenant_id=current_user.tenant_id)
 
             # Extract and store long-term memories in the background
             asyncio.ensure_future(

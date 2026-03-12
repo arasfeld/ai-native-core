@@ -21,9 +21,9 @@ def verify_password(plain: str, hashed: str) -> bool:
     return bcrypt.checkpw(plain.encode(), hashed.encode())
 
 
-def create_access_token(user_id: int, email: str) -> str:
+def create_access_token(user_id: int, email: str, tenant_id: int) -> str:
     expire = datetime.now(timezone.utc) + timedelta(days=TOKEN_EXPIRE_DAYS)
-    payload = {"sub": str(user_id), "email": email, "exp": expire}
+    payload = {"sub": str(user_id), "email": email, "tid": tenant_id, "exp": expire}
     return jwt.encode(payload, settings.auth_secret, algorithm=ALGORITHM)
 
 
