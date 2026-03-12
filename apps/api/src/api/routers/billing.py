@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-import structlog
 import stripe
-from fastapi import APIRouter, HTTPException, Request, status
+import structlog
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from ..auth import CurrentUser
 from ..config import settings
 
 log = structlog.get_logger()
-router = APIRouter()
+router = APIRouter(prefix="/billing", tags=["billing"])
 
 PLAN_TOKEN_LIMITS: dict[str, int] = {
     "free": 100_000,
@@ -157,8 +157,8 @@ async def stripe_webhook(request: Request) -> dict:
 
     try:
         event = stripe.Webhook.construct_event(payload, sig, settings.stripe_webhook_secret)
-    except stripe.error.SignatureVerificationError:
-        raise HTTPException(status_code=400, detail="Invalid webhook signature")
+    except stripe.error.SignatureVerificationError as err:
+        raise HTTPException(status_code=400, detail="Invalid webhook signature") from err
 
     pool = request.app.state.db_pool
 

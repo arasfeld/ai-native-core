@@ -26,7 +26,7 @@ class AuthUser(BaseModel):
 
 async def get_current_user(
     request: Request,
-    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)] = None,
 ) -> AuthUser:
     """Resolve the authenticated user from a Bearer JWT.
 
@@ -40,12 +40,12 @@ async def get_current_user(
         )
     try:
         payload = decode_token(credentials.credentials)
-    except JWTError:
+    except JWTError as err:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
             headers={"WWW-Authenticate": "Bearer"},
-        )
+        ) from err
 
     pool: asyncpg.Pool = request.app.state.db_pool
     row = await pool.fetchrow(
@@ -59,7 +59,7 @@ async def get_current_user(
 
 async def get_optional_user(
     request: Request,
-    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)] = None,
 ) -> AuthUser | None:
     """Like get_current_user but returns None instead of raising on missing auth."""
     if not credentials:

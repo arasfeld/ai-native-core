@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import bcrypt
 from jose import JWTError, jwt
@@ -22,7 +22,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 
 def create_access_token(user_id: int, email: str, tenant_id: int) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(days=TOKEN_EXPIRE_DAYS)
+    expire = datetime.now(UTC) + timedelta(days=TOKEN_EXPIRE_DAYS)
     payload = {"sub": str(user_id), "email": email, "tid": tenant_id, "exp": expire}
     return jwt.encode(payload, settings.auth_secret, algorithm=ALGORITHM)
 

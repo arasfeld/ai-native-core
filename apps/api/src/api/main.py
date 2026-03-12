@@ -3,10 +3,11 @@ from contextlib import asynccontextmanager
 import asyncpg
 import structlog
 from ai import get_llm
-from arq.connections import RedisSettings, create_pool as arq_create_pool
+from arq.connections import RedisSettings
+from arq.connections import create_pool as arq_create_pool
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from memory import EpisodicStore, MemoryExtractor, SessionStore, SummaryCompressor, TokenBudget
+from memory import EpisodicStore, MemoryExtractor, SessionStore, SummaryCompressor
 from rag import PgVectorRetriever
 
 from .config import settings
@@ -100,8 +101,8 @@ app.add_middleware(
 )
 
 app.include_router(health.router)
-app.include_router(auth.router, prefix="/auth")
-app.include_router(chat.router, prefix="/chat")
-app.include_router(ingest.router, prefix="/ingest")
-app.include_router(jobs.router, prefix="/jobs")
-app.include_router(billing.router, prefix="/billing")
+app.include_router(auth.router)
+app.include_router(chat.router)
+app.include_router(ingest.router)
+app.include_router(jobs.router)
+app.include_router(billing.router)

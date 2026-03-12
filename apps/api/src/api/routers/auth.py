@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import structlog
+from asyncer import asyncify
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr
 
 from ..auth import CurrentUser, create_access_token, hash_password, verify_password
 
 log = structlog.get_logger()
-router = APIRouter()
+router = APIRouter(prefix="/auth", tags=["auth"])
 
 _FREE_TOKEN_LIMIT = 100_000
 
@@ -57,31 +58,30 @@ async def register(req: RegisterRequest, request: Request) -> TokenResponse:
             detail="An account with this email already exists",
         )
 
-    async with pool.acquire() as conn:
-        async with conn.transaction():
-            # Create a personal tenant for this user
-            tenant_row = await conn.fetchrow(
-                """
+    async with pool.acquire() as conn, conn.transaction():
+        # Create a personal tenant for this user
+        tenant_row = await conn.fetchrow(
+            """
                 INSERT INTO tenants (name, plan, token_limit)
                 VALUES ($1, 'free', $2)
                 RETURNING id
                 """,
-                req.email,
-                _FREE_TOKEN_LIMIT,
-            )
-            tenant_id = tenant_row["id"]
+            req.email,
+            _FREE_TOKEN_LIMIT,
+        )
+        tenant_id = tenant_row["id"]
 
-            hashed = hash_password(req.password)
-            user_row = await conn.fetchrow(
-                """
+        hashed = await asyncify(hash_password)(req.password)
+        user_row = await conn.fetchrow(
+            """
                 INSERT INTO users (tenant_id, email, password)
                 VALUES ($1, $2, $3)
                 RETURNING id, email, tenant_id
                 """,
-                tenant_id,
-                req.email,
-                hashed,
-            )
+            tenant_id,
+            req.email,
+            hashed,
+        )
 
     user = UserOut(id=user_row["id"], email=user_row["email"], tenant_id=user_row["tenant_id"])
     token = create_access_token(user.id, user.email, user.tenant_id)
@@ -96,7 +96,7 @@ async def login(req: LoginRequest, request: Request) -> TokenResponse:
     row = await pool.fetchrow(
         "SELECT id, email, password, tenant_id FROM users WHERE email = $1", req.email
     )
-    if not row or not verify_password(req.password, row["password"]):
+    if not row or not await asyncify(verify_password)(req.password, row["password"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",

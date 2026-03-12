@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import structlog
-from arq.connections import ArqRedis, create_pool
+from arq.connections import ArqRedis
 from arq.jobs import Job, JobStatus
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 log = structlog.get_logger()
-router = APIRouter()
+router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 
 class JobRequest(BaseModel):

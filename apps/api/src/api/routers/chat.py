@@ -6,7 +6,15 @@ from ai import get_llm
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 from langchain_core.messages import HumanMessage, SystemMessage
-from memory import BudgetExceeded, EpisodicStore, MemoryExtractor, SessionStore, SummaryCompressor, TokenBudget, estimate_tokens  # noqa: F401 (estimate_tokens used inline)
+from memory import (  # noqa: F401 (estimate_tokens used inline)
+    BudgetExceeded,
+    EpisodicStore,
+    MemoryExtractor,
+    SessionStore,
+    SummaryCompressor,
+    TokenBudget,
+    estimate_tokens,
+)
 from pydantic import BaseModel
 from rag import PgVectorRetriever
 from tools import get_location_context
@@ -14,7 +22,7 @@ from tools import get_location_context
 from ..auth import CurrentUser
 
 log = structlog.get_logger()
-router = APIRouter()
+router = APIRouter(prefix="/chat", tags=["chat"])
 
 
 class ChatRequest(BaseModel):
