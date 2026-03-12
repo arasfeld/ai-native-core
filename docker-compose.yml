@@ -21,6 +21,15 @@ services:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
 
+  redis:
+    image: redis:7-alpine
+    container_name: ai-native-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
   ollama:
     image: ollama/ollama:latest
     container_name: ai-native-ollama
@@ -32,4 +41,5 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:
   ollama_data:

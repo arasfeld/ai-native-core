@@ -61,7 +61,13 @@ async def lifespan(app: FastAPI):
     episodic = EpisodicStore(llm=llm, pool=pool, embedding_dim=settings.embedding_dim)
     await episodic.ensure_table()
 
-    arq = await arq_create_pool(RedisSettings.from_dsn(settings.redis_url))
+    try:
+        arq = await arq_create_pool(RedisSettings.from_dsn(settings.redis_url))
+        app.state.arq = arq
+        log.info("api.redis.connected", url=settings.redis_url)
+    except Exception as exc:
+        app.state.arq = None
+        log.warning("api.redis.unavailable", error=str(exc), detail="POST /jobs will return 503")
 
     app.state.db_pool = pool
     app.state.session_store = store
@@ -69,7 +75,6 @@ async def lifespan(app: FastAPI):
     app.state.retriever = retriever
     app.state.episodic = episodic
     app.state.extractor = MemoryExtractor(llm=llm, episodic=episodic)
-    app.state.arq = arq
 
     log.info("api.startup", provider=settings.llm_provider, port=settings.port)
     yield

@@ -29,7 +29,10 @@ class JobResult(BaseModel):
 
 
 async def _get_redis(request: Request) -> ArqRedis:
-    return request.app.state.arq
+    arq = request.app.state.arq
+    if arq is None:
+        raise HTTPException(status_code=503, detail="Job queue unavailable (Redis not connected)")
+    return arq
 
 
 @router.post("", response_model=JobResponse, status_code=202)
