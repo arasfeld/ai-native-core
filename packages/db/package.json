@@ -10,18 +10,21 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "dev": "tsc -p tsconfig.build.json --watch",
     "check-types": "tsc --noEmit",
+    "clean": "rm -rf dist node_modules",
+    "dev": "tsc -p tsconfig.build.json --watch",
     "format": "prettier --write .",
     "migrate": "tsx src/migrate.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.1",
+    "pg": "^8.17.1",
     "postgres": "^3.4.5"
   },
   "devDependencies": {
     "@repo/config-typescript": "workspace:*",
     "@types/node": "^22.15.3",
+    "@types/pg": "^8.11.0",
     "drizzle-kit": "^0.31.9",
     "tsx": "^4.0.0",
     "typescript": "5.9.2"

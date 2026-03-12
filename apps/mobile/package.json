@@ -4,27 +4,41 @@
   "main": "expo-router/entry",
   "private": true,
   "scripts": {
-    "start": "expo start",
     "android": "expo start --android",
+    "check-types": "tsc --noEmit",
+    "clean": "rm -rf dist node_modules",
     "ios": "expo start --ios",
-    "web": "expo start --web",
     "lint": "eslint .",
-    "check-types": "tsc --noEmit"
+    "start": "expo start",
+    "web": "expo start --web"
   },
   "dependencies": {
-    "@expo/metro-runtime": "~4.0.1",
-    "@expo/vector-icons": "^14.0.4",
-    "expo": "~53.0.0",
-    "expo-constants": "~17.0.8",
-    "expo-router": "~4.0.20",
-    "expo-status-bar": "~2.0.1",
-    "react": "^19.0.0",
-    "react-native": "0.79.2",
-    "react-native-safe-area-context": "^5.4.0",
-    "react-native-screens": "~4.5.0"
+    "@better-auth/expo": "^1.2.7",
+    "@expo/metro-runtime": "~55.0.6",
+    "@expo/vector-icons": "^15.0.2",
+    "@react-navigation/drawer": "^7.3.10",
+    "@repo/env": "workspace:*",
+    "@repo/tokens": "workspace:*",
+    "@tanstack/react-query": "^5.90.21",
+    "better-auth": "^1.5.5",
+    "expo": "~55.0.5",
+    "expo-constants": "~55.0.7",
+    "expo-linking": "~55.0.7",
+    "expo-router": "~55.0.4",
+    "expo-secure-store": "~14.0.1",
+    "expo-status-bar": "~55.0.4",
+    "expo-web-browser": "~14.0.2",
+    "react": "19.2.0",
+    "react-native": "0.83.2",
+    "react-native-gesture-handler": "~2.24.0",
+    "react-native-reanimated": "~3.17.4",
+    "react-native-safe-area-context": "~5.6.2",
+    "react-native-screens": "~4.23.0",
+    "tailwindcss": "^4.1.18",
+    "uniwind": "^1.0.0"
   },
   "devDependencies": {
-    "@types/react": "~19.0.10",
-    "typescript": "~5.8.3"
+    "@types/react": "~19.2.2",
+    "typescript": "5.9.2"
   }
 }

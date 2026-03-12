@@ -10,9 +10,10 @@
     ".": "./src/api.ts"
   },
   "scripts": {
+    "clean": "rm -rf dist node_modules",
+    "format": "prettier --write .",
     "generate": "openapi-typescript http://localhost:8000/openapi.json -o src/api.ts",
-    "generate:local": "openapi-typescript ./openapi.yaml -o src/api.ts",
-    "format": "prettier --write ."
+    "generate:local": "openapi-typescript ./openapi.yaml -o src/api.ts"
   },
   "devDependencies": {
     "openapi-typescript": "^7.0.0"

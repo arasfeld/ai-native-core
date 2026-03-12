@@ -8,6 +8,7 @@
     "./ui": "./ui.ts"
   },
   "scripts": {
+    "clean": "rm -rf dist node_modules",
     "format": "prettier --write ."
   },
   "devDependencies": {

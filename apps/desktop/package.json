@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "tauri dev",
     "build": "tauri build",
+    "clean": "rm -rf dist node_modules",
+    "dev": "tauri dev",
     "tauri": "tauri"
   },
   "dependencies": {

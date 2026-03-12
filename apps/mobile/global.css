@@ -1,0 +1,56 @@
+@import "tailwindcss";
+@import "uniwind";
+
+/*
+ * Design tokens — hex equivalents of the OKLCH values in apps/web/app/globals.css.
+ * Source of truth for values: packages/tokens/index.js
+ * React Native does not support OKLCH, so we use pre-converted hex here.
+ */
+
+@theme {
+  /* Light (default) */
+  --color-background:           #ffffff;
+  --color-foreground:           #0a0a0a;
+  --color-card:                 #ffffff;
+  --color-card-foreground:      #0a0a0a;
+  --color-popover:              #ffffff;
+  --color-popover-foreground:   #0a0a0a;
+  --color-primary:              #171717;
+  --color-primary-foreground:   #fafafa;
+  --color-secondary:            #f5f5f5;
+  --color-secondary-foreground: #171717;
+  --color-muted:                #f5f5f5;
+  --color-muted-foreground:     #737373;
+  --color-accent:               #f5f5f5;
+  --color-accent-foreground:    #171717;
+  --color-destructive:          #dc2626;
+  --color-border:               #e5e5e5;
+  --color-input:                #e5e5e5;
+  --color-ring:                 #a1a1a1;
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+}
+
+@theme dark {
+  --color-background:           #0a0a0a;
+  --color-foreground:           #fafafa;
+  --color-card:                 #0a0a0a;
+  --color-card-foreground:      #fafafa;
+  --color-popover:              #0a0a0a;
+  --color-popover-foreground:   #fafafa;
+  --color-primary:              #fafafa;
+  --color-primary-foreground:   #171717;
+  --color-secondary:            #262626;
+  --color-secondary-foreground: #fafafa;
+  --color-muted:                #262626;
+  --color-muted-foreground:     #a1a1a1;
+  --color-accent:               #262626;
+  --color-accent-foreground:    #fafafa;
+  --color-destructive:          #7f1d1d;
+  --color-border:               #262626;
+  --color-input:                #262626;
+  --color-ring:                 #737373;
+}

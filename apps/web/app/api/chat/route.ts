@@ -5,13 +5,15 @@ import {
   type UIMessage,
 } from "ai";
 import { nanoid } from "nanoid";
+import { headers } from "next/headers";
 import type { NextRequest } from "next/server";
 import { auth } from "@/auth";
 
 const API_URL = process.env.API_URL ?? "http://localhost:8000";
+const INTERNAL_SECRET = process.env.INTERNAL_SECRET ?? "";
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
+  const session = await auth.api.getSession({ headers: await headers() });
   if (!session) {
     return new Response("Unauthorized", { status: 401 });
   }
@@ -23,7 +25,6 @@ export async function POST(req: NextRequest) {
   const text = lastMessage?.parts?.filter(isTextUIPart).map((p) => p.text).join("") ?? "";
 
   const sessionId = req.cookies.get("session-id")?.value ?? crypto.randomUUID();
-  const accessToken = (session as { accessToken?: string }).accessToken;
 
   // Forward optional location from the client
   const lat: number | undefined = body.lat;
@@ -35,7 +36,8 @@ export async function POST(req: NextRequest) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        "x-user-email": session.user.email,
+        "x-internal-secret": INTERNAL_SECRET,
       },
       body: JSON.stringify({
         message: text,

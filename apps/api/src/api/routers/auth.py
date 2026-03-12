@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr
 
 from ..auth import CurrentUser, create_access_token, hash_password, verify_password
+from ..config import settings
 
 log = structlog.get_logger()
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -112,3 +113,43 @@ async def login(req: LoginRequest, request: Request) -> TokenResponse:
 async def me(current_user: CurrentUser) -> UserOut:
     """Return the currently authenticated user."""
     return UserOut(id=current_user.id, email=current_user.email, tenant_id=current_user.tenant_id)
+
+
+class InternalRegisterRequest(BaseModel):
+    email: EmailStr
+
+
+@router.post("/internal/register", include_in_schema=False)
+async def internal_register(req: InternalRegisterRequest, request: Request) -> dict:
+    """Provision a tenant + user record for a better-auth managed user.
+
+    Called server-side by the Next.js layer after better-auth creates a new user.
+    Never exposed in the public API schema.
+    """
+    if request.headers.get("x-internal-secret") != settings.internal_secret:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid internal secret")
+
+    pool = request.app.state.db_pool
+
+    # Idempotent — return existing record if already provisioned
+    existing = await pool.fetchrow(
+        "SELECT id, tenant_id FROM users WHERE email = $1", req.email
+    )
+    if existing:
+        return {"user_id": existing["id"], "tenant_id": existing["tenant_id"]}
+
+    async with pool.acquire() as conn, conn.transaction():
+        tenant_row = await conn.fetchrow(
+            "INSERT INTO tenants (name, plan, token_limit) VALUES ($1, 'free', $2) RETURNING id",
+            req.email,
+            _FREE_TOKEN_LIMIT,
+        )
+        tenant_id = tenant_row["id"]
+        user_row = await conn.fetchrow(
+            "INSERT INTO users (tenant_id, email, password) VALUES ($1, $2, '') RETURNING id",
+            tenant_id,
+            req.email,
+        )
+
+    log.info("auth.internal_register", user_id=user_row["id"], tenant_id=tenant_id)
+    return {"user_id": user_row["id"], "tenant_id": tenant_id}

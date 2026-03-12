@@ -2,9 +2,10 @@
   "name": "worker",
   "private": true,
   "scripts": {
-    "lint": "uv run ruff check .",
-    "test": "uv run pytest",
+    "clean": "rm -rf dist node_modules __pycache__ .pytest_cache .ruff_cache",
+    "dev": "uv run worker-start",
     "format": "uv run ruff format .",
-    "dev": "uv run worker-start"
+    "lint": "uv run ruff check .",
+    "test": "uv run pytest"
   }
 }

@@ -2,9 +2,10 @@
   "name": "api",
   "private": true,
   "scripts": {
-    "lint": "uv run ruff check .",
-    "test": "uv run pytest",
+    "clean": "rm -rf dist node_modules __pycache__ .pytest_cache .ruff_cache",
+    "dev": "uv run api-dev",
     "format": "uv run ruff format .",
-    "dev": "uv run api-dev"
+    "lint": "uv run ruff check .",
+    "test": "uv run pytest"
   }
 }

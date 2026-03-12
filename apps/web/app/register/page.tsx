@@ -3,9 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+import { authClient } from "@/lib/auth-client";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -19,29 +17,16 @@ export default function RegisterPage() {
     setError("");
     setLoading(true);
 
-    // Register via FastAPI then sign in
-    const res = await fetch(`${API_URL}/auth/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setError((data as { detail?: string }).detail ?? "Registration failed.");
-      setLoading(false);
-      return;
-    }
-
-    const result = await signIn("credentials", {
+    const { error: authError } = await authClient.signUp.email({
       email,
       password,
-      redirect: false,
+      name: email.split("@")[0] ?? email,
     });
+
     setLoading(false);
 
-    if (result?.error) {
-      setError("Account created but sign-in failed. Please try logging in.");
+    if (authError) {
+      setError(authError.message ?? "Registration failed.");
     } else {
       router.push("/");
     }

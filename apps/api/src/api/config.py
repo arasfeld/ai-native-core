@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     port: int = 8000
     redis_url: str = "redis://localhost:6379"
     auth_secret: str = "change-me-in-production"
+    internal_secret: str = "change-me-internal-secret"
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
     stripe_pro_price_id: str = ""       # Stripe Price ID for the "pro" plan

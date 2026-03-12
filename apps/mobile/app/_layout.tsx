@@ -1,12 +1,18 @@
+import "../global.css";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+const queryClient = new QueryClient();
+
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <Stack>
-        <Stack.Screen name="index" options={{ title: "AI Chat" }} />
-      </Stack>
-    </SafeAreaProvider>
+    <QueryClientProvider client={queryClient}>
+      <SafeAreaProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(drawer)" />
+        </Stack>
+      </SafeAreaProvider>
+    </QueryClientProvider>
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { isReasoningUIPart, isTextUIPart, type SourceUrlUIPart } from "ai";
+import { useState, useRef, type ReactNode } from "react";
+import { DefaultChatTransport, isReasoningUIPart, isTextUIPart, type SourceUrlUIPart } from "ai";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import {
   Attachment,
@@ -46,6 +47,8 @@ import {
 } from "@repo/ui/components/ai/sources";
 import { Suggestion, Suggestions } from "@repo/ui/components/ai/suggestion";
 import { BotIcon } from "lucide-react";
+import { UserMenu } from "@/components/user-menu";
+
 
 const SUGGESTIONS = [
   "What can you help me with?",
@@ -54,11 +57,16 @@ const SUGGESTIONS = [
   "Write me a code example",
 ];
 
-export function Chat() {
+export function Chat(): ReactNode {
+  const [inputText, setInputText] = useState("");
   const { coords } = useGeolocation();
-  const { messages, sendMessage, stop, status } = useChat({
-    body: coords ? { lat: coords.lat, lng: coords.lng } : undefined,
-  });
+  const coordsRef = useRef(coords);
+  coordsRef.current = coords;
+
+  const [transport] = useState(
+    () => new DefaultChatTransport({ body: () => coordsRef.current ?? {} }),
+  );
+  const { messages, sendMessage, stop, status } = useChat({ transport });
 
   const isLoading = status === "streaming" || status === "submitted";
   const lastMessage = messages[messages.length - 1];
@@ -70,6 +78,13 @@ export function Chat() {
 
   return (
     <div className="flex h-dvh flex-col">
+      <header className="flex items-center justify-between border-b px-4 py-2">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <BotIcon className="size-4 text-muted-foreground" />
+          AI Native
+        </div>
+        <UserMenu />
+      </header>
       <Conversation className="flex-1">
         <ConversationContent>
           {messages.length === 0 ? (
@@ -178,7 +193,7 @@ export function Chat() {
 
       <div className="border-t p-4">
         <PromptInput
-          onSubmit={({ text, files }) => sendMessage({ text, files })}
+          onSubmit={({ text, files }) => { sendMessage({ text, files }); setInputText(""); }}
           multiple
           globalDrop
         >
@@ -201,7 +216,11 @@ export function Chat() {
           </PromptInputAttachments>
 
           <PromptInputBody>
-            <PromptInputTextarea placeholder="Ask anything… (Enter to send)" />
+            <PromptInputTextarea
+              placeholder="Ask anything… (Enter to send)"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+            />
           </PromptInputBody>
 
           <PromptInputFooter>
@@ -213,7 +232,11 @@ export function Chat() {
                 </PromptInputActionMenuContent>
               </PromptInputActionMenu>
             </PromptInputTools>
-            <PromptInputSubmit status={status} onClick={isLoading ? stop : undefined} />
+            <PromptInputSubmit
+              status={status}
+              disabled={!isLoading && inputText.trim() === ""}
+              onClick={isLoading ? stop : undefined}
+            />
           </PromptInputFooter>
         </PromptInput>
       </div>

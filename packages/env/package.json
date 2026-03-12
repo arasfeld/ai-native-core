@@ -1,0 +1,22 @@
+{
+  "name": "@repo/env",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./native": "./src/native.ts",
+    "./server": "./src/server.ts",
+    "./web": "./src/web.ts"
+  },
+  "dependencies": {
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@repo/config-typescript": "workspace:*",
+    "@types/node": "^22.15.3",
+    "typescript": "5.9.2"
+  },
+  "scripts": {
+    "clean": "rm -rf dist node_modules"
+  }
+}

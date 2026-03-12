@@ -5,7 +5,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  StyleSheet,
   Text,
   TextInput,
   View,
@@ -88,7 +87,7 @@ export default function ChatScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      className="flex-1 bg-background"
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={insets.top + 44}
     >
@@ -96,88 +95,60 @@ export default function ChatScreen() {
         ref={flatListRef}
         data={messages}
         keyExtractor={(m) => m.id}
-        contentContainerStyle={styles.list}
+        contentContainerClassName="p-4 gap-3"
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
         renderItem={({ item }) => (
-          <View style={[styles.bubble, item.role === "user" ? styles.userBubble : styles.assistantBubble]}>
-            <Text style={[styles.bubbleText, item.role === "user" ? styles.userText : styles.assistantText]}>
+          <View
+            className={
+              "max-w-[80%] rounded-xl px-3.5 py-2.5 " +
+              (item.role === "user" ? "self-end bg-primary" : "self-start bg-secondary")
+            }
+          >
+            <Text
+              className={
+                "text-[15px] leading-6 " +
+                (item.role === "user" ? "text-primary-foreground" : "text-secondary-foreground")
+              }
+            >
               {item.content || (loading && item.role === "assistant" ? "…" : "")}
             </Text>
           </View>
         )}
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>Start a conversation</Text>
+          <View className="flex-1 items-center justify-center pt-20">
+            <Text className="text-[15px] text-muted-foreground">Start a conversation</Text>
           </View>
         }
       />
 
-      <View style={[styles.inputRow, { paddingBottom: insets.bottom + 8 }]}>
+      <View
+        className="flex-row items-end gap-2 border-t border-border bg-background px-3 pt-2"
+        style={{ paddingBottom: insets.bottom + 8 }}
+      >
         <TextInput
-          style={styles.input}
+          className="max-h-[120px] flex-1 rounded-2xl border border-border bg-secondary px-3.5 py-2.5 text-[15px] text-foreground"
           value={input}
           onChangeText={setInput}
           placeholder="Message..."
-          placeholderTextColor="#888"
+          placeholderTextColorClassName="text-muted-foreground"
           multiline
           onSubmitEditing={sendMessage}
         />
         <Pressable
           onPress={sendMessage}
           disabled={!input.trim() || loading}
-          style={[styles.sendButton, (!input.trim() || loading) && styles.sendButtonDisabled]}
+          className={
+            "h-10 w-10 items-center justify-center rounded-full " +
+            (!input.trim() || loading ? "bg-muted" : "bg-primary")
+          }
         >
           {loading ? (
-            <ActivityIndicator color="#fff" size="small" />
+            <ActivityIndicator size="small" className="text-primary-foreground" />
           ) : (
-            <Text style={styles.sendText}>↑</Text>
+            <Text className="text-lg font-semibold text-primary-foreground">↑</Text>
           )}
         </Pressable>
       </View>
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  list: { padding: 16, gap: 12 },
-  bubble: { maxWidth: "80%", borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10 },
-  userBubble: { alignSelf: "flex-end", backgroundColor: "#000" },
-  assistantBubble: { alignSelf: "flex-start", backgroundColor: "#f0f0f0" },
-  bubbleText: { fontSize: 15, lineHeight: 21 },
-  userText: { color: "#fff" },
-  assistantText: { color: "#000" },
-  empty: { flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 80 },
-  emptyText: { color: "#888", fontSize: 15 },
-  inputRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 8,
-    borderTopWidth: 1,
-    borderColor: "#e5e5e5",
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    backgroundColor: "#fff",
-  },
-  input: {
-    flex: 1,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 15,
-    maxHeight: 120,
-    backgroundColor: "#fafafa",
-  },
-  sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#000",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sendButtonDisabled: { backgroundColor: "#ccc" },
-  sendText: { color: "#fff", fontSize: 18, fontWeight: "600" },
-});

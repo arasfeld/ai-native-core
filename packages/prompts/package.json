@@ -2,8 +2,9 @@
   "name": "@repo/prompts",
   "private": true,
   "scripts": {
+    "clean": "rm -rf dist node_modules __pycache__ .pytest_cache .ruff_cache",
+    "format": "uv run ruff format .",
     "lint": "uv run ruff check .",
-    "test": "uv run pytest",
-    "format": "uv run ruff format ."
+    "test": "uv run pytest"
   }
 }
