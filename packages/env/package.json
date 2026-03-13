@@ -12,7 +12,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@repo/config-typescript": "workspace:*",
+    "@repo/config": "workspace:*",
     "@types/node": "^22.15.3",
     "typescript": "5.9.2"
   },

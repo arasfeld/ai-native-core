@@ -26,12 +26,12 @@ CREATE INDEX IF NOT EXISTS chat_sessions_session_id_idx
 CREATE TABLE IF NOT EXISTS session_token_usage (
     id          BIGSERIAL PRIMARY KEY,
     session_id  TEXT        NOT NULL,
-    tenant_id   BIGINT,
+    tenant_id   TEXT,
     tokens      INTEGER     NOT NULL,
     recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 ALTER TABLE session_token_usage
-    ADD COLUMN IF NOT EXISTS tenant_id BIGINT;
+    ADD COLUMN IF NOT EXISTS tenant_id TEXT;
 CREATE INDEX IF NOT EXISTS session_token_usage_session_id_idx
     ON session_token_usage (session_id);
 CREATE INDEX IF NOT EXISTS session_token_usage_tenant_id_idx
@@ -127,7 +127,7 @@ class SessionStore:
         log.info("memory.session.cleared", session_id=session_id)
 
     async def add_token_usage(
-        self, session_id: str, tokens: int, tenant_id: int | None = None
+        self, session_id: str, tokens: int, tenant_id: str | None = None
     ) -> None:
         """Record token consumption for a session turn."""
         async with self._conn() as conn:

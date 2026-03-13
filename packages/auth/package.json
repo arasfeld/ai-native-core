@@ -7,6 +7,9 @@
     ".": "./src/index.ts",
     "./client": "./src/client.ts"
   },
+  "scripts": {
+    "clean": "rm -rf dist node_modules"
+  },
   "dependencies": {
     "@better-auth/expo": "^1.2.7",
     "@repo/db": "workspace:*",
@@ -14,11 +17,8 @@
     "better-auth": "^1.5.5"
   },
   "devDependencies": {
-    "@repo/config-typescript": "workspace:*",
+    "@repo/config": "workspace:*",
     "@types/node": "^22.15.3",
     "typescript": "5.9.2"
-  },
-  "scripts": {
-    "clean": "rm -rf dist node_modules"
   }
 }

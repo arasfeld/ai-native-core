@@ -26,14 +26,27 @@ export default function App() {
   if (session) {
     return (
       <div style={{ padding: 16, minWidth: 280 }}>
-        <p>Signed in as <strong>{session.user.email}</strong></p>
-        <button onClick={() => authClient.signOut()}>Sign out</button>
+        <p>
+          Signed in as <strong>{session.user.email}</strong>
+        </p>
+        <button type="button" onClick={() => authClient.signOut()}>
+          Sign out
+        </button>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSignIn} style={{ padding: 16, minWidth: 280, display: "flex", flexDirection: "column", gap: 8 }}>
+    <form
+      onSubmit={handleSignIn}
+      style={{
+        padding: 16,
+        minWidth: 280,
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+      }}
+    >
       <h2 style={{ margin: 0 }}>AI Native Core</h2>
       {error && <p style={{ color: "red" }}>{error}</p>}
       <input

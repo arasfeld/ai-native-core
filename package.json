@@ -3,20 +3,22 @@
   "private": true,
   "scripts": {
     "build": "turbo run build",
+    "check": "biome check --write .",
     "check-types": "turbo run check-types",
     "clean": "turbo run clean && rm -rf node_modules",
+    "db:generate": "turbo -F @repo/db db:generate",
+    "db:migrate": "turbo -F @repo/db db:migrate",
+    "db:push": "turbo -F @repo/db db:push",
+    "db:studio": "turbo -F @repo/db db:studio",
     "dev": "turbo run dev",
-    "format": "turbo run format",
-    "lint": "turbo run lint",
-    "test": "turbo run test"
+    "dev:native": "turbo -F mobile dev",
+    "dev:server": "turbo -F server dev",
+    "dev:web": "turbo -F web dev"
   },
   "devDependencies": {
-    "prettier": "^3.8.1",
+    "@biomejs/biome": "^2.2.0",
     "turbo": "^2.8.10",
     "typescript": "5.9.2"
   },
-  "packageManager": "pnpm@9.0.0",
-  "engines": {
-    "node": ">=18"
-  }
+  "packageManager": "pnpm@9.0.0"
 }

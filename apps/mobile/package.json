@@ -8,11 +8,11 @@
     "check-types": "tsc --noEmit",
     "clean": "rm -rf dist node_modules",
     "ios": "expo start --ios",
-    "lint": "eslint .",
     "start": "expo start",
     "web": "expo start --web"
   },
   "dependencies": {
+    "@ai-sdk/react": "^3.0.118",
     "@better-auth/expo": "^1.2.7",
     "@expo/metro-runtime": "~55.0.6",
     "@expo/vector-icons": "^15.0.2",
@@ -34,6 +34,7 @@
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "~5.6.2",
     "react-native-screens": "~4.23.0",
+    "ai": "^6.0.116",
     "tailwindcss": "^4.1.18",
     "uniwind": "^1.0.0"
   },

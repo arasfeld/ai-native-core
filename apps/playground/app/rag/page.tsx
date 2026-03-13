@@ -78,7 +78,8 @@ export default function RagPage() {
       <div className="border-b px-8 py-5">
         <h1 className="font-semibold text-lg">RAG Lab</h1>
         <p className="text-muted-foreground text-sm">
-          Ingest content into the vector store, then query it with retrieval-augmented generation.
+          Ingest content into the vector store, then query it with
+          retrieval-augmented generation.
         </p>
       </div>
 
@@ -95,9 +96,10 @@ export default function RagPage() {
           />
 
           <button
+            type="button"
             onClick={ingest}
             disabled={!content.trim() || ingestStatus === "ingesting"}
-            className="rounded-md bg-primary px-4 py-2 text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+            className="rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground text-sm transition-colors hover:bg-primary/90 disabled:opacity-50"
           >
             {ingestStatus === "ingesting" ? "Ingesting..." : "Ingest"}
           </button>
@@ -127,9 +129,10 @@ export default function RagPage() {
               onKeyDown={(e) => e.key === "Enter" && runQuery()}
             />
             <button
+              type="button"
               onClick={runQuery}
               disabled={!query.trim() || queryStatus === "running"}
-              className="rounded-md bg-primary px-4 py-2 text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+              className="rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground text-sm transition-colors hover:bg-primary/90 disabled:opacity-50"
             >
               {queryStatus === "running" ? "Running..." : "Query"}
             </button>
@@ -137,14 +140,18 @@ export default function RagPage() {
 
           <div className="min-h-0 flex-1 overflow-auto rounded-md border bg-muted/30 p-4">
             {queryStatus === "running" && !queryOutput && (
-              <p className="animate-pulse text-muted-foreground text-sm">Retrieving and generating...</p>
+              <p className="animate-pulse text-muted-foreground text-sm">
+                Retrieving and generating...
+              </p>
             )}
             {queryOutput ? (
               <Streamdown className="prose prose-sm dark:prose-invert max-w-none">
                 {queryOutput}
               </Streamdown>
             ) : queryStatus === "idle" ? (
-              <p className="text-muted-foreground text-sm">Query results will appear here.</p>
+              <p className="text-muted-foreground text-sm">
+                Query results will appear here.
+              </p>
             ) : null}
           </div>
         </div>

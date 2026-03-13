@@ -1,4 +1,7 @@
-import { useCallback, useRef, useState } from "react";
+import { useChat } from "@ai-sdk/react";
+import { type UIMessage, DefaultChatTransport } from "ai";
+import { fetch as expoFetch } from "expo/fetch";
+import { useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -10,80 +13,63 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { nanoid } from "nanoid/non-secure";
-import { API_URL } from "@/constants/api";
+import { authClient } from "@/lib/auth-client";
+import { WEB_URL } from "@/lib/api";
 
-interface Message {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
+function fetchWithAuth(
+  url: RequestInfo | URL,
+  opts?: RequestInit,
+): Promise<Response> {
+  const cookies = authClient.getCookie();
+  const headers = {
+    ...(opts?.headers as Record<string, string>),
+    ...(cookies ? { Cookie: cookies } : {}),
+  };
+  return expoFetch(
+    url as Parameters<typeof expoFetch>[0],
+    {
+      ...opts,
+      headers,
+    } as Parameters<typeof expoFetch>[1],
+  ) as unknown as Promise<Response>;
 }
-
-const SESSION_ID = nanoid();
 
 export default function ChatScreen() {
   const insets = useSafeAreaInsets();
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+  const [input, setInput] = useState("");
 
-  const sendMessage = useCallback(async () => {
+  const { messages, status, error, sendMessage } = useChat({
+    transport: new DefaultChatTransport({
+      fetch: fetchWithAuth as unknown as typeof globalThis.fetch,
+      api: `${WEB_URL}/api/chat`,
+    }),
+    onError: (err) => console.error("Chat error:", err),
+  });
+
+  const isBusy = status === "submitted" || status === "streaming";
+
+  const onSubmit = () => {
     const text = input.trim();
-    if (!text || loading) return;
-
+    if (!text || isBusy) return;
+    sendMessage({ text });
     setInput("");
-    const userMsg: Message = { id: nanoid(), role: "user", content: text };
-    const assistantId = nanoid();
+  };
 
-    setMessages((prev) => [
-      ...prev,
-      userMsg,
-      { id: assistantId, role: "assistant", content: "" },
-    ]);
-    setLoading(true);
-
-    try {
-      const res = await fetch(`${API_URL}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, session_id: SESSION_ID }),
-      });
-
-      if (!res.body) throw new Error("No response body");
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buf = "";
-      let full = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
-        const parts = buf.split("\n\n");
-        buf = parts.pop() ?? "";
-        for (const part of parts) {
-          const match = part.match(/^data: (.*)/m);
-          if (!match) continue;
-          const token = match[1] ?? "";
-          if (token === "[DONE]") continue;
-          full += token === "" ? "\n" : token;
-          setMessages((prev) =>
-            prev.map((m) => (m.id === assistantId ? { ...m, content: full } : m)),
-          );
-        }
-      }
-    } catch (err) {
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === assistantId ? { ...m, content: "Error: " + String(err) } : m,
-        ),
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [input, loading]);
+  if (error) {
+    return (
+      <View className="flex-1 items-center justify-center bg-background px-6">
+        <View className="rounded-xl bg-secondary p-4">
+          <Text className="mb-1 text-center font-medium text-destructive">
+            {error.message}
+          </Text>
+          <Text className="text-center text-[13px] text-muted-foreground">
+            Please check your connection and try again.
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -96,33 +82,53 @@ export default function ChatScreen() {
         data={messages}
         keyExtractor={(m) => m.id}
         contentContainerClassName="p-4 gap-3"
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+        onContentSizeChange={() =>
+          flatListRef.current?.scrollToEnd({ animated: true })
+        }
         renderItem={({ item }) => (
           <View
             className={
-              "max-w-[80%] rounded-xl px-3.5 py-2.5 " +
-              (item.role === "user" ? "self-end bg-primary" : "self-start bg-secondary")
+              "max-w-[80%] rounded-xl px-3.5 py-2.5" +
+              (item.role === "user"
+                ? " self-end bg-primary"
+                : " self-start bg-secondary")
             }
           >
-            <Text
-              className={
-                "text-[15px] leading-6 " +
-                (item.role === "user" ? "text-primary-foreground" : "text-secondary-foreground")
-              }
-            >
-              {item.content || (loading && item.role === "assistant" ? "…" : "")}
-            </Text>
+            {(item as UIMessage).parts.map((part, i) =>
+              part.type === "text" ? (
+                <Text
+                  key={`${item.id}-${i}`}
+                  className={
+                    "text-[15px] leading-6" +
+                    (item.role === "user"
+                      ? " text-primary-foreground"
+                      : " text-secondary-foreground")
+                  }
+                >
+                  {part.text}
+                </Text>
+              ) : null,
+            )}
           </View>
         )}
+        ListFooterComponent={
+          isBusy ? (
+            <View className="self-start rounded-xl bg-secondary px-3.5 py-2.5">
+              <ActivityIndicator size="small" />
+            </View>
+          ) : null
+        }
         ListEmptyComponent={
           <View className="flex-1 items-center justify-center pt-20">
-            <Text className="text-[15px] text-muted-foreground">Start a conversation</Text>
+            <Text className="text-[15px] text-muted-foreground">
+              Start a conversation
+            </Text>
           </View>
         }
       />
 
       <View
-        className="flex-row items-end gap-2 border-t border-border bg-background px-3 pt-2"
+        className="flex-row items-end gap-2 border-border border-t bg-background px-3 pt-2"
         style={{ paddingBottom: insets.bottom + 8 }}
       >
         <TextInput
@@ -132,20 +138,25 @@ export default function ChatScreen() {
           placeholder="Message..."
           placeholderTextColorClassName="text-muted-foreground"
           multiline
-          onSubmitEditing={sendMessage}
+          onSubmitEditing={onSubmit}
         />
         <Pressable
-          onPress={sendMessage}
-          disabled={!input.trim() || loading}
+          onPress={onSubmit}
+          disabled={!input.trim() || isBusy}
           className={
-            "h-10 w-10 items-center justify-center rounded-full " +
-            (!input.trim() || loading ? "bg-muted" : "bg-primary")
+            "h-10 w-10 items-center justify-center rounded-full" +
+            (!input.trim() || isBusy ? " bg-muted" : " bg-primary")
           }
         >
-          {loading ? (
-            <ActivityIndicator size="small" className="text-primary-foreground" />
+          {isBusy ? (
+            <ActivityIndicator
+              size="small"
+              className="text-primary-foreground"
+            />
           ) : (
-            <Text className="text-lg font-semibold text-primary-foreground">↑</Text>
+            <Text className="font-semibold text-lg text-primary-foreground">
+              ↑
+            </Text>
           )}
         </Pressable>
       </View>

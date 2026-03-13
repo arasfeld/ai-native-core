@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import type { HTMLAttributes } from "react"
-import { cn } from "@repo/ui/lib/utils"
+import { cn } from "@repo/ui/lib/utils";
+import type { HTMLAttributes } from "react";
 
 interface LoaderIconProps {
-  size?: number
+  size?: number;
 }
 
 const LoaderIcon = ({ size = 16 }: LoaderIconProps) => (
@@ -18,7 +18,12 @@ const LoaderIcon = ({ size = 16 }: LoaderIconProps) => (
     <title>Loader</title>
     <g clipPath="url(#clip0_2393_1490)">
       <path d="M8 0V4" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M8 16V12" opacity="0.5" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="M8 16V12"
+        opacity="0.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
       <path
         d="M3.29773 1.52783L5.64887 4.7639"
         opacity="0.9"
@@ -74,17 +79,23 @@ const LoaderIcon = ({ size = 16 }: LoaderIconProps) => (
       </clipPath>
     </defs>
   </svg>
-)
+);
 
 export type LoaderProps = HTMLAttributes<HTMLDivElement> & {
-  size?: number
-}
+  size?: number;
+};
 
 export const Loader = ({ className, size = 16, ...props }: LoaderProps) => (
-  <div className={cn("inline-flex animate-spin items-center justify-center", className)} {...props}>
+  <div
+    className={cn(
+      "inline-flex animate-spin items-center justify-center",
+      className,
+    )}
+    {...props}
+  >
     <LoaderIcon size={size} />
   </div>
-)
+);
 
 /** Demo component for preview */
 export default function LoaderDemo() {
@@ -92,16 +103,16 @@ export default function LoaderDemo() {
     <div className="flex flex-col items-center justify-center gap-6 p-8">
       <div className="flex items-center gap-4">
         <Loader size={16} />
-        <span className="text-sm text-muted-foreground">Default (16px)</span>
+        <span className="text-muted-foreground text-sm">Default (16px)</span>
       </div>
       <div className="flex items-center gap-4">
         <Loader size={24} />
-        <span className="text-sm text-muted-foreground">Medium (24px)</span>
+        <span className="text-muted-foreground text-sm">Medium (24px)</span>
       </div>
       <div className="flex items-center gap-4">
         <Loader size={32} />
-        <span className="text-sm text-muted-foreground">Large (32px)</span>
+        <span className="text-muted-foreground text-sm">Large (32px)</span>
       </div>
     </div>
-  )
+  );
 }

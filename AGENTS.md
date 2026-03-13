@@ -22,25 +22,25 @@ AI Native Core is a production-ready monorepo template for building AI-native mu
 
 ```
 apps/
-  web/        — Next.js frontend (Vercel AI SDK)
+  extension/  — Browser extension (WXT, Chrome + Firefox)
   mobile/     — Expo + React Native mobile app
-  desktop/    — Tauri desktop app
-  api/        — FastAPI server
-  worker/     — ARQ background job processor
   playground/ — AI development sandbox (prompt testing, agent debugging)
+  server/     — FastAPI server
+  web/        — Next.js frontend (Vercel AI SDK) + Tauri desktop shell (src-tauri/)
+  worker/     — ARQ background job processor
 
 packages/     — Shared code (primarily TypeScript / frontend)
-  ui/         — Shared React components (shadcn/ui)
-  types/      — Shared TypeScript types (generated from OpenAPI spec)
-  prompts/    — Shared Jinja2 prompt templates
   db/         — Database schema + SQL migrations (Drizzle ORM)
+  prompts/    — Shared Jinja2 prompt templates
+  types/      — Shared TypeScript types (generated from OpenAPI spec)
+  ui/         — Shared React components (shadcn/ui)
 
 services/     — Python AI service layer
-  ai/         — Model abstraction (BaseLLM, provider factory)
   agents/     — LangGraph agent workflows
+  ai/         — Model abstraction (BaseLLM, provider factory)
+  memory/     — Session + long-term memory
   rag/        — Ingestion + retrieval pipeline
   tools/      — Reusable agent tools
-  memory/     — Session + long-term memory
 ```
 
 ## Building and Running
@@ -81,6 +81,7 @@ uv run pytest       # Python (pytest)
 ```
 
 To run a specific app or package:
+
 ```bash
 pnpm --filter <package-name> <command>          # TypeScript
 uv run --package <package-name> <command>       # Python

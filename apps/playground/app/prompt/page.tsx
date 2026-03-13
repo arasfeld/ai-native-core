@@ -29,7 +29,10 @@ export default function PromptPage() {
       const res = await fetch("/api/prompt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMessage, system_prompt: systemPrompt }),
+        body: JSON.stringify({
+          message: userMessage,
+          system_prompt: systemPrompt,
+        }),
         signal: controller.signal,
       });
 
@@ -61,7 +64,7 @@ export default function PromptPage() {
       setStatus("done");
     } catch (err) {
       if ((err as Error).name !== "AbortError") {
-        setOutput("Error: " + String(err));
+        setOutput(`Error: ${String(err)}`);
         setStatus("error");
       }
     }
@@ -85,8 +88,11 @@ export default function PromptPage() {
         {/* Left: inputs */}
         <div className="flex w-96 shrink-0 flex-col gap-4 border-r p-6">
           <div className="flex flex-col gap-1.5">
-            <label className="font-medium text-sm">System Prompt</label>
+            <label htmlFor="system-prompt" className="font-medium text-sm">
+              System Prompt
+            </label>
             <textarea
+              id="system-prompt"
               className="min-h-28 w-full rounded-md border bg-background px-3 py-2 font-mono text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               placeholder="You are a helpful assistant..."
               value={systemPrompt}
@@ -95,8 +101,11 @@ export default function PromptPage() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="font-medium text-sm">User Message</label>
+            <label htmlFor="user-message" className="font-medium text-sm">
+              User Message
+            </label>
             <textarea
+              id="user-message"
               className="min-h-28 w-full rounded-md border bg-background px-3 py-2 font-mono text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               placeholder="Ask anything..."
               value={userMessage}
@@ -107,16 +116,18 @@ export default function PromptPage() {
           <div className="flex gap-2">
             {status === "running" ? (
               <button
+                type="button"
                 onClick={stop}
-                className="flex-1 rounded-md border bg-destructive/10 px-4 py-2 text-destructive text-sm font-medium hover:bg-destructive/20 transition-colors"
+                className="flex-1 rounded-md border bg-destructive/10 px-4 py-2 font-medium text-destructive text-sm transition-colors hover:bg-destructive/20"
               >
                 Stop
               </button>
             ) : (
               <button
+                type="button"
                 onClick={run}
                 disabled={!userMessage.trim()}
-                className="flex-1 rounded-md bg-primary px-4 py-2 text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                className="flex-1 rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground text-sm transition-colors hover:bg-primary/90 disabled:opacity-50"
               >
                 Run
               </button>
@@ -131,10 +142,16 @@ export default function PromptPage() {
         {/* Right: output */}
         <div className="flex min-w-0 flex-1 flex-col p-6">
           <div className="mb-3 flex items-center justify-between">
-            <label className="font-medium text-sm">Output</label>
+            <label id="output-label" className="font-medium text-sm">
+              Output
+            </label>
             {output && (
               <button
-                onClick={() => { setOutput(""); setStatus("idle"); }}
+                type="button"
+                onClick={() => {
+                  setOutput("");
+                  setStatus("idle");
+                }}
                 className="text-muted-foreground text-xs hover:text-foreground"
               >
                 Clear
@@ -142,16 +159,24 @@ export default function PromptPage() {
             )}
           </div>
 
-          <div className="min-h-0 flex-1 overflow-auto rounded-md border bg-muted/30 p-4">
+          <div
+            role="region"
+            aria-labelledby="output-label"
+            className="min-h-0 flex-1 overflow-auto rounded-md border bg-muted/30 p-4"
+          >
             {status === "running" && !output && (
-              <p className="animate-pulse text-muted-foreground text-sm">Thinking...</p>
+              <p className="animate-pulse text-muted-foreground text-sm">
+                Thinking...
+              </p>
             )}
             {output ? (
               <Streamdown className="prose prose-sm dark:prose-invert max-w-none">
                 {output}
               </Streamdown>
             ) : status === "idle" ? (
-              <p className="text-muted-foreground text-sm">Output will appear here.</p>
+              <p className="text-muted-foreground text-sm">
+                Output will appear here.
+              </p>
             ) : null}
           </div>
         </div>

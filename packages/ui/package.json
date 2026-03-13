@@ -3,15 +3,15 @@
   "version": "0.0.0",
   "private": true,
   "exports": {
+    "./globals.css": "./src/styles/globals.css",
     "./lib/*": "./src/lib/*.ts",
     "./components/*": "./src/components/*.tsx",
-    "./components/ai/*": "./src/components/ai/*.tsx"
+    "./components/ai/*": "./src/components/ai/*.tsx",
+    "./postcss.config": "./postcss.config.mjs"
   },
   "scripts": {
     "check-types": "tsc --noEmit",
-    "clean": "rm -rf dist node_modules",
-    "lint": "eslint . --max-warnings 0",
-    "format": "prettier --write ."
+    "clean": "rm -rf dist node_modules"
   },
   "dependencies": {
     "@radix-ui/react-use-controllable-state": "^1.2.2",
@@ -32,12 +32,10 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@repo/config-eslint": "workspace:*",
-    "@repo/config-typescript": "workspace:*",
+    "@repo/config": "workspace:*",
     "@types/node": "^22.15.3",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
-    "eslint": "^9.39.1",
     "tailwindcss": "^4.1.18",
     "typescript": "5.9.2"
   }

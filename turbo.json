@@ -10,6 +10,20 @@
     "check-types": {
       "dependsOn": ["^check-types"]
     },
+    "db:push": {
+      "cache": false
+    },
+    "db:generate": {
+      "cache": false
+    },
+    "db:migrate": {
+      "cache": false,
+      "persistent": true
+    },
+    "db:studio": {
+      "cache": false,
+      "persistent": true
+    },
     "clean": {
       "cache": false
     },
@@ -17,18 +31,8 @@
       "cache": false,
       "persistent": true
     },
-    "format": {
-      "cache": false
-    },
     "generate": {
       "cache": false
-    },
-    "lint": {
-      "dependsOn": ["^lint"]
-    },
-    "test": {
-      "dependsOn": ["^build"],
-      "outputs": ["coverage/**", "htmlcov/**"]
     }
   }
 }

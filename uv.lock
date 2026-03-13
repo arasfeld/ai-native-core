@@ -12,10 +12,10 @@ members = [
     "agents",
     "ai",
     "ai-native-core",
-    "api",
     "memory",
     "prompts",
     "rag",
+    "server",
     "tools",
     "worker",
 ]
@@ -137,53 +137,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/96/f0/5eb65b2bb0d09ac6776f2eb54adee6abe8228ea05b20a5ad0e4945de8aac/anyio-4.12.1.tar.gz", hash = "sha256:41cfcc3a4c85d3f05c932da7c26d0201ac36f72abd4435ba90d0464a3ffed703", size = 228685, upload-time = "2026-01-06T11:45:21.246Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/38/0e/27be9fdef66e72d64c0cdc3cc2823101b80585f8119b5c112c2e8f5f7dab/anyio-4.12.1-py3-none-any.whl", hash = "sha256:d405828884fc140aa80a3c667b8beed277f1dfedec42ba031bd6ac3db606ab6c", size = 113592, upload-time = "2026-01-06T11:45:19.497Z" },
-]
-
-[[package]]
-name = "api"
-version = "0.1.0"
-source = { editable = "apps/api" }
-dependencies = [
-    { name = "agents" },
-    { name = "ai" },
-    { name = "anyio" },
-    { name = "arq" },
-    { name = "asyncer" },
-    { name = "asyncpg" },
-    { name = "bcrypt" },
-    { name = "fastapi", extra = ["standard"] },
-    { name = "memory" },
-    { name = "prompts" },
-    { name = "pydantic", extra = ["email"] },
-    { name = "pydantic-settings" },
-    { name = "python-dotenv" },
-    { name = "python-jose", extra = ["cryptography"] },
-    { name = "rag" },
-    { name = "stripe" },
-    { name = "structlog" },
-    { name = "tools" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "agents", editable = "services/agents" },
-    { name = "ai", editable = "services/ai" },
-    { name = "anyio", specifier = ">=4.0" },
-    { name = "arq", specifier = ">=0.26" },
-    { name = "asyncer", specifier = ">=0.0.8" },
-    { name = "asyncpg", specifier = ">=0.29" },
-    { name = "bcrypt", specifier = ">=4.0" },
-    { name = "fastapi", extras = ["standard"], specifier = ">=0.115" },
-    { name = "memory", editable = "services/memory" },
-    { name = "prompts", editable = "packages/prompts" },
-    { name = "pydantic", extras = ["email"], specifier = ">=2.0" },
-    { name = "pydantic-settings", specifier = ">=2.0" },
-    { name = "python-dotenv", specifier = ">=1.0" },
-    { name = "python-jose", extras = ["cryptography"], specifier = ">=3.3" },
-    { name = "rag", editable = "services/rag" },
-    { name = "stripe", specifier = ">=10.0" },
-    { name = "structlog", specifier = ">=24.0" },
-    { name = "tools", editable = "services/tools" },
 ]
 
 [[package]]
@@ -778,7 +731,7 @@ standard = [
 
 [[package]]
 name = "fastapi-cloud-cli"
-version = "0.14.1"
+version = "0.15.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "fastar" },
@@ -790,9 +743,9 @@ dependencies = [
     { name = "typer" },
     { name = "uvicorn", extra = ["standard"] },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/74/30/1665ad6bd1c285d1c6947e6ab0eae168bc44a9b45d5fc11fa930603db1c7/fastapi_cloud_cli-0.14.1.tar.gz", hash = "sha256:5b086182570008f67d9ae989870102f595e4e216493cabcd270ef6cd0401339f", size = 39999, upload-time = "2026-03-08T01:40:24.166Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/63/e1/05c44e7bbc619e980fab0236cff9f5f323ac1aaa79434b4906febf98b1d3/fastapi_cloud_cli-0.15.0.tar.gz", hash = "sha256:d02515231f3f505f7669c20920343934570a88a08af9f9a6463ca2807f27ffe5", size = 45309, upload-time = "2026-03-11T22:31:32.455Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b6/c2/0117d2a1b93eb7c6d2084e6be320d34a404f621eb01a26c1471c0eb4ee82/fastapi_cloud_cli-0.14.1-py3-none-any.whl", hash = "sha256:99ab3a2fbd1880121a62fb9c4f584e15c42ef0fe762cb5f7380a548081e60d05", size = 28359, upload-time = "2026-03-08T01:40:24.949Z" },
+    { url = "https://files.pythonhosted.org/packages/40/cc/1ccca747f5609be27186ea8c9219449142f40e3eded2c6089bba6a6ecc82/fastapi_cloud_cli-0.15.0-py3-none-any.whl", hash = "sha256:9ffcf90bd713747efa65447620d29cfbb7b3f7de38d97467952ca6346e418d70", size = 32267, upload-time = "2026-03-11T22:31:33.499Z" },
 ]
 
 [[package]]
@@ -2112,6 +2065,53 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c8/e9/2e3a46c304e7fa21eaa70612f60354e32699c7102eb961f67448e222ad7c/sentry_sdk-2.54.0.tar.gz", hash = "sha256:2620c2575128d009b11b20f7feb81e4e4e8ae08ec1d36cbc845705060b45cc1b", size = 413813, upload-time = "2026-03-02T15:12:41.355Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/53/39/be412cc86bc6247b8f69e9383d7950711bd86f8d0a4a4b0fe8fad685bc21/sentry_sdk-2.54.0-py2.py3-none-any.whl", hash = "sha256:fd74e0e281dcda63afff095d23ebcd6e97006102cdc8e78a29f19ecdf796a0de", size = 439198, upload-time = "2026-03-02T15:12:39.546Z" },
+]
+
+[[package]]
+name = "server"
+version = "0.1.0"
+source = { editable = "apps/server" }
+dependencies = [
+    { name = "agents" },
+    { name = "ai" },
+    { name = "anyio" },
+    { name = "arq" },
+    { name = "asyncer" },
+    { name = "asyncpg" },
+    { name = "bcrypt" },
+    { name = "fastapi", extra = ["standard"] },
+    { name = "memory" },
+    { name = "prompts" },
+    { name = "pydantic", extra = ["email"] },
+    { name = "pydantic-settings" },
+    { name = "python-dotenv" },
+    { name = "python-jose", extra = ["cryptography"] },
+    { name = "rag" },
+    { name = "stripe" },
+    { name = "structlog" },
+    { name = "tools" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "agents", editable = "services/agents" },
+    { name = "ai", editable = "services/ai" },
+    { name = "anyio", specifier = ">=4.0" },
+    { name = "arq", specifier = ">=0.26" },
+    { name = "asyncer", specifier = ">=0.0.8" },
+    { name = "asyncpg", specifier = ">=0.29" },
+    { name = "bcrypt", specifier = ">=4.0" },
+    { name = "fastapi", extras = ["standard"], specifier = ">=0.115" },
+    { name = "memory", editable = "services/memory" },
+    { name = "prompts", editable = "packages/prompts" },
+    { name = "pydantic", extras = ["email"], specifier = ">=2.0" },
+    { name = "pydantic-settings", specifier = ">=2.0" },
+    { name = "python-dotenv", specifier = ">=1.0" },
+    { name = "python-jose", extras = ["cryptography"], specifier = ">=3.3" },
+    { name = "rag", editable = "services/rag" },
+    { name = "stripe", specifier = ">=10.0" },
+    { name = "structlog", specifier = ">=24.0" },
+    { name = "tools", editable = "services/tools" },
 ]
 
 [[package]]

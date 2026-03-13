@@ -22,9 +22,10 @@ export default function DashboardPage() {
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold">Developer Playground</h1>
+        <h1 className="font-bold text-2xl">Developer Playground</h1>
         <p className="mt-1 text-muted-foreground text-sm">
-          Tools for testing prompts, debugging agents, and experimenting with RAG.
+          Tools for testing prompts, debugging agents, and experimenting with
+          RAG.
         </p>
       </div>
 

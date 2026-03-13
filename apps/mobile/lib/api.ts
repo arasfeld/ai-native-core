@@ -3,6 +3,9 @@ import { authClient } from "./auth-client";
 
 const BASE_URL = env.EXPO_PUBLIC_SERVER_URL;
 
+// Next.js frontend URL (used for the /api/chat proxy)
+export const WEB_URL = env.EXPO_PUBLIC_SERVER_URL;
+
 async function apiFetch(path: string, init?: RequestInit) {
   const session = await authClient.getSession();
   const headers: Record<string, string> = {
@@ -11,7 +14,7 @@ async function apiFetch(path: string, init?: RequestInit) {
   };
 
   if (session?.data?.session?.token) {
-    headers["Authorization"] = `Bearer ${session.data.session.token}`;
+    headers.Authorization = `Bearer ${session.data.session.token}`;
   }
 
   return fetch(`${BASE_URL}${path}`, { ...init, headers });

@@ -11,6 +11,7 @@ AI Native Core is a production-ready monorepo template for building AI-native ap
 AI Native Core is a **reusable template** for rapidly building AI-powered applications. The goal is to handle the hard parts — model abstraction, agent orchestration, RAG pipelines, tool calling, streaming, multi-platform scaffolding — so teams can focus on business logic.
 
 Typical workflow:
+
 1. Clone the template
 2. Remove apps not needed (`mobile`, `desktop`, `playground`, etc.)
 3. Configure prompts and agents
@@ -37,12 +38,13 @@ Solo developers and small teams building AI-powered products: chatbots, copilots
 ```
 ai-native-core/
 ├── apps/
-│   ├── web/                    # Next.js (App Router) + Tailwind v4 + shadcn/ui + Vercel AI SDK
+│   ├── extension/              # Browser extension (WXT) — Chrome + Firefox
 │   ├── mobile/                 # Expo + React Native — mobile AI assistant
-│   ├── desktop/                # Tauri — desktop productivity app
-│   ├── api/                    # FastAPI — AI orchestration server (Python)
-│   ├── worker/                 # ARQ background job processor (Python)
-│   └── playground/             # AI development sandbox — prompt testing, agent debugging
+│   ├── playground/             # AI development sandbox — prompt testing, agent debugging
+│   ├── server/                 # FastAPI — AI orchestration server (Python)
+│   ├── web/                    # Next.js (App Router) + Tailwind v4 + shadcn/ui + Vercel AI SDK
+│   │   └── src-tauri/          # Tauri desktop shell (wraps the Next.js frontend)
+│   └── worker/                 # ARQ background job processor (Python)
 │
 ├── packages/                   # Shared code (primarily TypeScript / frontend)
 │   ├── ui/                     # Shared React components (shadcn/ui base)
@@ -124,24 +126,25 @@ ai-native-core/
 ### Package / Service Dependency Rules
 
 ```
-apps/web        → packages/ui, packages/types
+apps/extension  → packages/auth
 apps/mobile     → packages/ui, packages/types
-apps/desktop    → packages/types
-apps/api        → services/ai, services/agents, services/rag, services/tools, services/memory, packages/prompts
-apps/worker     → services/agents, services/tools
 apps/playground → services/ai, services/agents, packages/prompts
+apps/server     → services/ai, services/agents, services/rag, services/tools, services/memory, packages/prompts
+apps/web        → packages/ui, packages/types, packages/auth
+apps/worker     → services/agents, services/tools
 services/agents → services/ai, services/tools, packages/prompts
+services/ai     → (no internal deps — base layer)
+services/memory → services/ai, services/rag
 services/rag    → services/ai
 services/tools  → services/ai (optional)
-services/memory → services/ai, services/rag
-services/ai     → (no internal deps — base layer)
 packages/db     → (no internal deps, SQL only)
-packages/ui     → (no internal deps)
-packages/types  → (no internal deps, generated)
 packages/prompts → (no internal deps)
+packages/types  → (no internal deps, generated)
+packages/ui     → (no internal deps)
 ```
 
 **Rules:**
+
 - No circular dependencies.
 - `services/ai` has no internal dependencies — it is the base layer.
 - App code never imports directly from provider SDKs (`openai`, `anthropic`) — always via `services/ai`.
@@ -177,13 +180,21 @@ Expo + React Native. Shares UI components with `apps/web` via `packages/ui` wher
 - Push notifications
 - Mobile-first workflows
 
-### Desktop (`apps/desktop`)
+### Desktop (`apps/web/src-tauri`)
 
-Tauri. Small bundle, native OS integration, secure architecture.
+Tauri. The desktop app lives inside `apps/web` — Tauri wraps the Next.js frontend as a native window. Run with `pnpm --filter web desktop:dev`.
 
 - Desktop productivity tools
 - Offline-capable AI features
 - Native file system access
+
+### Extension (`apps/extension`)
+
+WXT (Web eXtension Template) browser extension targeting Chrome and Firefox. Provides quick access to the AI system from the browser toolbar.
+
+- Popup chat interface
+- Background service worker
+- Content scripts for page context
 
 ### Playground (`apps/playground`)
 
@@ -194,7 +205,7 @@ AI development sandbox — not intended for end users.
 - RAG experiments
 - Model comparisons
 
-### API (`apps/api`)
+### Server (`apps/server`)
 
 FastAPI + Pydantic + LangGraph. Thin orchestration layer — AI logic lives in `services/`.
 
@@ -256,16 +267,17 @@ def get_llm() -> BaseLLM:
 
 Supported providers:
 
-| Provider | `LLM_PROVIDER` | Required env vars |
-|----------|---------------|-------------------|
-| OpenAI | `openai` | `OPENAI_API_KEY` |
-| Anthropic | `anthropic` | `ANTHROPIC_API_KEY` |
-| OpenRouter | `openrouter` | `OPENROUTER_API_KEY` |
-| Ollama (local) | `ollama` | *(none)* |
+| Provider       | `LLM_PROVIDER` | Required env vars    |
+| -------------- | -------------- | -------------------- |
+| OpenAI         | `openai`       | `OPENAI_API_KEY`     |
+| Anthropic      | `anthropic`    | `ANTHROPIC_API_KEY`  |
+| OpenRouter     | `openrouter`   | `OPENROUTER_API_KEY` |
+| Ollama (local) | `ollama`       | _(none)_             |
 
 ### LangGraph Agents
 
 Agents are defined as LangGraph `StateGraph`s. Each agent has:
+
 - **State**: `TypedDict` with typed fields (messages, context, tool results, etc.)
 - **Nodes**: Python async functions that transform state
 - **Edges**: Conditional routing between nodes
@@ -325,6 +337,7 @@ Embeddings are stored in the `document_chunks` table (Postgres + pgvector). The 
 ### Tool System
 
 Tools are Pydantic-validated, LangGraph-compatible functions. Each tool:
+
 1. Has a `name` and `description` (used by the LLM to decide when to call it).
 2. Accepts a Pydantic `BaseModel` as input (validated automatically).
 3. Returns a string result consumed by the agent.
@@ -382,14 +395,14 @@ Agent receives LLM response with tool_call
 
 ### Prerequisites
 
-| Tool | Version | Install |
-|------|---------|---------|
-| Node.js | ≥ 18 | [nodejs.org](https://nodejs.org) |
-| pnpm | ≥ 9 | `npm i -g pnpm` |
-| Python | ≥ 3.11 | [python.org](https://python.org) |
-| uv | latest | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-| Docker | latest | [docker.com](https://docker.com) |
-| Ollama | latest | [ollama.com](https://ollama.com) |
+| Tool    | Version | Install                                            |
+| ------- | ------- | -------------------------------------------------- |
+| Node.js | ≥ 18    | [nodejs.org](https://nodejs.org)                   |
+| pnpm    | ≥ 9     | `npm i -g pnpm`                                    |
+| Python  | ≥ 3.11  | [python.org](https://python.org)                   |
+| uv      | latest  | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| Docker  | latest  | [docker.com](https://docker.com)                   |
+| Ollama  | latest  | [ollama.com](https://ollama.com)                   |
 
 ### Setup
 
@@ -422,14 +435,14 @@ pnpm dev
 
 ### Services
 
-| Service | URL | Notes |
-|---------|-----|-------|
-| Web frontend | http://localhost:3000 | Next.js dev server |
-| API | http://localhost:8000 | FastAPI with auto-reload |
-| API docs | http://localhost:8000/docs | Swagger UI |
-| Playground | http://localhost:3001 | AI dev sandbox |
-| Ollama | http://localhost:11434 | Local LLM inference |
-| Postgres | localhost:5432 | pgvector enabled |
+| Service      | URL                        | Notes                    |
+| ------------ | -------------------------- | ------------------------ |
+| Web frontend | http://localhost:3000      | Next.js dev server       |
+| API          | http://localhost:8000      | FastAPI with auto-reload |
+| API docs     | http://localhost:8000/docs | Swagger UI               |
+| Playground   | http://localhost:3001      | AI dev sandbox           |
+| Ollama       | http://localhost:11434     | Local LLM inference      |
+| Postgres     | localhost:5432             | pgvector enabled         |
 
 ### Environment Variables
 
@@ -472,15 +485,15 @@ LANGCHAIN_API_KEY=ls-...
                          └──────────────────┘
 ```
 
-| Component | Provider | Notes |
-|-----------|----------|-------|
-| Web / Playground | [Vercel](https://vercel.com) | Zero-config Next.js deployment |
-| Mobile | App Store / Play Store | Expo EAS build |
-| Desktop | Direct distribution | Tauri generates platform binaries |
-| API + Worker | [Railway](https://railway.app) or [Fly.io](https://fly.io) | Dockerfile in `apps/api/` |
-| Database | [Neon](https://neon.tech) or [Supabase](https://supabase.com) | pgvector supported on both |
-| LLM (prod) | [OpenRouter](https://openrouter.ai) | Pay-per-use, access to all major models |
-| LLM (local) | [Ollama](https://ollama.com) | Self-hosted, GPU optional |
+| Component        | Provider                                                      | Notes                                   |
+| ---------------- | ------------------------------------------------------------- | --------------------------------------- |
+| Web / Playground | [Vercel](https://vercel.com)                                  | Zero-config Next.js deployment          |
+| Mobile           | App Store / Play Store                                        | Expo EAS build                          |
+| Desktop          | Direct distribution                                           | Tauri generates platform binaries       |
+| API + Worker     | [Railway](https://railway.app) or [Fly.io](https://fly.io)    | Dockerfile in `apps/server/`            |
+| Database         | [Neon](https://neon.tech) or [Supabase](https://supabase.com) | pgvector supported on both              |
+| LLM (prod)       | [OpenRouter](https://openrouter.ai)                           | Pay-per-use, access to all major models |
+| LLM (local)      | [Ollama](https://ollama.com)                                  | Self-hosted, GPU optional               |
 
 ---
 
@@ -505,14 +518,14 @@ LANGCHAIN_API_KEY=ls-...
 
 ### Naming Conventions
 
-| Context | Convention | Example |
-|---------|-----------|---------|
-| Folders | kebab-case | `rag-pipeline/` |
-| React components | PascalCase | `ChatMessage.tsx` |
-| Python modules | snake_case | `chat_agent.py` |
-| TypeScript variables | camelCase | `sessionId` |
-| Python variables | snake_case | `session_id` |
-| Environment variables | SCREAMING_SNAKE_CASE | `LLM_PROVIDER` |
+| Context               | Convention           | Example           |
+| --------------------- | -------------------- | ----------------- |
+| Folders               | kebab-case           | `rag-pipeline/`   |
+| React components      | PascalCase           | `ChatMessage.tsx` |
+| Python modules        | snake_case           | `chat_agent.py`   |
+| TypeScript variables  | camelCase            | `sessionId`       |
+| Python variables      | snake_case           | `session_id`      |
+| Environment variables | SCREAMING_SNAKE_CASE | `LLM_PROVIDER`    |
 
 ### Critical Rules
 

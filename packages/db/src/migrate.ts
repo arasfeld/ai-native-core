@@ -1,27 +1,77 @@
 import { sql } from "drizzle-orm";
-import { getDb } from "./client.js";
+import { getDb } from "./client";
 
 export async function migrate(): Promise<void> {
   const db = getDb();
   await db.execute(sql`CREATE EXTENSION IF NOT EXISTS vector`);
   await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS "user" (
+      id              TEXT        PRIMARY KEY,
+      name            TEXT        NOT NULL,
+      email           TEXT        NOT NULL UNIQUE,
+      "emailVerified" BOOLEAN     NOT NULL DEFAULT FALSE,
+      image           TEXT,
+      "createdAt"     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      "updatedAt"     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS session (
+      id              TEXT        PRIMARY KEY,
+      "expiresAt"     TIMESTAMPTZ NOT NULL,
+      token           TEXT        NOT NULL UNIQUE,
+      "createdAt"     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      "updatedAt"     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      "ipAddress"     TEXT,
+      "userAgent"     TEXT,
+      "userId"        TEXT        NOT NULL REFERENCES "user"(id) ON DELETE CASCADE
+    )
+  `);
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS session_userId_idx ON session ("userId")
+  `);
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS account (
+      id                        TEXT        PRIMARY KEY,
+      "accountId"               TEXT        NOT NULL,
+      "providerId"              TEXT        NOT NULL,
+      "userId"                  TEXT        NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+      "accessToken"             TEXT,
+      "refreshToken"            TEXT,
+      "idToken"                 TEXT,
+      "accessTokenExpiresAt"    TIMESTAMPTZ,
+      "refreshTokenExpiresAt"   TIMESTAMPTZ,
+      scope                     TEXT,
+      password                  TEXT,
+      "createdAt"               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      "updatedAt"               TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS account_userId_idx ON account ("userId")
+  `);
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS verification (
+      id            TEXT        PRIMARY KEY,
+      identifier    TEXT        NOT NULL,
+      value         TEXT        NOT NULL,
+      "expiresAt"   TIMESTAMPTZ NOT NULL,
+      "createdAt"   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      "updatedAt"   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS verification_identifier_idx ON verification (identifier)
+  `);
+  await db.execute(sql`
     CREATE TABLE IF NOT EXISTS tenants (
-      id                      BIGSERIAL   PRIMARY KEY,
+      id                      TEXT        PRIMARY KEY,
       name                    TEXT        NOT NULL,
       plan                    TEXT        NOT NULL DEFAULT 'free',
       token_limit             INTEGER     NOT NULL DEFAULT 100000,
       stripe_customer_id      TEXT,
       stripe_subscription_id  TEXT,
       created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `);
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS users (
-      id         BIGSERIAL   PRIMARY KEY,
-      tenant_id  BIGINT      NOT NULL REFERENCES tenants(id),
-      email      TEXT        NOT NULL UNIQUE,
-      password   TEXT        NOT NULL,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
   await db.execute(sql`
@@ -40,6 +90,7 @@ export async function migrate(): Promise<void> {
       id SERIAL PRIMARY KEY,
       content TEXT NOT NULL,
       embedding vector(1536),
+      metadata JSONB NOT NULL DEFAULT '{}',
       source TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )

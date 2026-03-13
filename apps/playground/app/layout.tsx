@@ -1,15 +1,19 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { BrainIcon } from "lucide-react";
 import { Providers } from "@/components/providers";
 import { SidebarNav } from "@/components/sidebar-nav";
-import { BrainIcon } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "AI Playground",
   description: "Prompt testing, agent debugging, and RAG experiments",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body>

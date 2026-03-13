@@ -3,17 +3,23 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "main": "dist/src/index.js",
-  "types": "dist/src/index.d.ts",
   "exports": {
-    ".": "./dist/src/index.js"
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc",
     "check-types": "tsc --noEmit",
     "clean": "rm -rf dist node_modules",
-    "dev": "tsc -p tsconfig.build.json --watch",
-    "format": "prettier --write .",
+    "dev": "tsc --watch",
+    "db:push": "drizzle-kit push",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
     "migrate": "tsx src/migrate.ts"
   },
   "dependencies": {
@@ -22,7 +28,7 @@
     "postgres": "^3.4.5"
   },
   "devDependencies": {
-    "@repo/config-typescript": "workspace:*",
+    "@repo/config": "workspace:*",
     "@types/node": "^22.15.3",
     "@types/pg": "^8.11.0",
     "drizzle-kit": "^0.31.9",

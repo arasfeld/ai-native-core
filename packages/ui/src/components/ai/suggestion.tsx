@@ -1,23 +1,29 @@
-"use client"
+"use client";
 
-import type { ComponentProps } from "react"
-import { Button } from "@repo/ui/components/button"
-import { ScrollArea, ScrollBar } from "@repo/ui/components/scroll-area"
-import { cn } from "@repo/ui/lib/utils"
+import { Button } from "@repo/ui/components/button";
+import { ScrollArea, ScrollBar } from "@repo/ui/components/scroll-area";
+import { cn } from "@repo/ui/lib/utils";
+import type { ComponentProps } from "react";
 
-export type SuggestionsProps = ComponentProps<typeof ScrollArea>
+export type SuggestionsProps = ComponentProps<typeof ScrollArea>;
 
-export const Suggestions = ({ className, children, ...props }: SuggestionsProps) => (
+export const Suggestions = ({
+  className,
+  children,
+  ...props
+}: SuggestionsProps) => (
   <ScrollArea className="w-full overflow-x-auto whitespace-nowrap" {...props}>
-    <div className={cn("flex w-max flex-nowrap items-center gap-2", className)}>{children}</div>
+    <div className={cn("flex w-max flex-nowrap items-center gap-2", className)}>
+      {children}
+    </div>
     <ScrollBar className="hidden" orientation="horizontal" />
   </ScrollArea>
-)
+);
 
 export type SuggestionProps = Omit<ComponentProps<typeof Button>, "onClick"> & {
-  suggestion: string
-  onClick?: (suggestion: string) => void
-}
+  suggestion: string;
+  onClick?: (suggestion: string) => void;
+};
 
 export const Suggestion = ({
   suggestion,
@@ -29,8 +35,8 @@ export const Suggestion = ({
   ...props
 }: SuggestionProps) => {
   const handleClick = () => {
-    onClick?.(suggestion)
-  }
+    onClick?.(suggestion);
+  };
 
   return (
     <Button
@@ -43,8 +49,8 @@ export const Suggestion = ({
     >
       {children || suggestion}
     </Button>
-  )
-}
+  );
+};
 
 /** Demo component for preview */
 export default function SuggestionDemo() {
@@ -53,19 +59,19 @@ export default function SuggestionDemo() {
     "How does machine learning work?",
     "Explain quantum computing",
     "Best practices for React development",
-  ]
+  ];
 
   return (
     <div className="p-6">
       <Suggestions>
-        {suggestions.map(suggestion => (
+        {suggestions.map((suggestion) => (
           <Suggestion
             key={suggestion}
-            onClick={s => console.log("Selected:", s)}
+            onClick={(s) => console.log("Selected:", s)}
             suggestion={suggestion}
           />
         ))}
       </Suggestions>
     </div>
-  )
+  );
 }

@@ -1,6 +1,10 @@
 "use client";
 
-import { BrainIcon, DatabaseIcon, LayoutDashboardIcon, MessageSquareIcon } from "lucide-react";
+import {
+  DatabaseIcon,
+  LayoutDashboardIcon,
+  MessageSquareIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -16,7 +20,8 @@ export function SidebarNav() {
   return (
     <nav className="flex flex-col gap-1">
       {links.map(({ href, label, icon: Icon }) => {
-        const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+        const active =
+          href === "/" ? pathname === "/" : pathname.startsWith(href);
         return (
           <Link
             key={href}
