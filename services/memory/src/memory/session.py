@@ -97,15 +97,32 @@ class SessionStore:
             )
 
         messages: list[BaseMessage] = []
+        import json
+
         for row in rows:
+            content = row["content"]
+            # Attempt to parse JSON for multi-modal content
+            if content.startswith("[") or content.startswith("{"):
+                try:
+                    content = json.loads(content)
+                except json.JSONDecodeError:
+                    pass
+
             if row["role"] == "human":
-                messages.append(HumanMessage(content=row["content"]))
+                messages.append(HumanMessage(content=content))
             elif row["role"] == "assistant":
-                messages.append(AIMessage(content=row["content"]))
+                messages.append(AIMessage(content=content))
         return messages
 
-    async def add_message(self, session_id: str, role: str, content: str) -> None:
+    async def add_message(self, session_id: str, role: str, content: str | list | dict) -> None:
         """Append a single turn to the session history."""
+        import json
+
+        if not isinstance(content, str):
+            content_str = json.dumps(content)
+        else:
+            content_str = content
+
         async with self._conn() as conn:
             await conn.execute(
                 """
@@ -114,7 +131,7 @@ class SessionStore:
                 """,
                 session_id,
                 role,
-                content,
+                content_str,
             )
 
     async def clear(self, session_id: str) -> None:

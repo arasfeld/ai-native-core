@@ -64,7 +64,7 @@ class MemoryExtractor:
 
     async def extract_and_store(
         self,
-        human_message: str,
+        human_message: str | list | dict,
         assistant_reply: str,
         session_id: str | None = None,
         metadata: dict | None = None,
@@ -73,8 +73,20 @@ class MemoryExtractor:
 
         Returns the list of new episodic memory IDs (empty if none found).
         """
+
+        def _get_text(content: str | list | dict) -> str:
+            if isinstance(content, str):
+                return content
+            if isinstance(content, list):
+                return " ".join(
+                    part.get("text", "")
+                    for part in content
+                    if isinstance(part, dict) and part.get("type") == "text"
+                )
+            return str(content)
+
         prompt = _EXTRACT_PROMPT.format(
-            human=human_message,
+            human=_get_text(human_message),
             assistant=assistant_reply,
         )
         messages: list[Message] = [Message(role="user", content=prompt)]

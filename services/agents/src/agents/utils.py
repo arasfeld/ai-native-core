@@ -17,7 +17,8 @@ def lc_to_messages(
         messages.append(Message(role="system", content=system))
     for msg in lc_messages:
         if isinstance(msg, HumanMessage):
-            messages.append(Message(role="user", content=str(msg.content)))
+            # HumanMessage content can be a string or a list of dicts (for images)
+            messages.append(Message(role="user", content=msg.content))
         elif isinstance(msg, AIMessage):
-            messages.append(Message(role="assistant", content=str(msg.content)))
+            messages.append(Message(role="assistant", content=msg.content))
     return messages

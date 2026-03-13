@@ -22,8 +22,31 @@ class AnthropicProvider:
             if m.role == "system":
                 system = m.content
             else:
-                turns.append({"role": m.role, "content": m.content})
+                content = m.content
+                if isinstance(content, list):
+                    content = [self._convert_part(p) for p in content]
+                turns.append({"role": m.role, "content": content})
         return system, turns
+
+    def _convert_part(self, part: dict) -> dict:
+        """Convert OpenAI content part format to Anthropic format."""
+        if part.get("type") == "image_url":
+            url = part["image_url"]["url"]
+            if url.startswith("data:"):
+                try:
+                    media_type, data = url.split(";base64,")
+                    media_type = media_type.replace("data:", "")
+                    return {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": media_type,
+                            "data": data,
+                        },
+                    }
+                except Exception:
+                    pass
+        return part
 
     async def chat(self, messages: list[Message], **kwargs) -> LLMResponse:
         system, turns = self._split_messages(messages)

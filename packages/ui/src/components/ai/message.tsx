@@ -19,6 +19,7 @@ import {
 import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
 import { createContext, memo, useContext, useEffect, useState } from "react";
 import { Streamdown } from "streamdown";
+import { Cursor } from "./cursor";
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage["role"];
@@ -301,19 +302,28 @@ export const MessageBranchPage = ({
   );
 };
 
-export type MessageResponseProps = ComponentProps<typeof Streamdown>;
+export type MessageResponseProps = ComponentProps<typeof Streamdown> & {
+  isStreaming?: boolean;
+};
 
 export const MessageResponse = memo(
-  ({ className, ...props }: MessageResponseProps) => (
-    <Streamdown
+  ({ className, isStreaming, ...props }: MessageResponseProps) => (
+    <div
       className={cn(
-        "prose prose-sm dark:prose-invert size-full max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
+        "prose prose-sm dark:prose-invert relative w-full max-w-none",
         className,
       )}
-      {...props}
-    />
+    >
+      <Streamdown
+        className="size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+        {...props}
+      />
+      {isStreaming && <Cursor className="ml-1 inline-block" />}
+    </div>
   ),
-  (prevProps, nextProps) => prevProps.children === nextProps.children,
+  (prevProps, nextProps) =>
+    prevProps.children === nextProps.children &&
+    prevProps.isStreaming === nextProps.isStreaming,
 );
 
 MessageResponse.displayName = "MessageResponse";

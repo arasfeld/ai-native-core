@@ -55,8 +55,19 @@ class SummaryCompressor:
         to_summarize = messages[: -self.keep_recent]
         recent = messages[-self.keep_recent :]
 
+        def _get_text(content: str | list | dict) -> str:
+            if isinstance(content, str):
+                return content
+            if isinstance(content, list):
+                return " ".join(
+                    part.get("text", "")
+                    for part in content
+                    if isinstance(part, dict) and part.get("type") == "text"
+                )
+            return str(content)
+
         history_text = "\n".join(
-            f"{_role_label(msg)}: {msg.content}" for msg in to_summarize
+            f"{_role_label(msg)}: {_get_text(msg.content)}" for msg in to_summarize
         )
         prompt = _SUMMARY_PROMPT.format(history=history_text)
 

@@ -18,7 +18,7 @@ class OllamaProvider:
             base_url=f"{base_url}/v1",
             timeout=timeout,
         )
-        self.model = os.environ.get("OLLAMA_MODEL", "llama3.2")
+        self.model = os.environ.get("OLLAMA_MODEL", "llama3.2-vision")
         self.embed_model = os.environ.get("OLLAMA_EMBED_MODEL", "nomic-embed-text")
 
     async def chat(self, messages: list[Message], **kwargs) -> LLMResponse:

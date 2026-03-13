@@ -20,11 +20,34 @@ export async function POST(req: NextRequest) {
   const messages: UIMessage[] = body.messages ?? [];
   const lastMessage = messages[messages.length - 1];
 
-  const text =
-    lastMessage?.parts
-      ?.filter(isTextUIPart)
-      .map((p) => p.text)
-      .join("") ?? "";
+  if (!lastMessage) {
+    return new Response("No message provided", { status: 400 });
+  }
+
+  // Extract all parts (text and images)
+  const content = lastMessage.parts
+    .map((part) => {
+      if (part.type === "text") {
+        return { type: "text", text: part.text };
+      }
+      if (part.type === "file" && part.mediaType.startsWith("image/")) {
+        return {
+          type: "image_url",
+          image_url: { url: part.url },
+        };
+      }
+      return null;
+    })
+    .filter((p) => p !== null);
+
+  // Fallback to simple string if it's just text
+  const messagePayload =
+    content.length > 0 && content.some((p) => p.type === "image_url")
+      ? content
+      : lastMessage.parts
+          .filter(isTextUIPart)
+          .map((p) => p.text)
+          .join("");
 
   const sessionId = req.cookies.get("session-id")?.value ?? crypto.randomUUID();
 
@@ -43,7 +66,7 @@ export async function POST(req: NextRequest) {
         ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
       },
       body: JSON.stringify({
-        message: text,
+        message: messagePayload,
         session_id: sessionId,
         ...(lat !== undefined && lng !== undefined ? { lat, lng } : {}),
       }),

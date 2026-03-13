@@ -3,10 +3,20 @@
 import { useChat } from "@ai-sdk/react";
 import {
   Attachment,
+  AttachmentLightbox,
   AttachmentPreview,
   AttachmentRemove,
   Attachments,
 } from "@repo/ui/components/ai/attachments";
+import {
+  Confirmation,
+  ConfirmationAction,
+  ConfirmationActions,
+  ConfirmationAccepted,
+  ConfirmationRejected,
+  ConfirmationRequest,
+  ConfirmationTitle,
+} from "@repo/ui/components/ai/confirmation";
 import {
   Conversation,
   ConversationContent,
@@ -44,10 +54,18 @@ import {
 } from "@repo/ui/components/ai/sources";
 import { Suggestion, Suggestions } from "@repo/ui/components/ai/suggestion";
 import {
+  Tool,
+  ToolContent,
+  ToolHeader,
+  ToolInput,
+  ToolOutput,
+} from "@repo/ui/components/ai/tool";
+import {
   DefaultChatTransport,
   isReasoningUIPart,
   isTextUIPart,
   type SourceUrlUIPart,
+  type ToolInvocationUIPart,
 } from "ai";
 import { BotIcon } from "lucide-react";
 import { type ReactNode, useRef, useState } from "react";
@@ -74,7 +92,9 @@ export function Chat(): ReactNode {
         body: () => coordsRef.current ?? {},
       }),
   );
-  const { messages, sendMessage, stop, status } = useChat({ transport });
+  const { messages, sendMessage, stop, status, addToolResult } = useChat({
+    transport,
+  });
 
   const isLoading = status === "streaming" || status === "submitted";
   const lastMessage = messages[messages.length - 1];
@@ -82,7 +102,7 @@ export function Chat(): ReactNode {
     isLoading &&
     (!lastMessage ||
       lastMessage.role !== "assistant" ||
-      !lastMessage.parts.some(isTextUIPart));
+      lastMessage.parts.length === 0);
 
   return (
     <div className="flex h-dvh flex-col">
@@ -121,6 +141,9 @@ export function Chat(): ReactNode {
               const sourceParts = msg.parts.filter(
                 (p): p is SourceUrlUIPart => p.type === "source-url",
               );
+              const toolParts = msg.parts.filter(
+                (p): p is ToolInvocationUIPart => p.type === "tool-invocation",
+              );
               const fileParts = msg.parts.filter((p) => p.type === "file") as {
                 type: "file";
                 url: string;
@@ -130,6 +153,9 @@ export function Chat(): ReactNode {
 
               const isStreamingThis =
                 isLoading && msg === lastMessage && msg.role === "assistant";
+              const lastPart = msg.parts[msg.parts.length - 1];
+              const isReasoningStreaming =
+                isStreamingThis && lastPart && isReasoningUIPart(lastPart);
               const text = textParts.map((p) => p.text).join("");
 
               return (
@@ -148,7 +174,9 @@ export function Chat(): ReactNode {
                             mediaType: f.mediaType,
                           }}
                         >
-                          <AttachmentPreview />
+                          <AttachmentLightbox>
+                            <AttachmentPreview />
+                          </AttachmentLightbox>
                         </Attachment>
                       ))}
                     </Attachments>
@@ -157,7 +185,7 @@ export function Chat(): ReactNode {
                   <MessageContent>
                     {/* Reasoning block */}
                     {reasoningParts.length > 0 && (
-                      <Reasoning isStreaming={isStreamingThis}>
+                      <Reasoning isStreaming={isReasoningStreaming}>
                         <ReasoningTrigger />
                         <ReasoningContent>
                           {reasoningParts.map((p) => p.text).join("")}
@@ -166,12 +194,84 @@ export function Chat(): ReactNode {
                     )}
 
                     {/* Text content */}
-                    {text &&
-                      (msg.role === "assistant" ? (
-                        <MessageResponse>{text}</MessageResponse>
-                      ) : (
-                        <p className="whitespace-pre-wrap">{text}</p>
-                      ))}
+                    {msg.role === "assistant" ? (
+                      (text || (isStreamingThis && !isReasoningStreaming)) && (
+                        <MessageResponse isStreaming={isStreamingThis}>
+                          {text}
+                        </MessageResponse>
+                      )
+                    ) : (
+                      <p className="whitespace-pre-wrap">{text}</p>
+                    )}
+
+                    {/* Tool Invocations */}
+                    {toolParts.map((part) => {
+                      const { toolCallId, toolName, state } =
+                        part.toolInvocation;
+
+                      // If it's an approval request, show confirmation UI
+                      // @ts-expect-error state only available in AI SDK v6
+                      if (state === "approval-requested") {
+                        return (
+                          <Confirmation key={toolCallId} state={state} approval={{ id: toolCallId }}>
+                            <ConfirmationTitle>
+                              Execute {toolName}?
+                            </ConfirmationTitle>
+                            <ConfirmationRequest>
+                              <ConfirmationActions>
+                                <ConfirmationAction
+                                  variant="outline"
+                                  onClick={() =>
+                                    addToolResult({
+                                      toolCallId,
+                                      result: "denied",
+                                    })
+                                  }
+                                >
+                                  Reject
+                                </ConfirmationAction>
+                                <ConfirmationAction
+                                  onClick={() =>
+                                    addToolResult({
+                                      toolCallId,
+                                      result: "approved",
+                                    })
+                                  }
+                                >
+                                  Approve
+                                </ConfirmationAction>
+                              </ConfirmationActions>
+                            </ConfirmationRequest>
+                            <ConfirmationAccepted>
+                              You approved this action.
+                            </ConfirmationAccepted>
+                            <ConfirmationRejected>
+                              You rejected this action.
+                            </ConfirmationRejected>
+                          </Confirmation>
+                        );
+                      }
+
+                      // Otherwise show standard tool status/input/output
+                      return (
+                        <Tool key={toolCallId}>
+                          <ToolHeader
+                            title={toolName}
+                            type="tool-invocation"
+                            state={state}
+                          />
+                          <ToolContent>
+                            <ToolInput input={part.toolInvocation.args} />
+                            {"result" in part.toolInvocation && (
+                              <ToolOutput
+                                output={part.toolInvocation.result}
+                                errorText={undefined}
+                              />
+                            )}
+                          </ToolContent>
+                        </Tool>
+                      );
+                    })}
 
                     {/* Sources */}
                     {sourceParts.length > 0 && (

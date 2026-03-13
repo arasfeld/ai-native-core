@@ -3,6 +3,7 @@
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 @source "../../../../packages/ui/src/**/*.{ts,tsx}";
+@source "../../../../node_modules/streamdown/dist/*.js";
 @source "./**/*.{ts,tsx}";
 @source "../components/**/*.{ts,tsx}";
 

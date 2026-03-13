@@ -1,12 +1,12 @@
 from collections.abc import AsyncIterator
-from typing import Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 from pydantic import BaseModel
 
 
 class Message(BaseModel):
     role: str  # "system" | "user" | "assistant" | "tool"
-    content: str
+    content: str | list[dict[str, Any]]
     tool_call_id: str | None = None
     name: str | None = None
 

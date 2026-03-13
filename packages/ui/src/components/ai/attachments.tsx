@@ -2,6 +2,12 @@
 
 import { Button } from "@repo/ui/components/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogTrigger,
+} from "@repo/ui/components/dialog";
+import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
@@ -178,11 +184,12 @@ export const Attachment = ({
           "group relative",
           variant === "grid" && "size-24 overflow-hidden rounded-lg",
           variant === "inline" && [
-            "flex h-8 cursor-pointer select-none items-center gap-1.5",
+            "flex h-12 cursor-pointer select-none items-center gap-1.5",
             "rounded-md border border-border px-1.5",
             "font-medium text-sm transition-all",
             "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
           ],
+
           variant === "list" && [
             "flex w-full items-center gap-3 rounded-lg border p-3",
             "hover:bg-accent/50",
@@ -231,9 +238,9 @@ export const AttachmentPreview = ({
       <img
         alt={filename || "Image"}
         className="size-full rounded object-cover"
-        height={20}
+        height={36}
         src={url}
-        width={20}
+        width={36}
       />
     );
 
@@ -268,7 +275,7 @@ export const AttachmentPreview = ({
       className={cn(
         "flex shrink-0 items-center justify-center overflow-hidden",
         variant === "grid" && "size-full bg-muted",
-        variant === "inline" && "size-5 rounded bg-background",
+        variant === "inline" && "size-9 rounded bg-background",
         variant === "list" && "size-12 rounded bg-muted",
         className,
       )}
@@ -408,21 +415,38 @@ export const AttachmentHoverCardContent = ({
 
 export type AttachmentEmptyProps = HTMLAttributes<HTMLDivElement>;
 
-export const AttachmentEmpty = ({
-  className,
+// ============================================================================
+// AttachmentLightbox - Fullscreen preview
+// ============================================================================
+
+export type AttachmentLightboxProps = ComponentProps<typeof Dialog>;
+
+export const AttachmentLightbox = ({
   children,
   ...props
-}: AttachmentEmptyProps) => (
-  <div
-    className={cn(
-      "flex items-center justify-center p-4 text-muted-foreground text-sm",
-      className,
-    )}
-    {...props}
-  >
-    {children ?? "No attachments"}
-  </div>
-);
+}: AttachmentLightboxProps) => {
+  const { data, mediaCategory } = useAttachmentContext();
+
+  if (mediaCategory !== "image" || !data.url) {
+    return children;
+  }
+
+  return (
+    <Dialog {...props}>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent className="flex max-w-4xl flex-col items-center justify-center border-none bg-transparent p-0 shadow-none ring-0 sm:max-w-4xl">
+        <DialogTitle className="sr-only">
+          {data.filename || "Image Preview"}
+        </DialogTitle>
+        <img
+          alt={data.filename || "Image Preview"}
+          className="max-h-[90vh] max-w-full rounded-lg object-contain"
+          src={data.url}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 /** Demo component for preview */
 export default function AttachmentsDemo() {

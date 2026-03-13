@@ -21,9 +21,17 @@ class BudgetExceeded(Exception):
         )
 
 
-def estimate_tokens(text: str) -> int:
+from typing import Any
+
+def estimate_tokens(content: Any) -> int:
     """Rough token estimate based on character count (~4 chars per token)."""
-    return max(1, len(text) // 4)
+    if isinstance(content, str):
+        return max(1, len(content) // 4)
+    import json
+    try:
+        return max(1, len(json.dumps(content)) // 4)
+    except Exception:
+        return 1
 
 
 class TokenBudget:

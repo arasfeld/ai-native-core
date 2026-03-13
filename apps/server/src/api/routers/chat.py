@@ -25,8 +25,10 @@ log = structlog.get_logger()
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 
+from typing import Any
+
 class ChatRequest(BaseModel):
-    message: str
+    message: str | list[dict[str, Any]]
     session_id: str = "default"
     use_rag: bool = False
     system_prompt: str = ""
@@ -39,6 +41,16 @@ class ChatResponse(BaseModel):
     session_id: str
 
 
+def _extract_text(message: str | list[dict[str, Any]]) -> str:
+    """Extract text from potentially multi-modal message content."""
+    if isinstance(message, str):
+        return message
+    return " ".join(
+        part.get("text", "")
+        for part in message
+        if isinstance(part, dict) and part.get("type") == "text"
+    )
+
 @router.post("")
 async def chat(req: ChatRequest, request: Request, current_user: CurrentUser) -> StreamingResponse:
     """Stream a chat response via Server-Sent Events."""
@@ -49,6 +61,9 @@ async def chat(req: ChatRequest, request: Request, current_user: CurrentUser) ->
     retriever: PgVectorRetriever = request.app.state.retriever
     episodic: EpisodicStore = request.app.state.episodic
     extractor: MemoryExtractor = request.app.state.extractor
+
+    # Extract text content for searching and retrieval
+    message_text = _extract_text(req.message)
 
     # Scope session to the authenticated user
     session_id = f"{current_user.id}:{req.session_id}"
@@ -76,7 +91,7 @@ async def chat(req: ChatRequest, request: Request, current_user: CurrentUser) ->
     await store.add_message(session_id, "human", req.message)
 
     # Retrieve relevant long-term memories and prepend as a system message
-    long_term_facts = await episodic.search(req.message, top_k=5)
+    long_term_facts = await episodic.search(message_text, top_k=5)
     if long_term_facts:
         facts_text = "\n".join(f"- {f.content}" for f in long_term_facts)
         memory_msg = SystemMessage(content=f"Relevant facts from previous conversations:\n{facts_text}")
@@ -97,7 +112,7 @@ async def chat(req: ChatRequest, request: Request, current_user: CurrentUser) ->
             messages = [*history, HumanMessage(content=req.message)]
 
             if req.use_rag:
-                chunks = await retriever.retrieve(req.message)
+                chunks = await retriever.retrieve(message_text)
                 agent = build_rag_graph(llm=llm)
                 state: RAGState = {
                     "messages": messages,
