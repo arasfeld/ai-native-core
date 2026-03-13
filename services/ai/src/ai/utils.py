@@ -3,9 +3,15 @@
 from .base import Message, Usage
 
 
-def messages_to_dicts(messages: list[Message]) -> list[dict]:
-    """Convert Message objects to OpenAI-compatible dict format."""
-    return [{"role": m.role, "content": m.content} for m in messages]
+def messages_to_dicts(messages: list[Message] | list[dict]) -> list[dict]:
+    """Convert Message objects to OpenAI-compatible dict format.
+
+    Handles both Message objects and already-formatted dictionaries.
+    """
+    return [
+        m.model_dump(exclude_none=True) if not isinstance(m, dict) else m
+        for m in messages
+    ]
 
 
 def parse_openai_usage(response) -> Usage | None:

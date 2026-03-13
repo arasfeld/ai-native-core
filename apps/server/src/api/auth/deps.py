@@ -36,6 +36,7 @@ async def get_current_user(
         )
 
     try:
+        session_token = token.split(".")[0]
         row = await pool.fetchrow(
             """
             SELECT u.id, u.email
@@ -43,14 +44,14 @@ async def get_current_user(
             JOIN "session" s ON s."userId" = u.id
             WHERE s.token = $1 AND s."expiresAt" > NOW()
             """,
-            token,
+            session_token,
         )
     except Exception as exc:
         log.error("auth.db_error", error=str(exc))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal authentication error",
-        )
+        ) from exc
 
     if row is None:
         raise HTTPException(

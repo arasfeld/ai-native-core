@@ -21,9 +21,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import structlog
+from ai.base import Message
 
 if TYPE_CHECKING:
-    from ai.base import BaseLLM, Message
+    from ai.base import BaseLLM
 
     from .episodic import EpisodicStore
 
@@ -76,7 +77,7 @@ class MemoryExtractor:
             human=human_message,
             assistant=assistant_reply,
         )
-        messages: list[Message] = [{"role": "user", "content": prompt}]
+        messages: list[Message] = [Message(role="user", content=prompt)]
         response = await self._llm.chat(messages)
 
         facts = _parse_facts(response.content)

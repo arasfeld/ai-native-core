@@ -5,10 +5,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import structlog
+from ai.base import Message
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
 if TYPE_CHECKING:
-    from ai.base import BaseLLM, Message
+    from ai.base import BaseLLM
 
 log = structlog.get_logger()
 
@@ -59,7 +60,7 @@ class SummaryCompressor:
         )
         prompt = _SUMMARY_PROMPT.format(history=history_text)
 
-        summary_msgs: list[Message] = [{"role": "user", "content": prompt}]
+        summary_msgs: list[Message] = [Message(role="user", content=prompt)]
         response = await self.llm.chat(summary_msgs)
 
         log.info(
