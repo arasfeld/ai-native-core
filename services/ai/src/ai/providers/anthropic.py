@@ -16,16 +16,18 @@ class AnthropicProvider:
 
     def _split_messages(self, messages: list[Message]) -> tuple[str | None, list[dict]]:
         """Anthropic separates system prompt from user/assistant turns."""
-        system = None
+        system_parts = []
         turns = []
         for m in messages:
             if m.role == "system":
-                system = m.content
+                system_parts.append(m.content)
             else:
                 content = m.content
                 if isinstance(content, list):
                     content = [self._convert_part(p) for p in content]
                 turns.append({"role": m.role, "content": content})
+        
+        system = "\n\n".join(system_parts) if system_parts else None
         return system, turns
 
     def _convert_part(self, part: dict) -> dict:

@@ -15,17 +15,26 @@ export function useGeolocation() {
       return;
     }
 
-    setStatus("loading");
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setStatus("granted");
-      },
-      () => {
-        setStatus("denied");
-      },
-      { timeout: 8000, maximumAge: 5 * 60 * 1000 }, // cache for 5 min
-    );
+    const updateLocation = () => {
+      setStatus("loading");
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          setStatus("granted");
+        },
+        (err) => {
+          console.warn("Geolocation error:", err);
+          setStatus(err.code === err.PERMISSION_DENIED ? "denied" : "unavailable");
+        },
+        { 
+          enableHighAccuracy: true,
+          timeout: 15000, 
+          maximumAge: 10 * 60 * 1000 
+        },
+      );
+    };
+
+    updateLocation();
   }, []);
 
   return { coords, status };

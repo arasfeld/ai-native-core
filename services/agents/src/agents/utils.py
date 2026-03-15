@@ -10,18 +10,25 @@ def lc_to_messages(
 ) -> list[Message]:
     """Convert LangChain BaseMessages to internal Message format.
 
-    Optionally prepend a system message. SystemMessage objects in the list
-    (e.g. injected location context or episodic memory facts) are preserved.
+    Optionally prepend a system message. All system messages (injected location
+    context, episodic facts, base prompt) are merged into a single system
+    message for maximum compatibility across LLM providers.
     """
-    messages: list[Message] = []
+    system_parts: list[str] = []
     if system:
-        messages.append(Message(role="system", content=system))
+        system_parts.append(system)
+
+    other_messages: list[Message] = []
     for msg in lc_messages:
         if isinstance(msg, SystemMessage):
-            messages.append(Message(role="system", content=msg.content))
+            system_parts.append(msg.content)
         elif isinstance(msg, HumanMessage):
-            # HumanMessage content can be a string or a list of dicts (for images)
-            messages.append(Message(role="user", content=msg.content))
+            other_messages.append(Message(role="user", content=msg.content))
         elif isinstance(msg, AIMessage):
-            messages.append(Message(role="assistant", content=msg.content))
+            other_messages.append(Message(role="assistant", content=msg.content))
+
+    messages: list[Message] = []
+    if system_parts:
+        messages.append(Message(role="system", content="\n\n".join(system_parts)))
+    messages.extend(other_messages)
     return messages
