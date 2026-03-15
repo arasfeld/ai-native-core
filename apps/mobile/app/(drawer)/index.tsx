@@ -2,6 +2,7 @@ import { useChat } from "@ai-sdk/react";
 import { type UIMessage, DefaultChatTransport } from "ai";
 import { fetch as expoFetch } from "expo/fetch";
 import { useRef, useState } from "react";
+import { useLocation } from "@/hooks/use-location";
 import {
   ActivityIndicator,
   FlatList,
@@ -38,11 +39,15 @@ export default function ChatScreen() {
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
   const [input, setInput] = useState("");
+  const { coords } = useLocation();
+  const coordsRef = useRef(coords);
+  coordsRef.current = coords;
 
   const { messages, status, error, sendMessage } = useChat({
     transport: new DefaultChatTransport({
       fetch: fetchWithAuth as unknown as typeof globalThis.fetch,
       api: `${WEB_URL}/api/chat`,
+      body: () => coordsRef.current ?? {},
     }),
     onError: (err) => console.error("Chat error:", err),
   });

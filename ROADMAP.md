@@ -39,19 +39,19 @@ Goal: Add image and audio support so agents can see, hear, and speak.
 
 ---
 
-## Phase 10 — Location and Ambient Context
+## Phase 10 — Location and Ambient Context ✅
 
 Goal: Let agents be aware of where the user is and surface location-relevant information.
 
-| Priority | Item                             | Notes                                                                                                  |
-| -------- | -------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| 40       | **Web geolocation**              | Browser `navigator.geolocation` → send lat/lng with each chat request                                  |
-| 41       | **Mobile location**              | Expo `expo-location` → same lat/lng contract, foreground + background                                  |
-| 42       | **Reverse geocoding**            | lat/lng → human-readable place (city, neighbourhood) via OSM Nominatim or Google                       |
-| 43       | **Weather tool**                 | LangGraph tool in `services/tools`: current weather + forecast via Open-Meteo (free) or OpenWeatherMap |
-| 44       | **Location-aware system prompt** | Inject resolved place + weather into system prompt when location is available                          |
-| 45       | **Nearby POI tool**              | Overpass API (OSM) or Google Places — "restaurants near me", "pharmacies open now"                     |
-| 46       | **Location history**             | Optionally store locations in episodic memory ("User is usually in NYC")                               |
+| Priority | Item                             | Status | Notes                                                                                                  |
+| -------- | -------------------------------- | ------ | ------------------------------------------------------------------------------------------------------ |
+| 40       | **Web geolocation**              | ✅     | `useGeolocation()` hook → coords sent via `DefaultChatTransport` body                                  |
+| 41       | **Mobile location**              | ✅     | `expo-location` + `useLocation()` hook → same lat/lng contract as web                                  |
+| 42       | **Reverse geocoding**            | ✅     | `ReverseGeocodeTool` + `reverse_geocode()` via OSM Nominatim (free, no key)                            |
+| 43       | **Weather tool**                 | ✅     | `WeatherTool` + `get_weather()` via Open-Meteo (free, no key)                                          |
+| 44       | **Location-aware system prompt** | ✅     | Chat router injects `get_location_context(lat, lng)` as system message when coords present             |
+| 45       | **Nearby POI tool**              | ✅     | `NearbyPOITool` via Overpass API (OSM) — restaurants, pharmacies, hotels, etc. (free, no key)          |
+| 46       | **Location history**             | ✅     | Chat router stores `"On {date}, the user was in {place}."` in episodic memory per session               |
 
 ---
 

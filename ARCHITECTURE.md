@@ -92,8 +92,9 @@ ai-native-core/
 │   │   ├── src/tools/
 │   │   │   ├── base.py             # Tool base class + registry
 │   │   │   ├── web_search.py       # Tavily web search
-│   │   │   ├── weather.py          # Open-Meteo weather + reverse geocoding
-│   │   │   ├── location.py         # Location context assembly
+│   │   │   ├── weather.py          # Open-Meteo weather + OSM reverse geocoding
+│   │   │   ├── location.py         # Location context assembly (place + weather)
+│   │   │   ├── poi.py              # Nearby POI search via Overpass API (OSM)
 │   │   │   └── image_generation.py # DALL-E image generation
 │   │   └── pyproject.toml
 │   │

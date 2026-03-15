@@ -97,10 +97,14 @@ async def chat(req: ChatRequest, request: Request, current_user: CurrentUser) ->
         history = [memory_msg, *history]
 
     # Inject location + weather context when the client provides coordinates
+    location_place: str | None = None
     if req.lat is not None and req.lng is not None:
         try:
             location_ctx = await get_location_context(req.lat, req.lng)
             history = [SystemMessage(content=location_ctx), *history]
+            # Extract the place name for episodic storage (first line: "User is in <place>.")
+            first_line = location_ctx.split("\n")[0]
+            location_place = first_line.removeprefix("User is in ").removesuffix(".")
             log.debug("chat.location_context", lat=req.lat, lng=req.lng)
         except Exception as exc:
             log.warning("chat.location_context.error", error=str(exc))
@@ -147,6 +151,18 @@ async def chat(req: ChatRequest, request: Request, current_user: CurrentUser) ->
                     metadata={"user_id": current_user.id},
                 )
             )
+
+            # Store location as an episodic fact so future sessions know where the user has been
+            if location_place:
+                from datetime import UTC, datetime
+                date_str = datetime.now(UTC).strftime("%Y-%m-%d")
+                asyncio.ensure_future(
+                    episodic.store(
+                        f"On {date_str}, the user was in {location_place}.",
+                        session_id=session_id,
+                        metadata={"user_id": current_user.id, "type": "location"},
+                    )
+                )
 
             yield "data: [DONE]\n\n"
 
