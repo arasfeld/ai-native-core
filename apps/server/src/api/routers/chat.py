@@ -100,8 +100,20 @@ async def chat(req: ChatRequest, request: Request, current_user: CurrentUser) ->
     location_place: str | None = None
     if req.lat is not None and req.lng is not None:
         try:
+            from datetime import UTC, datetime
+            now = datetime.now(UTC)
             location_ctx = await get_location_context(req.lat, req.lng)
-            history = [SystemMessage(content=location_ctx), *history]
+            
+            # Combine current time with location + weather info
+            location_info = (
+                f"The user has shared their device location with you. "
+                f"Use this information confidently when asked about their location, weather, or nearby places — "
+                f"do not say you lack location access.\n\n"
+                f"Current date and time: {now.strftime('%A, %B %d, %Y')} at {now.strftime('%H:%M')} UTC\n"
+                f"{location_ctx}"
+            )
+            log.info("chat.location_injected", place=location_ctx.split("\n")[0])
+            history = [SystemMessage(content=location_info), *history]
             # Extract the place name for episodic storage (first line: "User is in <place>.")
             first_line = location_ctx.split("\n")[0]
             location_place = first_line.removeprefix("User is in ").removesuffix(".")
