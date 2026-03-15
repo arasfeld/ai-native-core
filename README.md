@@ -12,6 +12,7 @@ A production-ready monorepo template for building AI-native multi-platform appli
 | API | FastAPI (Python) with SSE streaming |
 | AI orchestration | LangGraph agents |
 | Model abstraction | `services/ai` — OpenAI, Anthropic, OpenRouter, Ollama |
+| Multi-modal | Image input (vision), image generation (DALL-E), transcription (Whisper), TTS |
 | RAG | pgvector + `services/rag` |
 | Memory | `services/memory` — session + long-term memory |
 | Background jobs | ARQ worker |
@@ -64,7 +65,7 @@ apps/
   web/        Next.js frontend
   mobile/     Expo + React Native
   desktop/    Tauri desktop app
-  api/        FastAPI server
+  server/     FastAPI server
   worker/     ARQ background jobs
   playground/ AI development sandbox
 

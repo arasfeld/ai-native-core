@@ -52,6 +52,21 @@ Used for RAG (Retrieval-Augmented Generation) and episodic memory.
 | :--- | :--- | :--- | :--- |
 | **nomic-embed-text** | 274 MB | Text | `ollama pull nomic-embed-text` | High-performance open embedding model. |
 
+## Audio & Image Models (OpenAI)
+
+Multi-modal capabilities (transcription, TTS, image generation) require `LLM_PROVIDER=openai`.
+
+| Capability | Default Model | Env Var | Notes |
+| :--- | :--- | :--- | :--- |
+| **Transcription** | `whisper-1` | `OPENAI_TRANSCRIBE_MODEL` | `POST /media/transcribe` — audio file → text |
+| **Text-to-Speech** | `tts-1` | `OPENAI_TTS_MODEL` | `POST /media/tts` — text → MP3 stream. Use `tts-1-hd` for higher quality. |
+| **Image Generation** | `dall-e-3` | `OPENAI_IMAGE_MODEL` | `GenerateImageTool` — text prompt → image URL |
+
+### TTS Voices
+
+Available values for the `voice` field in `POST /media/tts`:
+`alloy` · `echo` · `fable` · `onyx` · `nova` · `shimmer`
+
 ## Configuration
 
 Update your `.env` file to switch between models:
@@ -61,6 +76,15 @@ Update your `.env` file to switch between models:
 LLM_PROVIDER=ollama
 OLLAMA_MODEL=qwen2.5:7b
 OLLAMA_EMBED_MODEL=nomic-embed-text
+```
+
+```bash
+# Example for cloud providers with multi-modal support
+LLM_PROVIDER=openai
+OPENAI_MODEL=gpt-4o
+OPENAI_TRANSCRIBE_MODEL=whisper-1
+OPENAI_TTS_MODEL=tts-1
+OPENAI_IMAGE_MODEL=dall-e-3
 ```
 
 ## Running Models

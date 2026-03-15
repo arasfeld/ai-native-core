@@ -38,3 +38,11 @@ class BaseLLM(Protocol):
     async def embed(self, text: str) -> list[float]:
         """Embed text and return a vector."""
         ...
+
+    async def transcribe(self, audio: bytes, filename: str = "audio.webm") -> str:
+        """Transcribe audio bytes to text (Whisper or equivalent)."""
+        ...
+
+    async def synthesize(self, text: str, voice: str = "alloy") -> AsyncIterator[bytes]:
+        """Stream TTS audio bytes for the given text."""
+        ...

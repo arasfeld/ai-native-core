@@ -22,19 +22,20 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full system design.
 - `apps/worker` — ARQ background job processor (`ingest_document`, `run_agent`)
 - **Phase 7** — Structured logging (structlog), token budget, prompt versioning
 - **Phase 8** — Auth (JWT + NextAuth v5), multi-tenancy (tenants table), Stripe billing, long-term memory, background agents
+- **Phase 9** — Multi-modal: image input (vision), image generation (DALL-E tool), audio transcription (Whisper), TTS streaming (`POST /media/transcribe`, `POST /media/tts`)
 
 ---
 
-## Phase 9 — Multi-modal
+## Phase 9 — Multi-modal ✅
 
 Goal: Add image and audio support so agents can see, hear, and speak.
 
-| Priority | Item                    | Notes                                                                            |
-| -------- | ----------------------- | -------------------------------------------------------------------------------- |
-| 36       | **Image input**         | Accept image uploads in chat; pass to vision-capable models (GPT-4o, Claude 3.5) |
-| 37       | **Image generation**    | DALL-E / Stable Diffusion tool in `services/tools`                               |
-| 38       | **Audio transcription** | Whisper (OpenAI or local) for voice-to-text input                                |
-| 39       | **Text-to-speech**      | Stream TTS audio back via SSE for voice responses                                |
+| Priority | Item                    | Status | Notes                                                                            |
+| -------- | ----------------------- | ------ | -------------------------------------------------------------------------------- |
+| 36       | **Image input**         | ✅     | Web UI ready; Anthropic/OpenAI/Ollama providers handle `image_url` parts         |
+| 37       | **Image generation**    | ✅     | `GenerateImageTool` (DALL-E) in `services/tools`                                 |
+| 38       | **Audio transcription** | ✅     | `POST /media/transcribe` via Whisper; `llm.transcribe()` on `OpenAIProvider`     |
+| 39       | **Text-to-speech**      | ✅     | `POST /media/tts` streams MP3 audio; `llm.synthesize()` on `OpenAIProvider`      |
 
 ---
 

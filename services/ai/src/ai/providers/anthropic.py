@@ -46,6 +46,14 @@ class AnthropicProvider:
                     }
                 except Exception:
                     pass
+            elif url.startswith("http://") or url.startswith("https://"):
+                return {
+                    "type": "image",
+                    "source": {
+                        "type": "url",
+                        "url": url,
+                    },
+                }
         return part
 
     async def chat(self, messages: list[Message], **kwargs) -> LLMResponse:
@@ -81,4 +89,16 @@ class AnthropicProvider:
         raise NotImplementedError(
             "Anthropic does not provide an embedding API. "
             "Use LLM_PROVIDER=openai or LLM_PROVIDER=ollama for embeddings."
+        )
+
+    async def transcribe(self, audio: bytes, filename: str = "audio.webm") -> str:
+        raise NotImplementedError(
+            "Anthropic does not provide a transcription API. "
+            "Use LLM_PROVIDER=openai for audio transcription."
+        )
+
+    async def synthesize(self, text: str, voice: str = "alloy") -> bytes:
+        raise NotImplementedError(
+            "Anthropic does not provide a TTS API. "
+            "Use LLM_PROVIDER=openai for text-to-speech."
         )

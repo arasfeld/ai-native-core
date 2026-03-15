@@ -90,11 +90,11 @@ ai-native-core/
 │   │
 │   ├── tools/                  # Reusable LangGraph-compatible tools
 │   │   ├── src/tools/
-│   │   │   ├── base.py         # Tool base class + registry
-│   │   │   ├── web_search.py   # Tavily / SerpAPI
-│   │   │   ├── email.py        # SendGrid / SMTP
-│   │   │   ├── slack.py        # Slack Bolt
-│   │   │   └── database.py     # SQL query tool
+│   │   │   ├── base.py             # Tool base class + registry
+│   │   │   ├── web_search.py       # Tavily web search
+│   │   │   ├── weather.py          # Open-Meteo weather + reverse geocoding
+│   │   │   ├── location.py         # Location context assembly
+│   │   │   └── image_generation.py # DALL-E image generation
 │   │   └── pyproject.toml
 │   │
 │   └── memory/                 # Conversation and long-term memory
@@ -232,22 +232,27 @@ All LLM access goes through `services/ai`. The `BaseLLM` protocol defines the in
 
 ```python
 # services/ai/src/ai/base.py
-from typing import Protocol, AsyncIterator
+from typing import Any, Protocol, AsyncIterator
 from pydantic import BaseModel
 
 class Message(BaseModel):
     role: str  # "system" | "user" | "assistant" | "tool"
-    content: str
+    content: str | list[dict[str, Any]]  # multi-modal: text or image/audio parts
 
 class LLMResponse(BaseModel):
     content: str
-    usage: dict | None = None
+    usage: Usage | None = None
+    model: str | None = None
 
 class BaseLLM(Protocol):
     async def chat(self, messages: list[Message], **kwargs) -> LLMResponse: ...
     async def stream(self, messages: list[Message], **kwargs) -> AsyncIterator[str]: ...
     async def embed(self, text: str) -> list[float]: ...
+    async def transcribe(self, audio: bytes, filename: str = "audio.webm") -> str: ...
+    async def synthesize(self, text: str, voice: str = "alloy") -> AsyncIterator[bytes]: ...
 ```
+
+`transcribe` and `synthesize` are only implemented by `OpenAIProvider` (Whisper + TTS). Other providers raise `NotImplementedError`.
 
 ### Provider Factory
 
@@ -387,6 +392,24 @@ Agent receives LLM response with tool_call
     → Tool executes (web search, DB query, etc.)
     → Result returned as tool message
     → Agent resumes with tool result in context
+```
+
+### Audio Transcription
+
+```
+Client sends POST /media/transcribe (multipart audio file)
+    → FastAPI reads file bytes
+    → llm.transcribe(bytes, filename) → OpenAI Whisper API
+    → Returns {"text": "..."}
+```
+
+### Text-to-Speech
+
+```
+Client sends POST /media/tts {text, voice}
+    → FastAPI calls llm.synthesize(text, voice)
+    → OpenAI TTS API streams MP3 chunks
+    → FastAPI streams audio/mpeg back to client
 ```
 
 ---
@@ -688,11 +711,13 @@ async def ingest_document(ctx, document_url: str, tenant_id: str):
 
 Tasks are enqueued from the API and processed by `apps/worker`.
 
-### Multi-modal
+### Multi-modal ✅
 
-- Add image support: pass image URLs/base64 to providers that support vision (GPT-4o, Claude).
-- Audio: Whisper transcription → text → agent pipeline.
-- Structured outputs: use provider JSON mode or Instructor for reliable Pydantic extraction.
+- **Image input**: send `image_url` content parts in chat messages; supported by OpenAI, Anthropic, and Ollama vision models. The web UI already handles file uploads and image rendering.
+- **Image generation**: `GenerateImageTool` in `services/tools` (DALL-E 3); callable from any LangGraph agent.
+- **Audio transcription**: `POST /media/transcribe` — upload an audio file, get back text (Whisper via `OpenAIProvider.transcribe()`).
+- **Text-to-speech**: `POST /media/tts` — send text, receive a streamed MP3 audio response (`OpenAIProvider.synthesize()`).
+- **Structured outputs**: use provider JSON mode or Instructor for reliable Pydantic extraction.
 
 ### Evaluation Pipelines
 

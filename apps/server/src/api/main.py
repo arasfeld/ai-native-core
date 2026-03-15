@@ -12,7 +12,7 @@ from rag import PgVectorRetriever
 
 from .config import settings
 from .logging import configure_logging
-from .routers import auth, billing, chat, health, ingest, jobs
+from .routers import auth, billing, chat, health, ingest, jobs, media
 
 configure_logging(
     json_logs=settings.log_format == "json",
@@ -95,3 +95,4 @@ app.include_router(chat.router)
 app.include_router(ingest.router)
 app.include_router(jobs.router)
 app.include_router(billing.router)
+app.include_router(media.router)

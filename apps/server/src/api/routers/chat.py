@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 
 import structlog
 from agents import ChatState, RAGState, build_chat_graph, build_rag_graph
@@ -24,8 +25,6 @@ from ..auth import CurrentUser
 log = structlog.get_logger()
 router = APIRouter(prefix="/chat", tags=["chat"])
 
-
-from typing import Any
 
 class ChatRequest(BaseModel):
     message: str | list[dict[str, Any]]

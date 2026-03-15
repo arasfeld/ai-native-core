@@ -12,6 +12,7 @@ import { BrainIcon, ChevronDownIcon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { createContext, memo, useContext, useEffect, useState } from "react";
 import { Streamdown } from "streamdown";
+import { Cursor } from "./cursor";
 
 interface ReasoningContextValue {
   isStreaming: boolean;
@@ -168,17 +169,24 @@ export type ReasoningContentProps = ComponentProps<
 };
 
 export const ReasoningContent = memo(
-  ({ className, children, ...props }: ReasoningContentProps) => (
-    <CollapsibleContent
-      className={cn(
-        "prose prose-sm dark:prose-invert mt-4 max-w-none text-muted-foreground text-sm outline-none data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2",
-        className,
-      )}
-      {...props}
-    >
-      <Streamdown>{children}</Streamdown>
-    </CollapsibleContent>
-  ),
+  ({ className, children, ...props }: ReasoningContentProps) => {
+    const { isStreaming } = useReasoning();
+
+    return (
+      <CollapsibleContent
+        className={cn(
+          "prose prose-sm dark:prose-invert mt-4 max-w-none text-muted-foreground text-sm outline-none data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2",
+          className,
+        )}
+        {...props}
+      >
+        <Streamdown className="[&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p:last-child]:inline inline">
+          {children}
+        </Streamdown>
+        {isStreaming && <Cursor className="ml-1 inline-block" />}
+      </CollapsibleContent>
+    );
+  },
 );
 
 Reasoning.displayName = "Reasoning";

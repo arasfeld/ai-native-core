@@ -315,7 +315,7 @@ export const MessageResponse = memo(
       )}
     >
       <Streamdown
-        className="size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+        className="[&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p:last-child]:inline inline"
         {...props}
       />
       {isStreaming && <Cursor className="ml-1 inline-block" />}

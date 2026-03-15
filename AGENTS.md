@@ -98,6 +98,8 @@ uv run --package <package-name> <command>       # Python
 - **Streaming-first:** design all agent interfaces to support SSE streaming.
 - **Prompts in `packages/prompts`:** no inline f-string prompts in agent or router code.
 - **Memory via `services/memory`:** don't manage session or long-term memory directly in agent or router code.
+- **Multi-modal content:** use `str | list[dict]` for message content; image parts use `{"type": "image_url", "image_url": {"url": ...}}` (OpenAI format — providers convert internally).
+- **Audio/image endpoints:** transcription and TTS live in `apps/server/src/api/routers/media.py`; only `OpenAIProvider` implements these — other providers raise `NotImplementedError`.
 
 ### TypeScript
 

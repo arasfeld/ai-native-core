@@ -51,3 +51,15 @@ class OllamaProvider:
             input=text,
         )
         return response.data[0].embedding
+
+    async def transcribe(self, audio: bytes, filename: str = "audio.webm") -> str:
+        raise NotImplementedError(
+            "Ollama does not provide a transcription API. "
+            "Use LLM_PROVIDER=openai for audio transcription."
+        )
+
+    async def synthesize(self, text: str, voice: str = "alloy") -> bytes:
+        raise NotImplementedError(
+            "Ollama does not provide a TTS API. "
+            "Use LLM_PROVIDER=openai for text-to-speech."
+        )

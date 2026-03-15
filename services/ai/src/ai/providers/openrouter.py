@@ -43,3 +43,15 @@ class OpenRouterProvider:
 
     async def embed(self, text: str) -> list[float]:
         raise NotImplementedError("Use LLM_PROVIDER=openai or LLM_PROVIDER=ollama for embeddings.")
+
+    async def transcribe(self, audio: bytes, filename: str = "audio.webm") -> str:
+        raise NotImplementedError(
+            "OpenRouter does not provide a transcription API. "
+            "Use LLM_PROVIDER=openai for audio transcription."
+        )
+
+    async def synthesize(self, text: str, voice: str = "alloy") -> bytes:
+        raise NotImplementedError(
+            "OpenRouter does not provide a TTS API. "
+            "Use LLM_PROVIDER=openai for text-to-speech."
+        )
