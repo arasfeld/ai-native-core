@@ -1,0 +1,47 @@
+name: Evals
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      pass_threshold:
+        description: Minimum score to pass (0.0–1.0)
+        default: "0.80"
+
+jobs:
+  golden-evals:
+    name: Golden-answer eval suite
+    runs-on: ubuntu-latest
+
+    # Only run when the necessary secrets are available
+    if: vars.RUN_EVALS == 'true'
+
+    env:
+      LLM_PROVIDER: openai
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      LANGCHAIN_API_KEY: ${{ secrets.LANGCHAIN_API_KEY }}
+      LANGCHAIN_TRACING_V2: "true"
+      LANGCHAIN_PROJECT: ai-native-core-evals
+      RUN_EVALS: "1"
+      PASS_THRESHOLD: ${{ github.event.inputs.pass_threshold || '0.80' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run golden-answer eval tests
+        run: |
+          uv run pytest services/agents/tests/evals/test_golden.py \
+            -v --tb=short \
+            --no-header
+
+      - name: Push results to LangSmith
+        if: env.LANGCHAIN_API_KEY != ''
+        run: uv run python -m services.agents.tests.evals.langsmith_runner

@@ -55,16 +55,16 @@ Goal: Let agents be aware of where the user is and surface location-relevant inf
 
 ---
 
-## Phase 11 — Evaluation Pipelines
+## Phase 11 — Evaluation Pipelines ✅
 
 Goal: Measure and improve agent quality continuously.
 
-| Priority | Item                         | Notes                                                                  |
-| -------- | ---------------------------- | ---------------------------------------------------------------------- |
-| 47       | **Golden-answer test suite** | `pytest` fixtures with reference Q&A pairs; assert semantic similarity |
-| 48       | **LangSmith evals**          | Push eval datasets + runs to LangSmith for dataset-level scoring       |
-| 49       | **Regression CI**            | Run eval suite on every PR; fail if score drops below threshold        |
-| 50       | **Prompt A/B testing**       | Use prompt versioning registry to compare v1 vs v2 on same dataset     |
+| Priority | Item                         | Status | Notes                                                                                    |
+| -------- | ---------------------------- | ------ | ---------------------------------------------------------------------------------------- |
+| 47       | **Golden-answer test suite** | ✅     | `services/agents/tests/evals/` — JSON fixtures, keyword scoring, `RUN_EVALS=1` to run   |
+| 48       | **LangSmith evals**          | ✅     | `langsmith_runner.py` — pushes dataset + scored runs; enabled when `LANGCHAIN_API_KEY` set |
+| 49       | **Regression CI**            | ✅     | `.github/workflows/test.yml` (unit, always) + `eval.yml` (evals, on main push)           |
+| 50       | **Prompt A/B testing**       | ✅     | `PromptRegistry.versions()` + `render_prompt(name, version=N)` — swap in eval runner    |
 
 ---
 

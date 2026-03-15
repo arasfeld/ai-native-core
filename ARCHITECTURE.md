@@ -720,8 +720,10 @@ Tasks are enqueued from the API and processed by `apps/worker`.
 - **Text-to-speech**: `POST /media/tts` — send text, receive a streamed MP3 audio response (`OpenAIProvider.synthesize()`).
 - **Structured outputs**: use provider JSON mode or Instructor for reliable Pydantic extraction.
 
-### Evaluation Pipelines
+### Evaluation Pipelines ✅
 
-- Run agent outputs against ground-truth datasets.
-- Track pass/fail rates over time.
-- Use LangSmith or a custom eval harness.
+- **Unit tests** (`pytest`, no API keys): agent logic, message conversion, weather tools, prompt registry — `uv run pytest`
+- **Golden-answer evals** (`RUN_EVALS=1 uv run pytest services/agents/tests/evals/`): runs real LLM at temperature=0 against JSON Q&A fixtures, asserts keyword presence, enforces ≥80% pass threshold
+- **LangSmith integration** (`langsmith_runner.py`): pushes datasets and scored runs to LangSmith when `LANGCHAIN_API_KEY` is set
+- **CI** (`.github/workflows/`): `test.yml` runs unit tests + linting on every PR; `eval.yml` runs golden evals on main-branch pushes when `vars.RUN_EVALS == 'true'`
+- **Prompt A/B testing**: use `render_prompt("chat", version=N)` with any version from the registry to compare prompt variants on the same eval dataset
