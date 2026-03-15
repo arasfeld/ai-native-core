@@ -101,6 +101,7 @@ async def reverse_geocode(lat: float, lng: float) -> str:
     url = "https://nominatim.openstreetmap.org/reverse"
     params = {"lat": lat, "lon": lng, "format": "json"}
     headers = {"User-Agent": "ai-native-core/1.0 (github.com/arasfeld/ai-native-core)"}
+    log.debug("tools.reverse_geocode.start", lat=lat, lng=lng)
     try:
         async with httpx.AsyncClient(timeout=10) as client:
             r = await client.get(url, params=params, headers=headers)
@@ -108,13 +109,18 @@ async def reverse_geocode(lat: float, lng: float) -> str:
             data = r.json()
             addr = data.get("address", {})
             parts = [
-                addr.get("city") or addr.get("town") or addr.get("village"),
-                addr.get("state"),
+                addr.get("city") or addr.get("town") or addr.get("village")
+                or addr.get("township") or addr.get("municipality")
+                or addr.get("suburb") or addr.get("neighbourhood") or addr.get("hamlet"),
+                addr.get("county") or addr.get("state_district"),
+                addr.get("state") or addr.get("region"),
                 addr.get("country"),
             ]
-            return ", ".join(p for p in parts if p) or data.get("display_name", f"{lat}, {lng}")
+            result = ", ".join(p for p in parts if p) or data.get("display_name", f"{lat}, {lng}")
+            log.info("tools.reverse_geocode.success", lat=lat, lng=lng, result=result)
+            return result
     except Exception as exc:
-        log.warning("tools.reverse_geocode.error", error=str(exc))
+        log.warning("tools.reverse_geocode.error", error=str(exc), lat=lat, lng=lng)
         return f"{lat:.4f}, {lng:.4f}"
 
 
