@@ -21,6 +21,13 @@ class OllamaProvider:
         self.model = os.environ.get("OLLAMA_MODEL", "llama3.2-vision")
         self.embed_model = os.environ.get("OLLAMA_EMBED_MODEL", "nomic-embed-text")
 
+    def bind_tools(self, tools: list) -> "OllamaProvider":
+        raise NotImplementedError(
+            "OllamaProvider does not support bind_tools. "
+            "Use a tool-calling capable model (e.g., llama3.2) with OpenAI-compatible "
+            "tool calling, or switch to the OpenAI/Anthropic provider."
+        )
+
     async def chat(self, messages: list[Message], **kwargs) -> LLMResponse:
         response = await self.client.chat.completions.create(
             model=self.model,

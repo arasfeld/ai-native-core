@@ -1,4 +1,6 @@
+import copy
 import io
+import json
 import os
 from collections.abc import AsyncIterator
 
@@ -18,17 +20,56 @@ class OpenAIProvider:
         self.transcribe_model = os.environ.get("OPENAI_TRANSCRIBE_MODEL", "whisper-1")
         self.tts_model = os.environ.get("OPENAI_TTS_MODEL", "tts-1")
         self.image_model = os.environ.get("OPENAI_IMAGE_MODEL", "dall-e-3")
+        self._openai_tools: list[dict] | None = None
+
+    def bind_tools(self, tools: list) -> "OpenAIProvider":
+        """Return a copy of this provider with OpenAI function-calling tools bound."""
+        clone = copy.copy(self)
+        clone._openai_tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": t.name,
+                    "description": t.description,
+                    "parameters": (
+                        t.args_schema.model_json_schema()
+                        if t.args_schema
+                        else {"type": "object", "properties": {}}
+                    ),
+                },
+            }
+            for t in tools
+        ]
+        return clone
 
     async def chat(self, messages: list[Message], **kwargs) -> LLMResponse:
+        params = {**kwargs}
+        if self._openai_tools:
+            params["tools"] = self._openai_tools
+
         response = await self.client.chat.completions.create(
             model=self.model,
             messages=messages_to_dicts(messages),
-            **kwargs,
+            **params,
         )
+        msg = response.choices[0].message
+
+        tool_calls = None
+        if msg.tool_calls:
+            tool_calls = [
+                {
+                    "name": tc.function.name,
+                    "args": json.loads(tc.function.arguments),
+                    "id": tc.id,
+                }
+                for tc in msg.tool_calls
+            ]
+
         return LLMResponse(
-            content=response.choices[0].message.content or "",
+            content=msg.content or "",
             usage=parse_openai_usage(response),
             model=response.model,
+            tool_calls=tool_calls,
         )
 
     async def stream(self, messages: list[Message], **kwargs) -> AsyncIterator[str]:

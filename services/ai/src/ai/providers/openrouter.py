@@ -17,6 +17,12 @@ class OpenRouterProvider:
         )
         self.model = os.environ.get("OPENROUTER_MODEL", "openai/gpt-4o-mini")
 
+    def bind_tools(self, tools: list) -> "OpenRouterProvider":
+        raise NotImplementedError(
+            "OpenRouterProvider does not support bind_tools. "
+            "Use the OpenAI or Anthropic provider directly for tool calling."
+        )
+
     async def chat(self, messages: list[Message], **kwargs) -> LLMResponse:
         response = await self.client.chat.completions.create(
             model=self.model,
