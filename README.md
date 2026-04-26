@@ -17,7 +17,10 @@ A production-ready monorepo template for building AI-native multi-platform appli
 | Memory | `services/memory` — session + long-term memory |
 | Background jobs | ARQ worker |
 | Database | Postgres + pgvector (Drizzle ORM for migrations) |
+| Auth | better-auth — session-based; guest mode (IP identity) included |
+| Multi-tenancy | Per-tenant monthly token budgets; auto-created on first chat |
 | Monorepo | Turborepo + pnpm (TS) + uv (Python) |
+| Git hooks | Lefthook — biome + ruff on pre-commit; `check-types` on pre-push |
 
 ## Quick Start
 
@@ -30,8 +33,9 @@ ollama pull llama3.2 && ollama pull nomic-embed-text
 cp .env.example .env
 # Default: LLM_PROVIDER=ollama — no API keys needed
 
-# 3. Install dependencies
+# 3. Install dependencies and git hooks
 pnpm install && uv sync
+pnpm exec lefthook install
 
 # 4. Run migrations
 pnpm --filter @repo/db migrate

@@ -88,6 +88,22 @@ Goal: Clean 3-layer backend (Router → Service → Repository), tool calling in
 
 ---
 
+## Phase 13 — Auth-Optional + SaaS-Ready ✅
+
+Goal: Allow guests to chat without signing up, enforce monthly per-tenant token budgets, auto-create tenants on registration, and replace the root route with a marketing landing page.
+
+| Priority | Item | Status | Notes |
+| -------- | ---- | ------ | ----- |
+| 62 | **Guest chat mode** | ✅ | Unauthenticated users get `guest:{ip}` identity; `proxy.ts` only gates `/billing`, `/profile`, `/settings` |
+| 63 | **Monthly tenant budget** | ✅ | `TenantMonthlyBudget` in `services/memory` — sums `session_token_usage` for current month per `tenant_id` |
+| 64 | **Guest token cap** | ✅ | `guest:` prefix → 10,000-token monthly cap enforced without a DB row |
+| 65 | **Tenant auto-creation** | ✅ | `get_or_create_tenant()` upsert in `SessionRepository`; called on first chat turn for registered users |
+| 66 | **Landing page at `/`** | ✅ | `features/landing/LandingPage` with "Try for Free" (→ `/chat`) and "Create an account" CTAs |
+| 67 | **Chat moved to `/chat`** | ✅ | `apps/web/src/app/chat/page.tsx`; login/register redirect to `/chat` after auth |
+| 68 | **Lefthook git hooks** | ✅ | pre-commit: biome + ruff on staged files (auto-fix + re-stage); pre-push: `pnpm check-types` |
+
+---
+
 ## Maintenance
 
 - Keep `ARCHITECTURE.md` updated as the stack evolves.

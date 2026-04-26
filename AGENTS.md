@@ -69,11 +69,11 @@ pnpm build
 # Type checking (TypeScript)
 pnpm check-types
 
-# Lint + format (TypeScript)
-pnpm lint && pnpm format
+# Lint + format (TypeScript/JSON/CSS — auto-fixes and re-stages)
+pnpm check
 
-# Lint + format (Python)
-uv run ruff check . && uv run ruff format .
+# Lint + format (Python — auto-fixes and re-stages)
+uv run ruff check --fix . && uv run ruff format .
 
 # Run tests
 pnpm test           # TypeScript (Vitest)
@@ -121,6 +121,14 @@ uv run --package <package-name> <command>       # Python
 - **Naming:** kebab-case folders, PascalCase components (TS), snake_case modules (Python).
 - **API contract:** FastAPI OpenAPI spec → `openapi-typescript` → `packages/types/src/api.ts`.
 - **Database:** SQL migrations in `packages/db/migrations/` (used by both TS and Python).
+- **Git hooks (lefthook):** pre-commit runs biome + ruff on staged files (auto-fixes and re-stages); pre-push runs `pnpm check-types`. Run `pnpm exec lefthook install` after cloning.
+
+### Auth + Guest Mode
+
+- **Auth is optional for `/` and `/chat`.** Unauthenticated users get a guest `AuthUser` derived from their IP (`guest:{ip}`), governed by a 10,000-token monthly budget.
+- **Protected paths** (`/billing`, `/profile`, `/settings`) still require a session — enforced in `apps/web/src/proxy.ts`.
+- **Tenant auto-creation:** `ChatService.stream()` calls `get_or_create_tenant()` on the first message from any registered user (idempotent upsert). Guests never get a tenant row.
+- **Token budget:** monthly, per-tenant — `TenantMonthlyBudget` in `services/memory` sums `session_token_usage.tokens` for the current calendar month across all sessions for a `tenant_id`.
 
 ## Roadmap
 
