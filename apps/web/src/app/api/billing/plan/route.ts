@@ -3,17 +3,14 @@ import type { NextRequest } from "next/server";
 import { auth } from "@/auth";
 
 const API_URL = process.env.API_URL ?? "http://localhost:8000";
-const INTERNAL_SECRET = process.env.INTERNAL_SECRET ?? "";
 
 export async function GET(_req: NextRequest) {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const hdrs = await headers();
+  const session = await auth.api.getSession({ headers: hdrs });
   if (!session) return new Response("Unauthorized", { status: 401 });
 
   const res = await fetch(`${API_URL}/billing/plan`, {
-    headers: {
-      "x-user-email": session.user.email,
-      "x-internal-secret": INTERNAL_SECRET,
-    },
+    headers: { cookie: hdrs.get("cookie") ?? "" },
   });
   const data = await res.json();
   return Response.json(data, { status: res.status });

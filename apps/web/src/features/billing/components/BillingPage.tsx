@@ -91,7 +91,7 @@ export function BillingPage() {
           </p>
         </div>
         <Link
-          href="/"
+          href="/chat"
           className="text-muted-foreground text-sm underline underline-offset-4"
         >
           ← Back to chat

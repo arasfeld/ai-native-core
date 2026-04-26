@@ -8,7 +8,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
-import { LogOutIcon, SettingsIcon, UserIcon } from "lucide-react";
+import {
+  CreditCardIcon,
+  LogOutIcon,
+  SettingsIcon,
+  ShieldIcon,
+  UserIcon,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { JSX } from "react";
 import { authClient } from "@/lib/auth-client";
@@ -45,6 +51,15 @@ export function UserMenu(): JSX.Element | null {
         <DropdownMenuItem onClick={() => router.push("/settings")}>
           <SettingsIcon className="mr-2 size-4" />
           Settings
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => router.push("/billing")}>
+          <CreditCardIcon className="mr-2 size-4" />
+          Billing
+        </DropdownMenuItem>
+        {/* In a real app, gate this behind an admin role check */}
+        <DropdownMenuItem onClick={() => router.push("/admin")}>
+          <ShieldIcon className="mr-2 size-4" />
+          Admin
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem

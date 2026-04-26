@@ -15,13 +15,15 @@ const PUBLIC_PATHS = [
 ];
 
 // Paths that always require authentication
-const PROTECTED_PATHS = ["/billing", "/profile", "/settings"];
+const PROTECTED_PATHS = ["/admin", "/billing", "/profile", "/settings"];
 
 export async function proxy(req: NextRequest): Promise<NextResponse> {
   const { pathname } = req.nextUrl;
 
   // Always allow public paths
-  if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+  if (
+    PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+  ) {
     return NextResponse.next();
   }
 
