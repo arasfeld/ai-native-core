@@ -68,6 +68,26 @@ Goal: Measure and improve agent quality continuously.
 
 ---
 
+## Phase 12 — Architecture Refactor ✅
+
+Goal: Clean 3-layer backend (Router → Service → Repository), tool calling in ChatAgent, per-feature runtime AI config, RAG connection pooling, SaaS schema isolation, and feature-based frontend structure.
+
+| Priority | Item                              | Status | Notes                                                                                                   |
+| -------- | --------------------------------- | ------ | ------------------------------------------------------------------------------------------------------- |
+| 51       | **SessionRepository**             | ✅     | Wraps `SessionStore` + `TokenBudget`; SQL token limit lookup; `scope(user_id, session_id)` helper       |
+| 52       | **ContextService**                | ✅     | Assembles history, episodic facts, location context; returns `tuple[list[BaseMessage], str | None]`     |
+| 53       | **ChatService**                   | ✅     | Orchestrates full chat turn; no FastAPI imports; yields SSE tokens; saves messages after streaming      |
+| 54       | **Thin chat router**              | ✅     | `POST /chat` → `StreamingResponse(chat_service.stream(...))` — ~10 lines                               |
+| 55       | **Tool calling in BaseLLM**       | ✅     | `bind_tools()` + `tool_calls` on `LLMResponse`/`Message`; OpenAI and Anthropic implement it            |
+| 56       | **Tool loop in ChatAgent**        | ✅     | Manual `while True` loop: call LLM → execute tools → feed results → repeat until no tool calls        |
+| 57       | **Per-feature AI config**         | ✅     | `ai_feature_configs` DB table; `AgentFactory._get_llm(feature)` selects provider/model at runtime      |
+| 58       | **RAG connection pooling**        | ✅     | `PgVectorRetriever` accepts `asyncpg.Pool`; `_conn()` context manager avoids per-query connects        |
+| 59       | **SaaS schema isolation**         | ✅     | `tenants` → `packages/db/src/schema/saas.ts`; `ai_feature_configs` table added                        |
+| 60       | **Feature-based frontend**        | ✅     | `apps/web/src/features/{chat,auth,billing}/` — components + index; route files are thin re-export shells |
+| 61       | **Admin AI config endpoint**      | ✅     | `GET/PUT /admin/ai-config` — reads/writes `ai_feature_configs`; hot-reloads `app.state.ai_config`      |
+
+---
+
 ## Maintenance
 
 - Keep `ARCHITECTURE.md` updated as the stack evolves.
