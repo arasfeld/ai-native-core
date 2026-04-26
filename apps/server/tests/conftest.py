@@ -14,6 +14,7 @@ def mock_store():
     store.add_message = AsyncMock()
     store.add_token_usage = AsyncMock()
     store.get_token_usage = AsyncMock(return_value=0)
+    store.get_monthly_tenant_usage = AsyncMock(return_value=0)
     return store
 
 
@@ -21,6 +22,7 @@ def mock_store():
 def mock_pool():
     pool = AsyncMock()
     pool.fetchrow = AsyncMock(return_value={"token_limit": 50_000})
+    pool.execute = AsyncMock()
     return pool
 
 

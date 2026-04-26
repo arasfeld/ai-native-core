@@ -38,7 +38,7 @@ async def test_get_token_limit_fallback_when_no_tenant(mock_store, mock_pool):
 @pytest.mark.asyncio
 async def test_check_budget_raises_when_exceeded(mock_store, mock_pool):
     from api.repositories.session_repository import SessionRepository
-    mock_store.get_token_usage = AsyncMock(return_value=60_000)  # Over 50k limit
+    mock_store.get_monthly_tenant_usage = AsyncMock(return_value=60_000)  # Over 50k limit
     repo = SessionRepository(store=mock_store, pool=mock_pool)
     with pytest.raises(BudgetExceeded):
         await repo.check_budget("user-1:default", "user-1")
