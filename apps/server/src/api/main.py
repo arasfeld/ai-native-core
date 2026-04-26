@@ -14,7 +14,7 @@ from .agent_factory import AgentFactory
 from .config import settings
 from .logging import configure_logging
 from .repositories.session_repository import SessionRepository
-from .routers import auth, billing, chat, health, ingest, jobs, media
+from .routers import admin, auth, billing, chat, health, ingest, jobs, media
 from .services.chat_service import ChatService
 from .services.context_service import ContextService
 
@@ -45,6 +45,22 @@ async def lifespan(app: FastAPI):
     async with pool.acquire() as conn:
         await conn.execute(_CREATE_TENANTS)
 
+    # Load runtime AI config from DB (populated by migration 0002)
+    try:
+        config_rows = await pool.fetch("SELECT * FROM ai_feature_configs")
+        ai_config = {
+            row["feature"]: {
+                "feature": row["feature"],
+                "provider": row["provider"],
+                "model": row["model"],
+                "enabled": row["enabled"],
+            }
+            for row in config_rows
+        }
+    except Exception:
+        ai_config = {}
+    app.state.ai_config = ai_config
+
     store = SessionStore(pool=pool)
     await store.ensure_table()
 
@@ -64,7 +80,7 @@ async def lifespan(app: FastAPI):
     context_service = ContextService(
         session_repo=session_repo, compressor=compressor, episodic=episodic
     )
-    agent_factory = AgentFactory(retriever=retriever)
+    agent_factory = AgentFactory(retriever=retriever, ai_config=ai_config)
     chat_service = ChatService(
         context_service=context_service,
         agent_factory=agent_factory,
@@ -115,3 +131,4 @@ app.include_router(ingest.router)
 app.include_router(jobs.router)
 app.include_router(billing.router)
 app.include_router(media.router)
+app.include_router(admin.router)
