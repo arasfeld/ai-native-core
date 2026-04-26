@@ -65,7 +65,7 @@ async def lifespan(app: FastAPI):
     await store.ensure_table()
 
     llm = get_llm()
-    retriever = PgVectorRetriever(llm=llm, embedding_dim=settings.embedding_dim)
+    retriever = PgVectorRetriever(llm=llm, pool=pool, embedding_dim=settings.embedding_dim)
     await retriever.ensure_table()
 
     episodic = EpisodicStore(llm=llm, pool=pool, embedding_dim=settings.embedding_dim)

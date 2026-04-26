@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+from contextlib import asynccontextmanager
 
 from ai import BaseLLM
 from pydantic import BaseModel, Field
@@ -25,19 +26,31 @@ class PgVectorRetriever:
     def __init__(
         self,
         llm: BaseLLM,
+        pool=None,  # asyncpg.Pool — preferred; falls back to per-call connections
         database_url: str | None = None,
         embedding_dim: int = 768,
     ) -> None:
         self.llm = llm
-        self.database_url = database_url or os.environ["DATABASE_URL"]
+        self._pool = pool
+        self.database_url = database_url or os.environ.get("DATABASE_URL", "")
         self.embedding_dim = embedding_dim
+
+    @asynccontextmanager
+    async def _conn(self):
+        import asyncpg
+        if self._pool is not None:
+            async with self._pool.acquire() as conn:
+                yield conn
+        else:
+            conn = await asyncpg.connect(self.database_url)
+            try:
+                yield conn
+            finally:
+                await conn.close()
 
     async def ensure_table(self) -> None:
         """Create the document_chunks table and index if they do not exist."""
-        import asyncpg
-
-        conn = await asyncpg.connect(self.database_url)
-        try:
+        async with self._conn() as conn:
             await conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
             await conn.execute(f"""
                 CREATE TABLE IF NOT EXISTS document_chunks (
@@ -53,18 +66,13 @@ class PgVectorRetriever:
                 ON document_chunks
                 USING hnsw (embedding vector_cosine_ops)
             """)
-        finally:
-            await conn.close()
 
     async def retrieve(self, query: str, top_k: int = 3) -> list[RetrievedChunk]:
         """Embed query and find top-k similar chunks from pgvector."""
-        import asyncpg
-
         embedding = await self.llm.embed(query)
         embedding_str = _vec_str(embedding)
 
-        conn = await asyncpg.connect(self.database_url)
-        try:
+        async with self._conn() as conn:
             rows = await conn.fetch(
                 """
                 SELECT content, metadata, 1 - (embedding <=> $1::vector) AS score
@@ -83,20 +91,14 @@ class PgVectorRetriever:
                 )
                 for r in rows
             ]
-        finally:
-            await conn.close()
 
     async def store(self, chunks: list[str], metadata: dict | None = None) -> int:
         """Embed and store text chunks in pgvector. Returns number stored."""
-        import asyncpg
-
         # Embed all chunks in parallel
         embeddings = await asyncio.gather(*[self.llm.embed(chunk) for chunk in chunks])
-
         meta_json = json.dumps(metadata or {})
 
-        conn = await asyncpg.connect(self.database_url)
-        try:
+        async with self._conn() as conn:
             for chunk, embedding in zip(chunks, embeddings, strict=True):
                 await conn.execute(
                     """
@@ -108,5 +110,3 @@ class PgVectorRetriever:
                     meta_json,
                 )
             return len(chunks)
-        finally:
-            await conn.close()
