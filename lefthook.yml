@@ -1,0 +1,20 @@
+pre-commit:
+  parallel: true
+  commands:
+    biome:
+      glob: "*.{js,ts,jsx,tsx,mjs,cjs,json,css}"
+      run: pnpm exec biome check --write {staged_files}
+      stage_fixed: true
+    ruff-lint:
+      glob: "*.py"
+      run: uv run ruff check --fix {staged_files}
+      stage_fixed: true
+    ruff-format:
+      glob: "*.py"
+      run: uv run ruff format {staged_files}
+      stage_fixed: true
+
+pre-push:
+  commands:
+    check-types:
+      run: pnpm check-types
