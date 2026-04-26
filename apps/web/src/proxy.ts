@@ -9,6 +9,8 @@ const PUBLIC_PATHS = [
   "/chat",
   "/login",
   "/register",
+  "/forgot-password",
+  "/reset-password",
   "/api/auth",
   "/_next",
   "/favicon.ico",

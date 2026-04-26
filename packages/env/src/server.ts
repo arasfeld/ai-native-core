@@ -7,6 +7,8 @@ const schema = z.object({
   CORS_ORIGIN: z.url().default("http://localhost:3000"),
   INTERNAL_SECRET: z.string().default("change-me-internal-secret"),
   API_URL: z.url().default("http://localhost:8000"),
+  RESEND_API_KEY: z.string().default(""),
+  RESEND_FROM_EMAIL: z.string().default(""),
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
