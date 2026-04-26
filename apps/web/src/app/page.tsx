@@ -1,5 +1,5 @@
-import { ChatClient } from "./chat-client";
+import { ChatInterface } from "@/features/chat";
 
 export default function Home() {
-  return <ChatClient />;
+  return <ChatInterface />;
 }
