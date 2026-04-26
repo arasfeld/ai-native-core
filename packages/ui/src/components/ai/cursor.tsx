@@ -8,6 +8,7 @@ export type CursorProps = HTMLAttributes<HTMLSpanElement>;
 
 export function Cursor({ className, ...props }: CursorProps) {
   return (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     <motion.span
       animate={{ opacity: [1, 0, 1] }}
       className={cn(
@@ -20,7 +21,7 @@ export function Cursor({ className, ...props }: CursorProps) {
         repeat: Number.POSITIVE_INFINITY,
         ease: "easeInOut",
       }}
-      {...props}
+      {...(props as any)}
     />
   );
 }

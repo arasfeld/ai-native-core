@@ -62,10 +62,11 @@ import {
 } from "@repo/ui/components/ai/tool";
 import {
   DefaultChatTransport,
+  type DynamicToolUIPart,
   isReasoningUIPart,
   isTextUIPart,
+  isToolUIPart,
   type SourceUrlUIPart,
-  type ToolInvocationUIPart,
 } from "ai";
 import { BotIcon } from "lucide-react";
 import Link from "next/link";
@@ -155,9 +156,10 @@ export function Chat(): ReactNode {
         body: () => coordsRef.current ?? {},
       }),
   );
-  const { messages, sendMessage, stop, status, addToolResult } = useChat({
-    transport,
-  });
+  const { messages, sendMessage, stop, status, addToolApprovalResponse } =
+    useChat({
+      transport,
+    });
 
   const isLoading = status === "streaming" || status === "submitted";
   const lastMessage = messages[messages.length - 1];
@@ -220,8 +222,8 @@ export function Chat(): ReactNode {
                 (p): p is SourceUrlUIPart => p.type === "source-url",
               );
               const toolParts = msg.parts.filter(
-                (p): p is ToolInvocationUIPart => p.type === "tool-invocation",
-              );
+                isToolUIPart,
+              ) as DynamicToolUIPart[];
               const fileParts = msg.parts.filter((p) => p.type === "file") as {
                 type: "file";
                 url: string;
@@ -293,11 +295,9 @@ export function Chat(): ReactNode {
 
                     {/* Tool Invocations */}
                     {toolParts.map((part) => {
-                      const { toolCallId, toolName, state } =
-                        part.toolInvocation;
+                      const { toolCallId, toolName, state } = part;
 
                       // If it's an approval request, show confirmation UI
-                      // @ts-expect-error state only available in AI SDK v6
                       if (state === "approval-requested") {
                         return (
                           <Confirmation
@@ -313,9 +313,9 @@ export function Chat(): ReactNode {
                                 <ConfirmationAction
                                   variant="outline"
                                   onClick={() =>
-                                    addToolResult({
-                                      toolCallId,
-                                      result: "denied",
+                                    addToolApprovalResponse({
+                                      id: toolCallId,
+                                      approved: false,
                                     })
                                   }
                                 >
@@ -323,9 +323,9 @@ export function Chat(): ReactNode {
                                 </ConfirmationAction>
                                 <ConfirmationAction
                                   onClick={() =>
-                                    addToolResult({
-                                      toolCallId,
-                                      result: "approved",
+                                    addToolApprovalResponse({
+                                      id: toolCallId,
+                                      approved: true,
                                     })
                                   }
                                 >
@@ -352,11 +352,17 @@ export function Chat(): ReactNode {
                             state={state}
                           />
                           <ToolContent>
-                            <ToolInput input={part.toolInvocation.args} />
-                            {"result" in part.toolInvocation && (
+                            <ToolInput
+                              input={"input" in part ? part.input : undefined}
+                            />
+                            {"output" in part && (
                               <ToolOutput
-                                output={part.toolInvocation.result}
-                                errorText={undefined}
+                                output={part.output}
+                                errorText={
+                                  "errorText" in part
+                                    ? (part.errorText as string)
+                                    : undefined
+                                }
                               />
                             )}
                           </ToolContent>

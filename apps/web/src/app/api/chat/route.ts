@@ -77,7 +77,9 @@ export async function POST(req: NextRequest) {
 
   if (!fastApiRes.ok) {
     const errorText = await fastApiRes.text().catch(() => "No error body");
-    return new Response(`AI service error: ${errorText}`, { status: fastApiRes.status });
+    return new Response(`AI service error: ${errorText}`, {
+      status: fastApiRes.status,
+    });
   }
 
   const textId = nanoid();
@@ -86,6 +88,7 @@ export async function POST(req: NextRequest) {
       writer.write({ type: "text-start", id: textId });
 
       const reader = fastApiRes.body?.getReader();
+      if (!reader) throw new Error("No response body");
       const decoder = new TextDecoder();
       let buf = "";
 

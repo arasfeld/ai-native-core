@@ -12,9 +12,9 @@ export function ForgotPasswordPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    await authClient.forgetPassword({
-      email,
-      redirectTo: "/reset-password",
+    await authClient.$fetch("/request-password-reset", {
+      method: "POST",
+      body: { email, redirectTo: "/reset-password" },
     });
     setLoading(false);
     setSubmitted(true);

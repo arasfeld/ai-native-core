@@ -1,5 +1,13 @@
 "use client";
 
+import { CodeBlock } from "@repo/ui/components/ai/code-block";
+import { Badge } from "@repo/ui/components/badge";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@repo/ui/components/collapsible";
+import { cn } from "@repo/ui/lib/utils";
 import type { ToolUIPart } from "ai";
 import {
   CheckCircleIcon,
@@ -11,14 +19,6 @@ import {
 } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { isValidElement } from "react";
-import { Badge } from "@repo/ui/components/badge";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@repo/ui/components/collapsible";
-import { cn } from "@repo/ui/lib/utils";
-import { CodeBlock } from "@repo/ui/components/ai/code-block";
 
 export type ToolProps = ComponentProps<typeof Collapsible>;
 
@@ -40,7 +40,6 @@ const getStatusBadge = (status: ToolUIPart["state"]) => {
   const labels: Record<ToolUIPart["state"], string> = {
     "input-streaming": "Pending",
     "input-available": "Running",
-    // @ts-expect-error state only available in AI SDK v6
     "approval-requested": "Awaiting Approval",
     "approval-responded": "Responded",
     "output-available": "Completed",
@@ -51,7 +50,6 @@ const getStatusBadge = (status: ToolUIPart["state"]) => {
   const icons: Record<ToolUIPart["state"], ReactNode> = {
     "input-streaming": <CircleIcon className="size-4" />,
     "input-available": <ClockIcon className="size-4 animate-pulse" />,
-    // @ts-expect-error state only available in AI SDK v6
     "approval-requested": <ClockIcon className="size-4 text-yellow-600" />,
     "approval-responded": <CheckCircleIcon className="size-4 text-blue-600" />,
     "output-available": <CheckCircleIcon className="size-4 text-green-600" />,
