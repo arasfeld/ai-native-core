@@ -69,10 +69,30 @@ import {
 } from "ai";
 import { BotIcon } from "lucide-react";
 import Link from "next/link";
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { UserMenu } from "@/components/user-menu";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { authClient } from "@/lib/auth-client";
+
+function formatCompact(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}k`;
+  return String(n);
+}
+
+function useTokenUsage(isAuthenticated: boolean) {
+  const [remaining, setRemaining] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    fetch("/api/billing/plan")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d && setRemaining(d.tokens_remaining))
+      .catch(() => null);
+  }, [isAuthenticated]);
+
+  return remaining;
+}
 
 function BudgetExceededBanner() {
   const { data: session } = authClient.useSession();
@@ -121,6 +141,8 @@ const SUGGESTIONS = [
 ];
 
 export function Chat(): ReactNode {
+  const { data: session } = authClient.useSession();
+  const tokensRemaining = useTokenUsage(!!session);
   const [inputText, setInputText] = useState("");
   const { coords } = useGeolocation();
   const coordsRef = useRef(coords);
@@ -152,7 +174,22 @@ export function Chat(): ReactNode {
           <BotIcon className="size-4 text-muted-foreground" />
           AI Native
         </div>
-        <UserMenu />
+        <div className="flex items-center gap-3">
+          {session && tokensRemaining !== null && (
+            <Link
+              href="/billing"
+              className="text-muted-foreground text-xs hover:text-foreground"
+            >
+              {formatCompact(tokensRemaining)} tokens left
+            </Link>
+          )}
+          {!session && (
+            <span className="text-muted-foreground text-xs">
+              Guest · 10k limit
+            </span>
+          )}
+          <UserMenu />
+        </div>
       </header>
       <Conversation className="flex-1">
         <ConversationContent>
