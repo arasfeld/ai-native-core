@@ -10,9 +10,9 @@ import {
 } from "@repo/ui/components/ai/attachments";
 import {
   Confirmation,
+  ConfirmationAccepted,
   ConfirmationAction,
   ConfirmationActions,
-  ConfirmationAccepted,
   ConfirmationRejected,
   ConfirmationRequest,
   ConfirmationTitle,
@@ -68,9 +68,50 @@ import {
   type ToolInvocationUIPart,
 } from "ai";
 import { BotIcon } from "lucide-react";
+import Link from "next/link";
 import { type ReactNode, useRef, useState } from "react";
 import { UserMenu } from "@/components/user-menu";
 import { useGeolocation } from "@/hooks/use-geolocation";
+import { authClient } from "@/lib/auth-client";
+
+function BudgetExceededBanner() {
+  const { data: session } = authClient.useSession();
+  return (
+    <div className="space-y-2 rounded-lg border border-destructive/50 bg-destructive/5 p-4">
+      <p className="font-medium text-destructive text-sm">
+        Monthly token limit reached
+      </p>
+      <p className="text-muted-foreground text-sm">
+        You&apos;ve used your full token allowance for this month.
+      </p>
+      <div className="flex gap-2 pt-1">
+        {session ? (
+          <Link
+            href="/billing"
+            className="rounded-md bg-primary px-3 py-1.5 font-medium text-primary-foreground text-xs hover:bg-primary/90"
+          >
+            Upgrade to Pro
+          </Link>
+        ) : (
+          <>
+            <Link
+              href="/register"
+              className="rounded-md bg-primary px-3 py-1.5 font-medium text-primary-foreground text-xs hover:bg-primary/90"
+            >
+              Create account
+            </Link>
+            <Link
+              href="/login"
+              className="rounded-md border px-3 py-1.5 font-medium text-xs hover:bg-accent"
+            >
+              Sign in
+            </Link>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const SUGGESTIONS = [
   "What can you help me with?",
@@ -163,11 +204,11 @@ export function Chat(): ReactNode {
                   {/* File attachments on user messages */}
                   {fileParts.length > 0 && (
                     <Attachments variant="inline" className="ml-auto">
-                      {fileParts.map((f, i) => (
+                      {fileParts.map((f) => (
                         <Attachment
-                          key={i}
+                          key={f.url}
                           data={{
-                            id: String(i),
+                            id: f.url,
                             type: "file",
                             filename: f.filename,
                             url: f.url,
@@ -195,11 +236,20 @@ export function Chat(): ReactNode {
 
                     {/* Text content */}
                     {msg.role === "assistant" ? (
-                      (text || (isStreamingThis && !isReasoningStreaming)) && (
-                        <MessageResponse isStreaming={isStreamingThis}>
-                          {text}
-                        </MessageResponse>
-                      )
+                      (() => {
+                        const isBudgetError =
+                          text.startsWith("Error:") &&
+                          text.includes("exceeded token budget");
+                        if (isBudgetError) {
+                          return <BudgetExceededBanner />;
+                        }
+                        return text ||
+                          (isStreamingThis && !isReasoningStreaming) ? (
+                          <MessageResponse isStreaming={isStreamingThis}>
+                            {text}
+                          </MessageResponse>
+                        ) : null;
+                      })()
                     ) : (
                       <p className="whitespace-pre-wrap">{text}</p>
                     )}
@@ -213,7 +263,11 @@ export function Chat(): ReactNode {
                       // @ts-expect-error state only available in AI SDK v6
                       if (state === "approval-requested") {
                         return (
-                          <Confirmation key={toolCallId} state={state} approval={{ id: toolCallId }}>
+                          <Confirmation
+                            key={toolCallId}
+                            state={state}
+                            approval={{ id: toolCallId }}
+                          >
                             <ConfirmationTitle>
                               Execute {toolName}?
                             </ConfirmationTitle>
