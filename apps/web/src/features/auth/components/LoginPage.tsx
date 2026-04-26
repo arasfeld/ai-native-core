@@ -24,7 +24,7 @@ export function LoginPage() {
     if (authError) {
       setError("Invalid email or password.");
     } else {
-      router.push("/");
+      router.push("/chat");
     }
   }
 

@@ -28,7 +28,7 @@ export function RegisterPage() {
     if (authError) {
       setError(authError.message ?? "Registration failed.");
     } else {
-      router.push("/");
+      router.push("/chat");
     }
   }
 
