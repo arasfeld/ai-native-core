@@ -1,5 +1,5 @@
-import { ChatInterface } from "@/features/chat";
+import { LandingPage } from "@/features/landing";
 
 export default function Home() {
-  return <ChatInterface />;
+  return <LandingPage />;
 }
