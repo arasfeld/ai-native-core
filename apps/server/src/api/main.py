@@ -10,9 +10,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from memory import EpisodicStore, MemoryExtractor, SessionStore, SummaryCompressor
 from rag import PgVectorRetriever
 
+from .agent_factory import AgentFactory
 from .config import settings
 from .logging import configure_logging
+from .repositories.session_repository import SessionRepository
 from .routers import auth, billing, chat, health, ingest, jobs, media
+from .services.chat_service import ChatService
+from .services.context_service import ContextService
 
 configure_logging(
     json_logs=settings.log_format == "json",
@@ -51,6 +55,23 @@ async def lifespan(app: FastAPI):
     episodic = EpisodicStore(llm=llm, pool=pool, embedding_dim=settings.embedding_dim)
     await episodic.ensure_table()
 
+    extractor = MemoryExtractor(llm=llm, episodic=episodic)
+    compressor = SummaryCompressor(llm=llm)
+
+    session_repo = SessionRepository(
+        store=store, pool=pool, default_limit=settings.session_token_budget
+    )
+    context_service = ContextService(
+        session_repo=session_repo, compressor=compressor, episodic=episodic
+    )
+    agent_factory = AgentFactory(retriever=retriever)
+    chat_service = ChatService(
+        context_service=context_service,
+        agent_factory=agent_factory,
+        session_repo=session_repo,
+        extractor=extractor,
+    )
+
     try:
         arq = await arq_create_pool(RedisSettings.from_dsn(settings.redis_url))
         app.state.arq = arq
@@ -60,16 +81,14 @@ async def lifespan(app: FastAPI):
         log.warning("api.redis.unavailable", error=str(exc), detail="POST /jobs will return 503")
 
     app.state.db_pool = pool
-    app.state.session_store = store
-    app.state.compressor = SummaryCompressor(llm=llm)
-    app.state.retriever = retriever
-    app.state.episodic = episodic
-    app.state.extractor = MemoryExtractor(llm=llm, episodic=episodic)
+    app.state.chat_service = chat_service
+    app.state.retriever = retriever   # still used by ingest router
 
     log.info("api.startup", provider=settings.llm_provider, port=settings.port)
     yield
 
-    await arq.close()
+    if app.state.arq:
+        await app.state.arq.close()
     await pool.close()
     log.info("api.shutdown")
 
