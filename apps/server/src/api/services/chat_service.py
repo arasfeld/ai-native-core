@@ -33,7 +33,7 @@ class ChatService:
         self._extractor = extractor
 
     async def stream(
-        self, request: Any, user: AuthUser
+        self, request: Any, user: AuthUser, *, is_guest: bool = False
     ) -> AsyncIterator[str]:
         """Stream SSE tokens for a chat turn.
 
@@ -41,6 +41,10 @@ class ChatService:
         Terminates with ``data: [DONE]\\n\\n``
         """
         session_id = SessionRepository.scope(user.id, request.session_id)
+
+        # Ensure tenant record exists for registered users (idempotent upsert)
+        if not is_guest:
+            await self._session_repo.get_or_create_tenant(user.id, user.email)
 
         # Check token budget
         try:
@@ -73,7 +77,7 @@ class ChatService:
 
         accumulated: list[str] = []
         try:
-            log.info("chat.stream.start", session_id=session_id, user_id=user.id)
+            log.info("chat.stream.start", session_id=session_id, user_id=user.id, is_guest=is_guest)
             async for token in agent.stream(state):
                 accumulated.append(token)
                 yield f"data: {token}\n\n"
@@ -85,8 +89,8 @@ class ChatService:
             tokens_used = estimate_tokens(request.message) + estimate_tokens(full_reply)
             await self._session_repo.add_token_usage(session_id, tokens_used, user.id)
 
-            # Background: extract long-term memories
-            if self._extractor:
+            # Background: extract long-term memories (only for registered users)
+            if self._extractor and not is_guest:
                 asyncio.ensure_future(
                     self._extractor.extract_and_store(
                         human_message=request.message,

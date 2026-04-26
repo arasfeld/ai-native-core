@@ -5,7 +5,8 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from ..auth import CurrentUser
+from ..auth import OptionalUser
+from ..auth.deps import AuthUser
 from ..services.chat_service import ChatService
 
 router = APIRouter(prefix="/chat", tags=["chat"])
@@ -32,14 +33,23 @@ def get_chat_service(request: Request) -> ChatService:
 ChatServiceDep = Depends(get_chat_service)
 
 
+def _guest_user_from_ip(ip: str) -> AuthUser:
+    """Derive a stable, anonymous AuthUser from the client IP."""
+    return AuthUser(id=f"guest:{ip}", email="guest@anonymous")
+
+
 @router.post("")
 async def chat(
     req: ChatRequest,
-    current_user: CurrentUser,
+    request: Request,
+    current_user: OptionalUser,
     chat_service: ChatService = ChatServiceDep,
 ) -> StreamingResponse:
-    """Stream a chat response via Server-Sent Events."""
+    """Stream a chat response via Server-Sent Events. Auth is optional; guests use IP-based identity."""
+    user = current_user or _guest_user_from_ip(
+        request.client.host if request.client else "unknown"
+    )
     return StreamingResponse(
-        chat_service.stream(req, current_user),
+        chat_service.stream(req, user, is_guest=current_user is None),
         media_type="text/event-stream",
     )
