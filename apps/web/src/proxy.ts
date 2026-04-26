@@ -3,17 +3,33 @@ import { betterFetch } from "@better-fetch/fetch";
 import type { Session } from "@repo/auth";
 import { type NextRequest, NextResponse } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/register", "/api/auth", "/_next", "/favicon.ico"];
+// Paths that never require authentication
+const PUBLIC_PATHS = [
+  "/",
+  "/chat",
+  "/login",
+  "/register",
+  "/api/auth",
+  "/_next",
+  "/favicon.ico",
+];
+
+// Paths that always require authentication
+const PROTECTED_PATHS = ["/billing", "/profile", "/settings"];
 
 export async function proxy(req: NextRequest): Promise<NextResponse> {
   const { pathname } = req.nextUrl;
-  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
+
+  // Always allow public paths
+  if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
     return NextResponse.next();
   }
 
-  // Fetch the session from the better-auth endpoint instead of importing
-  // the full auth config (which pulls in DB + env validation — not Edge-safe).
-  console.log(`Proxy: Checking session for ${pathname}`);
+  // Only gate explicitly protected paths
+  if (!PROTECTED_PATHS.some((p) => pathname.startsWith(p))) {
+    return NextResponse.next();
+  }
+
   const { data: session, error } = await betterFetch<Session>(
     "/api/auth/get-session",
     {
@@ -29,7 +45,6 @@ export async function proxy(req: NextRequest): Promise<NextResponse> {
   }
 
   if (!session) {
-    console.warn(`Proxy: No session, redirecting ${pathname} to /login`);
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
