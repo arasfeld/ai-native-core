@@ -73,3 +73,34 @@ class TokenBudget:
         """Persist token consumption for a session turn."""
         await self._store.add_token_usage(session_id, tokens)
         log.debug("budget.recorded", session_id=session_id, tokens=tokens)
+
+
+class TenantMonthlyBudget:
+    """Enforces a monthly token limit aggregated across all sessions for a tenant.
+
+    Usage::
+
+        budget = TenantMonthlyBudget(store, limit=100_000)
+        await budget.check(tenant_id)      # raises BudgetExceeded if over
+        remaining = await budget.remaining(tenant_id)
+    """
+
+    def __init__(self, store: SessionStore, limit: int = 100_000) -> None:
+        self._store = store
+        self._limit = limit
+
+    async def remaining(self, tenant_id: str) -> int:
+        used = await self._store.get_monthly_tenant_usage(tenant_id)
+        return max(0, self._limit - used)
+
+    async def check(self, tenant_id: str) -> None:
+        """Raise ``BudgetExceeded`` if the tenant is at or over their monthly limit."""
+        used = await self._store.get_monthly_tenant_usage(tenant_id)
+        if used >= self._limit:
+            log.warning(
+                "budget.monthly.exceeded",
+                tenant_id=tenant_id,
+                used=used,
+                limit=self._limit,
+            )
+            raise BudgetExceeded(session_id=tenant_id, used=used, limit=self._limit)

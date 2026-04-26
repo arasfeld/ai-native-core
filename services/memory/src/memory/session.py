@@ -163,3 +163,17 @@ class SessionStore:
                 session_id,
             )
         return int(row["total"])
+
+    async def get_monthly_tenant_usage(self, tenant_id: str) -> int:
+        """Return total tokens consumed by a tenant in the current calendar month."""
+        async with self._conn() as conn:
+            row = await conn.fetchrow(
+                """
+                SELECT COALESCE(SUM(tokens), 0) AS total
+                FROM session_token_usage
+                WHERE tenant_id = $1
+                  AND date_trunc('month', recorded_at) = date_trunc('month', NOW())
+                """,
+                tenant_id,
+            )
+        return int(row["total"])
