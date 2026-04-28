@@ -26,6 +26,22 @@ export const auth = betterAuth({
   ],
   emailAndPassword: {
     enabled: true,
+    requireEmailVerification: false,
+    sendVerificationEmail: async ({
+      user,
+      url,
+    }: {
+      user: { name?: string | null; email: string };
+      url: string;
+    }) => {
+      if (!resend || !env.RESEND_FROM_EMAIL) return;
+      await resend.emails.send({
+        from: env.RESEND_FROM_EMAIL,
+        to: user.email,
+        subject: "Verify your email address",
+        html: `<p>Hi ${user.name ?? "there"},</p><p>Click <a href="${url}">here</a> to verify your email address. This link expires in 24 hours.</p><p>If you didn't create an account, you can ignore this email.</p>`,
+      });
+    },
     sendResetPassword: async ({ user, url }) => {
       if (!resend || !env.RESEND_FROM_EMAIL) return;
       await resend.emails.send({
@@ -36,11 +52,32 @@ export const auth = betterAuth({
       });
     },
   },
+  socialProviders: {
+    ...(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
+      ? {
+          google: {
+            clientId: env.GOOGLE_CLIENT_ID,
+            clientSecret: env.GOOGLE_CLIENT_SECRET,
+          },
+        }
+      : {}),
+    ...(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET
+      ? {
+          github: {
+            clientId: env.GITHUB_CLIENT_ID,
+            clientSecret: env.GITHUB_CLIENT_SECRET,
+          },
+        }
+      : {}),
+  },
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
   advanced: {
     defaultCookieAttributes: {
-      sameSite: (process.env.NODE_ENV === "production" ? "none" : "lax") as any,
+      sameSite: (process.env.NODE_ENV === "production" ? "none" : "lax") as
+        | "none"
+        | "lax"
+        | "strict",
       secure: process.env.NODE_ENV === "production",
       httpOnly: true,
     },
