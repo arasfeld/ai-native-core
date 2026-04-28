@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { OAuthButtons } from "./OAuthButtons";
 
 export function RegisterPage() {
   const router = useRouter();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -20,7 +22,7 @@ export function RegisterPage() {
     const { error: authError } = await authClient.signUp.email({
       email,
       password,
-      name: email.split("@")[0] ?? email,
+      name: name.trim() || (email.split("@")[0] ?? email),
     });
 
     setLoading(false);
@@ -42,7 +44,32 @@ export function RegisterPage() {
           </p>
         </div>
 
+        <OAuthButtons />
+
+        <div className="flex items-center gap-2">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-muted-foreground text-xs">
+            or continue with email
+          </span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1">
+            <label htmlFor="name" className="font-medium text-sm">
+              Name
+            </label>
+            <input
+              id="name"
+              type="text"
+              autoComplete="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Optional"
+              className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+
           <div className="space-y-1">
             <label htmlFor="email" className="font-medium text-sm">
               Email
@@ -72,6 +99,9 @@ export function RegisterPage() {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
             />
+            <p className="text-muted-foreground text-xs">
+              At least 8 characters
+            </p>
           </div>
 
           {error && <p className="text-destructive text-sm">{error}</p>}

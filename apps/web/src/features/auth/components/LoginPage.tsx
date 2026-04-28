@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { OAuthButtons } from "./OAuthButtons";
 
 export function LoginPage() {
   const router = useRouter();
@@ -36,6 +37,16 @@ export function LoginPage() {
           <p className="text-muted-foreground text-sm">
             Enter your credentials to continue
           </p>
+        </div>
+
+        <OAuthButtons />
+
+        <div className="flex items-center gap-2">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-muted-foreground text-xs">
+            or continue with email
+          </span>
+          <div className="h-px flex-1 bg-border" />
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
