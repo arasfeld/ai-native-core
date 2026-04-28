@@ -18,6 +18,9 @@ _bearer = HTTPBearer(auto_error=False)
 class AuthUser(BaseModel):
     id: str
     email: str
+    name: str | None = None
+    image: str | None = None
+    email_verified: bool = False
 
 
 async def get_current_user(
@@ -26,7 +29,9 @@ async def get_current_user(
 ) -> AuthUser:
     """Resolve the authenticated user by validating the better-auth session directly in Postgres."""
     pool: asyncpg.Pool = request.app.state.db_pool
-    token = credentials.credentials if credentials else request.cookies.get("better-auth.session_token")
+    token = (
+        credentials.credentials if credentials else request.cookies.get("better-auth.session_token")
+    )
 
     if not token:
         raise HTTPException(
@@ -39,7 +44,7 @@ async def get_current_user(
         session_token = token.split(".")[0]
         row = await pool.fetchrow(
             """
-            SELECT u.id, u.email
+            SELECT u.id, u.email, u.name, u.image, u."emailVerified"
             FROM "user" u
             JOIN "session" s ON s."userId" = u.id
             WHERE s.token = $1 AND s."expiresAt" > NOW()
@@ -59,7 +64,13 @@ async def get_current_user(
             detail="Invalid or expired session",
         )
 
-    return AuthUser(id=row["id"], email=row["email"])
+    return AuthUser(
+        id=row["id"],
+        email=row["email"],
+        name=row["name"],
+        image=row["image"],
+        email_verified=row["emailVerified"],
+    )
 
 
 async def get_optional_user(
