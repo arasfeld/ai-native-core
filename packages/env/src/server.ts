@@ -9,6 +9,10 @@ const schema = z.object({
   API_URL: z.url().default("http://localhost:8000"),
   RESEND_API_KEY: z.string().default(""),
   RESEND_FROM_EMAIL: z.string().default(""),
+  GOOGLE_CLIENT_ID: z.string().default(""),
+  GOOGLE_CLIENT_SECRET: z.string().default(""),
+  GITHUB_CLIENT_ID: z.string().default(""),
+  GITHUB_CLIENT_SECRET: z.string().default(""),
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
