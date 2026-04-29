@@ -21,13 +21,14 @@ class AuthUser(BaseModel):
     name: str | None = None
     image: str | None = None
     email_verified: bool = False
+    permissions: frozenset[str] = frozenset()
 
 
 async def get_current_user(
     request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)] = None,
 ) -> AuthUser:
-    """Resolve the authenticated user by validating the better-auth session directly in Postgres."""
+    """Resolve the authenticated user and load their effective permissions."""
     pool: asyncpg.Pool = request.app.state.db_pool
     token = (
         credentials.credentials if credentials else request.cookies.get("better-auth.session_token")
@@ -64,12 +65,31 @@ async def get_current_user(
             detail="Invalid or expired session",
         )
 
+    # Load effective permissions: direct grants UNION role-derived (global scope only)
+    perm_rows = await pool.fetch(
+        """
+        SELECT DISTINCT p.id
+        FROM permissions p
+        WHERE p.id IN (
+          SELECT permission_id FROM user_permissions
+          WHERE user_id = $1 AND org_id IS NULL
+          UNION
+          SELECT rp.permission_id
+          FROM user_roles ur
+          JOIN role_permissions rp ON rp.role_id = ur.role_id
+          WHERE ur.user_id = $1 AND ur.org_id IS NULL
+        )
+        """,
+        row["id"],
+    )
+
     return AuthUser(
         id=row["id"],
         email=row["email"],
         name=row["name"],
         image=row["image"],
         email_verified=row["emailVerified"],
+        permissions=frozenset(r["id"] for r in perm_rows),
     )
 
 
