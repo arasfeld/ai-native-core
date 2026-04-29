@@ -13,8 +13,9 @@ from rag import PgVectorRetriever
 from .agent_factory import AgentFactory
 from .config import settings
 from .logging import configure_logging
+from .rbac import seed_rbac
 from .repositories.session_repository import SessionRepository
-from .routers import admin, auth, billing, chat, health, ingest, jobs, media
+from .routers import admin, auth, billing, chat, health, ingest, jobs, media, rbac
 from .services.chat_service import ChatService
 from .services.context_service import ContextService
 
@@ -36,6 +37,50 @@ CREATE TABLE IF NOT EXISTS tenants (
 );
 """
 
+_CREATE_RBAC = """
+ALTER TABLE "user" ADD COLUMN IF NOT EXISTS "isAdmin" BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE TABLE IF NOT EXISTS permissions (
+  id          TEXT PRIMARY KEY,
+  description TEXT NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS roles (
+  id          TEXT PRIMARY KEY,
+  description TEXT NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS role_permissions (
+  role_id       TEXT NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+  permission_id TEXT NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
+  PRIMARY KEY (role_id, permission_id)
+);
+
+CREATE TABLE IF NOT EXISTS user_roles (
+  id         TEXT PRIMARY KEY,
+  user_id    TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+  role_id    TEXT NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+  org_id     TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT user_roles_unique UNIQUE NULLS NOT DISTINCT (user_id, role_id, org_id)
+);
+
+CREATE INDEX IF NOT EXISTS user_roles_user_idx ON user_roles (user_id);
+
+CREATE TABLE IF NOT EXISTS user_permissions (
+  id            TEXT PRIMARY KEY,
+  user_id       TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+  permission_id TEXT NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
+  org_id        TEXT,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT user_permissions_unique UNIQUE NULLS NOT DISTINCT (user_id, permission_id, org_id)
+);
+
+CREATE INDEX IF NOT EXISTS user_permissions_user_idx ON user_permissions (user_id);
+"""
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -44,6 +89,7 @@ async def lifespan(app: FastAPI):
     # Ensure all tables exist (order matters for FK constraints)
     async with pool.acquire() as conn:
         await conn.execute(_CREATE_TENANTS)
+        await conn.execute(_CREATE_RBAC)
 
     # Load runtime AI config from DB (populated by migration 0002)
     try:
@@ -63,6 +109,8 @@ async def lifespan(app: FastAPI):
 
     store = SessionStore(pool=pool)
     await store.ensure_table()
+
+    await seed_rbac(pool)
 
     llm = get_llm()
     retriever = PgVectorRetriever(llm=llm, pool=pool, embedding_dim=settings.embedding_dim)
@@ -132,3 +180,4 @@ app.include_router(jobs.router)
 app.include_router(billing.router)
 app.include_router(media.router)
 app.include_router(admin.router)
+app.include_router(rbac.router)
