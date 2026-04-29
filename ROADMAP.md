@@ -104,6 +104,184 @@ Goal: Allow guests to chat without signing up, enforce monthly per-tenant token 
 
 ---
 
+## Phase 14 — Auth Completion
+
+Goal: Complete the authentication system with OAuth providers, email verification, profile management, and account lifecycle.
+
+| Priority | Item | Status | Notes |
+| -------- | ---- | ------ | ----- |
+| 69 | **Google OAuth** | ⬜ | better-auth OAuth plugin; button on login/register pages |
+| 70 | **GitHub OAuth** | ⬜ | same plugin; useful for dev-tool positioning |
+| 71 | **Email verification** | ⬜ | Send verify link on signup; gate certain features until verified |
+| 72 | **Profile page** | ⬜ | Edit name, email, avatar (URL or upload); `/profile` route on web + mobile |
+| 73 | **Session management** | ⬜ | View active sessions (device, IP, last seen); revoke individual sessions |
+| 74 | **Account deletion** | ⬜ | Self-service delete with data wipe; confirmation modal; cancel Stripe subscription |
+
+---
+
+## Phase 15 — RBAC & Security Hardening
+
+Goal: Add role-based access control, properly gate the admin panel, rate limit the API, and add 2FA and audit logging.
+
+| Priority | Item | Status | Notes |
+| -------- | ---- | ------ | ----- |
+| 75 | **App-level roles** | ⬜ | `role` column on `user` table: `user` \| `admin`; superadmin flag |
+| 76 | **Admin route gating** | ⬜ | Require `admin` role in `proxy.ts` + FastAPI dependency; replace TODO comment |
+| 77 | **Rate limiting middleware** | ⬜ | Per-IP + per-user request throttling (slowapi); rate limit headers in responses |
+| 78 | **2FA / TOTP** | ⬜ | Authenticator app support (better-auth 2FA plugin); backup codes |
+| 79 | **Audit log** | ⬜ | `audit_logs` DB table; record auth/billing/admin actions with actor + timestamp |
+
+---
+
+## Phase 16 — Admin Dashboard
+
+Goal: Give operators full visibility and control — user management, tenant management, global analytics, and an audit log viewer.
+
+| Priority | Item | Status | Notes |
+| -------- | ---- | ------ | ----- |
+| 80 | **User management UI** | ⬜ | List/search users, suspend, delete, reset password, view usage |
+| 81 | **Tenant/org management UI** | ⬜ | View all tenants, override plan/limits, see Stripe info |
+| 82 | **Global analytics** | ⬜ | MRR, DAU, total token usage, signups/day charts |
+| 83 | **Audit log viewer** | ⬜ | Browse + filter audit log with actor, action, timestamp, resource |
+
+---
+
+## Phase 17 — Organizations & Teams
+
+Goal: Support the GitHub model — users have a personal account AND can create/join organizations with shared billing and roles.
+
+| Priority | Item | Status | Notes |
+| -------- | ---- | ------ | ----- |
+| 84 | **Organization creation + settings** | ⬜ | Name, slug, logo, description; org settings page |
+| 85 | **Member invitation flow** | ⬜ | Invite by email → accept link → join org; resend/revoke invites |
+| 86 | **Org roles + permission checks** | ⬜ | `owner`, `admin`, `member`; enforced in API and UI |
+| 87 | **Org-level Stripe billing** | ⬜ | Org gets its own Stripe customer; seats-based or flat-rate org plan |
+| 88 | **Personal/org context switcher** | ⬜ | Header switcher (like GitHub); routes scoped to active context |
+
+---
+
+## Phase 18 — Chat History & Conversations
+
+Goal: Make chat state persistent and manageable — named sessions, sidebar navigation, search, and export.
+
+| Priority | Item | Status | Notes |
+| -------- | ---- | ------ | ----- |
+| 89 | **Conversation persistence** | ⬜ | Named sessions stored in DB (`conversations` table); title auto-generated |
+| 90 | **Conversation sidebar + switcher** | ⬜ | Left sidebar on web listing all conversations; click to load |
+| 91 | **Conversation management** | ⬜ | Rename, delete, archive conversations |
+| 92 | **Full-text search** | ⬜ | Search messages by content across all conversations |
+| 93 | **Conversation export** | ⬜ | Download as markdown, JSON, or PDF |
+| 94 | **Custom system instructions** | ⬜ | Per-conversation OR global user setting for system prompt customization |
+
+---
+
+## Phase 19 — User Settings & Preferences
+
+Goal: Give users control over their experience — theme, chat defaults, language, privacy, and programmatic access.
+
+| Priority | Item | Status | Notes |
+| -------- | ---- | ------ | ----- |
+| 95 | **Settings page** | ⬜ | Theme, chat defaults (model, streaming), language/locale, privacy; web + mobile |
+| 96 | **Dark/light/system theme** | ⬜ | Web: Tailwind class strategy; mobile: Expo `useColorScheme` |
+| 97 | **User API key management** | ⬜ | Generate, name, rotate, revoke personal API keys for programmatic access |
+
+---
+
+## Phase 20 — Email & Notifications
+
+Goal: Keep users informed with transactional emails, in-app notifications, budget alerts, and mobile push.
+
+| Priority | Item | Status | Notes |
+| -------- | ---- | ------ | ----- |
+| 98 | **Transactional email templates** | ⬜ | Welcome, invoice receipt, payment failed, subscription renewed (React Email + Resend) |
+| 99 | **In-app notification center** | ⬜ | Bell icon + drawer; mark read/unread; system + billing notifications |
+| 100 | **Budget warning notifications** | ⬜ | Email + in-app alert at 80% and 100% of monthly token budget |
+| 101 | **Security alerts** | ⬜ | Email on new login from unrecognized device/IP |
+| 102 | **Mobile push notifications** | ⬜ | Expo Notifications + push token management |
+
+---
+
+## Phase 21 — Billing Expansion
+
+Goal: Provide full billing transparency, support org seat pricing, free trials, and automated dunning.
+
+| Priority | Item | Status | Notes |
+| -------- | ---- | ------ | ----- |
+| 103 | **Invoice history** | ⬜ | Pull from Stripe API; list + download PDF links |
+| 104 | **Usage analytics charts** | ⬜ | Time-series token usage graph; breakdown by feature/model |
+| 105 | **Per-seat pricing for orgs** | ⬜ | `seats` on org plan; enforce seat limit on member invites |
+| 106 | **Free trial support** | ⬜ | 14-day trial before charge; trial expiry emails and banners |
+| 107 | **Dunning management** | ⬜ | Payment failed → 3-day retry email sequence → downgrade to free |
+
+---
+
+## Phase 22 — Analytics & Observability
+
+Goal: Instrument the product with PostHog, Sentry, health metrics, and an admin analytics dashboard.
+
+| Priority | Item | Status | Notes |
+| -------- | ---- | ------ | ----- |
+| 108 | **PostHog integration** | ⬜ | Web + mobile event tracking, funnels, session recording, feature flags |
+| 109 | **Sentry integration** | ⬜ | Error tracking + performance monitoring (server + web + mobile) |
+| 110 | **Health metrics endpoint** | ⬜ | `GET /health/detailed` — DB, Redis, queue, LLM provider status |
+| 111 | **Admin analytics dashboard** | ⬜ | MRR, retention, DAU, token usage trends; built on PostHog or direct DB queries |
+
+---
+
+## Phase 23 — Mobile Parity
+
+Goal: Bring the mobile app to feature parity with web — conversation history, profile, settings, attachments, voice, and push.
+
+| Priority | Item | Status | Notes |
+| -------- | ---- | ------ | ----- |
+| 112 | **Mobile conversation history** | ⬜ | List + switch past conversations; matches web UX |
+| 113 | **Mobile profile page** | ⬜ | View/edit name, email, avatar; linked from settings drawer |
+| 114 | **Mobile full settings** | ⬜ | Theme, notifications, account deletion, API keys |
+| 115 | **Mobile image attachment** | ⬜ | Expo ImagePicker; same image upload flow as web |
+| 116 | **Mobile voice I/O** | ⬜ | STT via Whisper (record + transcribe); TTS playback of responses |
+| 117 | **Mobile push notifications** | ⬜ | Expo Notifications; budget alerts, security alerts |
+
+---
+
+## Phase 24 — Onboarding, Legal & Growth
+
+Goal: Ship a polished first-run experience, satisfy legal requirements, and add a referral loop.
+
+| Priority | Item | Status | Notes |
+| -------- | ---- | ------ | ----- |
+| 118 | **Onboarding wizard** | ⬜ | 3-step web flow: create account → try chat → upgrade CTA; skippable |
+| 119 | **Legal pages** | ⬜ | `/terms`, `/privacy` — static MDX pages |
+| 120 | **GDPR compliance** | ⬜ | Data export endpoint; account deletion wipes all PII; cookie consent banner |
+| 121 | **Referral system** | ⬜ | Unique share links → both parties earn bonus tokens |
+
+---
+
+## Phase 25 — Developer Platform
+
+Goal: Let developers build on top of the platform with API key auth, webhooks, public API docs, and SDK examples.
+
+| Priority | Item | Status | Notes |
+| -------- | ---- | ------ | ----- |
+| 122 | **API key auth middleware** | ⬜ | User API keys (from Phase 19) authenticate `POST /chat` directly |
+| 123 | **Webhook system** | ⬜ | Subscribe to events (message, usage_alert, subscription_change); HMAC-signed payloads |
+| 124 | **Public API docs page** | ⬜ | In-app OpenAPI explorer at `/api-reference` |
+| 125 | **SDK examples** | ⬜ | Python + TypeScript snippets; auto-generated from OpenAPI spec |
+
+---
+
+## Phase 26 — Document & Knowledge Management
+
+Goal: Expose the existing RAG pipeline through a user-facing UI — upload, manage, and scope knowledge bases.
+
+| Priority | Item | Status | Notes |
+| -------- | ---- | ------ | ----- |
+| 126 | **Document upload UI** | ⬜ | Drag-drop + file list + delete; triggers existing `ingest_document` worker job |
+| 127 | **Knowledge base scoping** | ⬜ | Per-user and per-org knowledge bases; RAG toggle per conversation |
+| 128 | **URL/web ingestion** | ⬜ | Submit a URL → crawl + chunk + embed |
+| 129 | **Document status + source attribution** | ⬜ | Processing status indicator in UI; inline source citations in chat |
+
+---
+
 ## Maintenance
 
 - Keep `ARCHITECTURE.md` updated as the stack evolves.
