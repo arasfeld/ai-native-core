@@ -82,6 +82,15 @@ export const auth = betterAuth({
       httpOnly: true,
     },
   },
+  user: {
+    additionalFields: {
+      isAdmin: {
+        type: "boolean" as const,
+        defaultValue: false,
+        input: false,
+      },
+    },
+  },
   plugins: [expo()],
 });
 
