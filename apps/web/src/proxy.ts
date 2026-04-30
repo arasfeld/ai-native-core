@@ -52,6 +52,10 @@ export async function proxy(req: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
+  if (pathname.startsWith("/admin") && !session.user.isAdmin) {
+    return NextResponse.redirect(new URL("/", req.url));
+  }
+
   return NextResponse.next();
 }
 
