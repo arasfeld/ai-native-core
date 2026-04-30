@@ -15,7 +15,19 @@ from .config import settings
 from .logging import configure_logging
 from .rbac import seed_rbac
 from .repositories.session_repository import SessionRepository
-from .routers import admin, admin_users, auth, billing, chat, health, ingest, jobs, media, rbac
+from .routers import (
+    admin,
+    admin_tenants,
+    admin_users,
+    auth,
+    billing,
+    chat,
+    health,
+    ingest,
+    jobs,
+    media,
+    rbac,
+)
 from .services.chat_service import ChatService
 from .services.context_service import ContextService
 
@@ -181,4 +193,5 @@ app.include_router(billing.router)
 app.include_router(media.router)
 app.include_router(admin.router)
 app.include_router(admin_users.router)
+app.include_router(admin_tenants.router)
 app.include_router(rbac.router)
