@@ -15,25 +15,45 @@ export const aiFeatureConfigs = pgTable("ai_feature_configs", {
   provider: text("provider").notNull(), // 'ollama' | 'openai' | 'anthropic' | 'openrouter'
   model: text("model"), // null = provider default
   enabled: boolean("enabled").notNull().default(true),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export const memoryEntries = pgTable("memory_entries", {
   id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
   sessionId: text("session_id").notNull(),
   content: text("content").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+export const conversations = pgTable("conversations", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  title: text("title").notNull().default("New chat"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export const documentChunks = pgTable(
   "document_chunks",
   {
-    id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
+    id: bigint("id", { mode: "number" })
+      .primaryKey()
+      .generatedAlwaysAsIdentity(),
     content: text("content").notNull(),
     embedding: vector("embedding", { dimensions: 1536 }),
     metadata: jsonb("metadata").notNull().default({}),
     source: text("source"),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [
     index("document_chunks_embedding_idx").using(
