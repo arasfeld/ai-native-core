@@ -4,7 +4,6 @@ import { Alert, AlertDescription } from "@repo/ui/components/alert";
 import { Button } from "@repo/ui/components/button";
 import { cn } from "@repo/ui/lib/utils";
 import type { ToolUIPart } from "ai";
-import { CheckIcon, XIcon } from "lucide-react";
 import {
   type ComponentProps,
   createContext,
