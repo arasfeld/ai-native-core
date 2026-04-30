@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@ai-sdk/react": "^3.0.118",
+    "ag-grid-community": "35.2.1",
     "@better-fetch/fetch": "^1.1.21",
     "@repo/auth": "workspace:*",
     "@repo/env": "workspace:*",

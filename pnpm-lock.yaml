@@ -229,6 +229,9 @@ importers:
       '@tanstack/react-query-devtools':
         specifier: ^5.91.3
         version: 5.91.3(@tanstack/react-query@5.90.21(react@19.2.0))(react@19.2.0)
+      ag-grid-community:
+        specifier: 35.2.1
+        version: 35.2.1
       ai:
         specifier: ^6.0.116
         version: 6.0.116(zod@4.3.6)
