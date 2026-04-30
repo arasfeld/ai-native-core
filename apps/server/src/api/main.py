@@ -22,6 +22,7 @@ from .routers import (
     auth,
     billing,
     chat,
+    conversations,
     health,
     ingest,
     jobs,
@@ -93,6 +94,17 @@ CREATE TABLE IF NOT EXISTS user_permissions (
 CREATE INDEX IF NOT EXISTS user_permissions_user_idx ON user_permissions (user_id);
 """
 
+_CREATE_CONVERSATIONS = """
+CREATE TABLE IF NOT EXISTS conversations (
+  id          TEXT        PRIMARY KEY,
+  user_id     TEXT        NOT NULL,
+  title       TEXT        NOT NULL DEFAULT 'New chat',
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS conversations_user_idx ON conversations (user_id);
+"""
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -102,6 +114,7 @@ async def lifespan(app: FastAPI):
     async with pool.acquire() as conn:
         await conn.execute(_CREATE_TENANTS)
         await conn.execute(_CREATE_RBAC)
+        await conn.execute(_CREATE_CONVERSATIONS)
 
     # Load runtime AI config from DB (populated by migration 0002)
     try:
@@ -195,3 +208,4 @@ app.include_router(admin.router)
 app.include_router(admin_users.router)
 app.include_router(admin_tenants.router)
 app.include_router(rbac.router)
+app.include_router(conversations.router)
