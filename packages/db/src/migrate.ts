@@ -103,6 +103,9 @@ export async function migrate(): Promise<void> {
     ALTER TABLE "user" ADD COLUMN IF NOT EXISTS "isAdmin" BOOLEAN NOT NULL DEFAULT FALSE
   `);
   await db.execute(sql`
+    ALTER TABLE "user" ADD COLUMN IF NOT EXISTS "banned" BOOLEAN NOT NULL DEFAULT FALSE
+  `);
+  await db.execute(sql`
     CREATE TABLE IF NOT EXISTS permissions (
       id          TEXT PRIMARY KEY,
       description TEXT NOT NULL,

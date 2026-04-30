@@ -7,6 +7,7 @@ export const user = pgTable("user", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("emailVerified").default(false).notNull(),
   isAdmin: boolean("isAdmin").default(false).notNull(),
+  banned: boolean("banned").default(false).notNull(),
   image: text("image"),
   createdAt: timestamp("createdAt", { withTimezone: true })
     .defaultNow()
