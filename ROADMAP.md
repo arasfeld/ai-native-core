@@ -104,18 +104,18 @@ Goal: Allow guests to chat without signing up, enforce monthly per-tenant token 
 
 ---
 
-## Phase 14 — Auth Completion
+## Phase 14 — Auth Completion ✅
 
 Goal: Complete the authentication system with OAuth providers, email verification, profile management, and account lifecycle.
 
 | Priority | Item | Status | Notes |
 | -------- | ---- | ------ | ----- |
-| 69 | **Google OAuth** | ⬜ | better-auth OAuth plugin; button on login/register pages |
-| 70 | **GitHub OAuth** | ⬜ | same plugin; useful for dev-tool positioning |
-| 71 | **Email verification** | ⬜ | Send verify link on signup; gate certain features until verified |
-| 72 | **Profile page** | ⬜ | Edit name, email, avatar (URL or upload); `/profile` route on web + mobile |
-| 73 | **Session management** | ⬜ | View active sessions (device, IP, last seen); revoke individual sessions |
-| 74 | **Account deletion** | ⬜ | Self-service delete with data wipe; confirmation modal; cancel Stripe subscription |
+| 69 | **Google OAuth** | ✅ | better-auth OAuth plugin; button on login/register pages |
+| 70 | **GitHub OAuth** | ✅ | same plugin; useful for dev-tool positioning |
+| 71 | **Email verification** | ✅ | Resend verify link on signup; banner until verified |
+| 72 | **Profile page** | ✅ | Edit name, email, avatar; `/profile` route on web |
+| 73 | **Session management** | ✅ | View active sessions (device, IP, last seen); revoke individual sessions |
+| 74 | **Account deletion** | ✅ | Self-service delete with confirmation modal; cancels Stripe subscription |
 
 ---
 
@@ -125,8 +125,8 @@ Goal: Add role-based access control, properly gate the admin panel, rate limit t
 
 | Priority | Item | Status | Notes |
 | -------- | ---- | ------ | ----- |
-| 75 | **App-level roles** | ⬜ | `role` column on `user` table: `user` \| `admin`; superadmin flag |
-| 76 | **Admin route gating** | ⬜ | Require `admin` role in `proxy.ts` + FastAPI dependency; replace TODO comment |
+| 75 | **App-level roles** | ✅ | `isAdmin` flag + full permissions/roles/user_roles/user_permissions tables; `seed_rbac()` seeds built-in permissions |
+| 76 | **Admin route gating** | ✅ | `require_permission()` FastAPI dependency on all admin routes; `isAdmin` gate in Next.js proxy + middleware |
 | 77 | **Rate limiting middleware** | ⬜ | Per-IP + per-user request throttling (slowapi); rate limit headers in responses |
 | 78 | **2FA / TOTP** | ⬜ | Authenticator app support (better-auth 2FA plugin); backup codes |
 | 79 | **Audit log** | ⬜ | `audit_logs` DB table; record auth/billing/admin actions with actor + timestamp |
@@ -139,8 +139,8 @@ Goal: Give operators full visibility and control — user management, tenant man
 
 | Priority | Item | Status | Notes |
 | -------- | ---- | ------ | ----- |
-| 80 | **User management UI** | ⬜ | List/search users, suspend, delete, reset password, view usage |
-| 81 | **Tenant/org management UI** | ⬜ | View all tenants, override plan/limits, see Stripe info |
+| 80 | **User management UI** | ✅ | ag-grid DataGrid; search, ban/unban, reset password, delete with typed confirmation |
+| 81 | **Tenant/org management UI** | ✅ | ag-grid DataGrid; plan + token_limit override modal; token usage rollup per tenant |
 | 82 | **Global analytics** | ⬜ | MRR, DAU, total token usage, signups/day charts |
 | 83 | **Audit log viewer** | ⬜ | Browse + filter audit log with actor, action, timestamp, resource |
 
