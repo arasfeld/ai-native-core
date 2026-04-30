@@ -19,11 +19,10 @@ def pool_with_permissions():
             "name": "Test",
             "image": None,
             "emailVerified": True,
+            "banned": False,
         }
     )
-    pool.fetch = AsyncMock(
-        return_value=[{"id": "admin:users:read"}, {"id": "billing:manage"}]
-    )
+    pool.fetch = AsyncMock(return_value=[{"id": "admin:users:read"}, {"id": "billing:manage"}])
     return pool
 
 

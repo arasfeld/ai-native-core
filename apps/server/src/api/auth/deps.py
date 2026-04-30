@@ -45,7 +45,7 @@ async def get_current_user(
         session_token = token.split(".")[0]
         row = await pool.fetchrow(
             """
-            SELECT u.id, u.email, u.name, u.image, u."emailVerified"
+            SELECT u.id, u.email, u.name, u.image, u."emailVerified", u.banned
             FROM "user" u
             JOIN "session" s ON s."userId" = u.id
             WHERE s.token = $1 AND s."expiresAt" > NOW()
@@ -63,6 +63,12 @@ async def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired session",
+        )
+
+    if row["banned"]:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Account suspended",
         )
 
     # Load effective permissions: direct grants UNION role-derived (global scope only)
