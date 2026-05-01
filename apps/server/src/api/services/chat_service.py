@@ -1,4 +1,5 @@
 """Chat Service — orchestrates a complete streaming chat turn."""
+
 from __future__ import annotations
 
 import asyncio
@@ -63,6 +64,14 @@ class ChatService:
 
         # Persist user message
         await self._session_repo.save_message(session_id, "human", request.message)
+
+        # Best-effort: auto-title + updated_at bump (registered users only, non-fatal)
+        if not is_guest:
+            if isinstance(request.message, str):
+                await self._session_repo.auto_title_conversation(
+                    request.session_id, request.message
+                )
+            await self._session_repo.bump_conversation_updated_at(request.session_id)
 
         # Build agent and stream
         agent = self._agent_factory.build(

@@ -2,9 +2,12 @@
 from __future__ import annotations
 
 import asyncpg
+import structlog
 from langchain_core.messages import BaseMessage
-from memory import BudgetExceeded, SessionStore
+from memory import SessionStore
 from memory.budget import TenantMonthlyBudget
+
+log = structlog.get_logger()
 
 _GUEST_PREFIX = "guest:"
 _GUEST_LIMIT = 10_000  # tokens per guest IP per month
@@ -64,3 +67,31 @@ class SessionRepository:
         limit = await self.get_token_limit(user_id)
         budget = TenantMonthlyBudget(self._store, limit=limit)
         await budget.check(user_id)
+
+    async def auto_title_conversation(
+        self, conversation_id: str, title: str
+    ) -> None:
+        """Set title from first message text — no-op if already manually renamed."""
+        try:
+            await self._pool.execute(
+                "UPDATE conversations SET title = $1, updated_at = NOW() "
+                "WHERE id = $2 AND title = 'New chat'",
+                title[:60],
+                conversation_id,
+            )
+        except Exception:
+            log.warning(
+                "conversation.auto_title.failed", conversation_id=conversation_id
+            )
+
+    async def bump_conversation_updated_at(self, conversation_id: str) -> None:
+        """Bump updated_at so the sidebar stays sorted by recency."""
+        try:
+            await self._pool.execute(
+                "UPDATE conversations SET updated_at = NOW() WHERE id = $1",
+                conversation_id,
+            )
+        except Exception:
+            log.warning(
+                "conversation.bump.failed", conversation_id=conversation_id
+            )
