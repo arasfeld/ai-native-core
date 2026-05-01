@@ -6,6 +6,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uuid,
   vector,
 } from "drizzle-orm/pg-core";
 
@@ -40,6 +41,26 @@ export const conversations = pgTable("conversations", {
     .defaultNow()
     .notNull(),
 });
+
+export const userApiKeys = pgTable(
+  "user_api_keys",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id").notNull(),
+    name: text("name").notNull(),
+    keyHash: text("key_hash").notNull().unique(),
+    keyPrefix: text("key_prefix").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("user_api_keys_user_id_idx").on(table.userId),
+    index("user_api_keys_key_hash_idx").on(table.keyHash),
+  ],
+);
 
 export const documentChunks = pgTable(
   "document_chunks",
