@@ -166,9 +166,9 @@ Goal: Make chat state persistent and manageable — named sessions, sidebar navi
 
 | Priority | Item | Status | Notes |
 | -------- | ---- | ------ | ----- |
-| 89 | **Conversation persistence** | ⬜ | Named sessions stored in DB (`conversations` table); title auto-generated |
-| 90 | **Conversation sidebar + switcher** | ⬜ | Left sidebar on web listing all conversations; click to load |
-| 91 | **Conversation management** | ⬜ | Rename, delete, archive conversations |
+| 89 | **Conversation persistence** | ✅ | Named sessions stored in DB (`conversations` table); title auto-generated from first 60 chars |
+| 90 | **Conversation sidebar + switcher** | ✅ | Left sidebar on web listing all conversations grouped by date; click to load |
+| 91 | **Conversation management** | ✅ | Inline rename, delete with confirmation dialog |
 | 92 | **Full-text search** | ⬜ | Search messages by content across all conversations |
 | 93 | **Conversation export** | ⬜ | Download as markdown, JSON, or PDF |
 | 94 | **Custom system instructions** | ⬜ | Per-conversation OR global user setting for system prompt customization |
