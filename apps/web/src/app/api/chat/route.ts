@@ -49,7 +49,8 @@ export async function POST(req: NextRequest) {
           .map((p) => p.text)
           .join("");
 
-  const sessionId = req.cookies.get("session-id")?.value ?? crypto.randomUUID();
+  const sessionId =
+    (body.session_id as string | undefined) ?? crypto.randomUUID();
 
   // Forward optional location from the client
   const lat: number | undefined = body.lat;

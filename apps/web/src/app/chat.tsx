@@ -67,6 +67,7 @@ import {
   isTextUIPart,
   isToolUIPart,
   type SourceUrlUIPart,
+  type UIMessage,
 } from "ai";
 import { BotIcon } from "lucide-react";
 import Link from "next/link";
@@ -141,7 +142,13 @@ const SUGGESTIONS = [
   "Write me a code example",
 ];
 
-export function Chat(): ReactNode {
+export function Chat({
+  conversationId = "default",
+  initialMessages = [],
+}: {
+  conversationId?: string;
+  initialMessages?: UIMessage[];
+}): ReactNode {
   const { data: session } = authClient.useSession();
   const tokensRemaining = useTokenUsage(!!session);
   const [inputText, setInputText] = useState("");
@@ -153,12 +160,16 @@ export function Chat(): ReactNode {
     () =>
       new DefaultChatTransport({
         credentials: "include",
-        body: () => coordsRef.current ?? {},
+        body: () => ({
+          ...(coordsRef.current ?? {}),
+          session_id: conversationId,
+        }),
       }),
   );
   const { messages, sendMessage, stop, status, addToolApprovalResponse } =
     useChat({
       transport,
+      messages: initialMessages,
     });
 
   const isLoading = status === "streaming" || status === "submitted";
@@ -170,7 +181,7 @@ export function Chat(): ReactNode {
       lastMessage.parts.length === 0);
 
   return (
-    <div className="flex h-dvh flex-col">
+    <div className="flex h-full flex-col">
       <header className="flex items-center justify-between border-b px-4 py-2">
         <div className="flex items-center gap-2 font-medium text-sm">
           <BotIcon className="size-4 text-muted-foreground" />
