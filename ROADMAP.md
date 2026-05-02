@@ -181,9 +181,9 @@ Goal: Give users control over their experience — theme, chat defaults, languag
 
 | Priority | Item | Status | Notes |
 | -------- | ---- | ------ | ----- |
-| 95 | **Settings page** | ⬜ | Theme, chat defaults (model, streaming), language/locale, privacy; web + mobile |
-| 96 | **Dark/light/system theme** | ⬜ | Web: Tailwind class strategy; mobile: Expo `useColorScheme` |
-| 97 | **User API key management** | ⬜ | Generate, name, rotate, revoke personal API keys for programmatic access |
+| 95 | **Settings page** | ✅ | Theme, chat defaults (model, streaming), language/locale, privacy; web + mobile |
+| 96 | **Dark/light/system theme** | ✅ | Web: Tailwind class strategy; mobile: Expo `useColorScheme` |
+| 97 | **User API key management** | ✅ | Generate, name, rotate, revoke personal API keys for programmatic access |
 
 ---
 
