@@ -28,6 +28,7 @@ from .routers import (
     jobs,
     media,
     rbac,
+    user_api_keys,
 )
 from .services.chat_service import ChatService
 from .services.context_service import ContextService
@@ -105,6 +106,21 @@ CREATE TABLE IF NOT EXISTS conversations (
 CREATE INDEX IF NOT EXISTS conversations_user_idx ON conversations (user_id);
 """
 
+_CREATE_USER_API_KEYS = """
+CREATE TABLE IF NOT EXISTS user_api_keys (
+  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id      TEXT        NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+  name         TEXT        NOT NULL,
+  key_hash     TEXT        NOT NULL UNIQUE,
+  key_prefix   TEXT        NOT NULL,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_used_at TIMESTAMPTZ,
+  revoked_at   TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS user_api_keys_user_id_idx ON user_api_keys(user_id);
+CREATE INDEX IF NOT EXISTS user_api_keys_key_hash_idx ON user_api_keys(key_hash);
+"""
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -115,6 +131,7 @@ async def lifespan(app: FastAPI):
         await conn.execute(_CREATE_TENANTS)
         await conn.execute(_CREATE_RBAC)
         await conn.execute(_CREATE_CONVERSATIONS)
+        await conn.execute(_CREATE_USER_API_KEYS)
 
     # Load runtime AI config from DB (populated by migration 0002)
     try:
@@ -209,3 +226,4 @@ app.include_router(admin_users.router)
 app.include_router(admin_tenants.router)
 app.include_router(rbac.router)
 app.include_router(conversations.router)
+app.include_router(user_api_keys.router)
