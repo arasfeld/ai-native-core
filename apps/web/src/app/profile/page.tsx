@@ -1,2 +1,5 @@
-import { ProfilePage } from "@/features/profile";
-export default ProfilePage;
+import { redirect } from "next/navigation";
+
+export default function Page() {
+  redirect("/settings?tab=profile");
+}
