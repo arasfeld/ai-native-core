@@ -1,0 +1,25 @@
+{
+  "name": "@repo/emails",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.tsx"
+  },
+  "dependencies": {
+    "@react-email/components": "^0.0.35",
+    "@react-email/render": "^1.0.0",
+    "react": "^19.2.0",
+    "resend": "^6.12.2"
+  },
+  "devDependencies": {
+    "@repo/config": "workspace:*",
+    "@types/node": "^22.15.3",
+    "@types/react": "^19.0.0",
+    "typescript": "5.9.2"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "clean": "rm -rf dist node_modules"
+  }
+}
