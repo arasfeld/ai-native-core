@@ -13,9 +13,9 @@
   "dependencies": {
     "@better-auth/expo": "^1.2.7",
     "@repo/db": "workspace:*",
+    "@repo/emails": "workspace:*",
     "@repo/env": "workspace:*",
-    "better-auth": "^1.5.5",
-    "resend": "^6.12.2"
+    "better-auth": "^1.5.5"
   },
   "devDependencies": {
     "@repo/config": "workspace:*",
