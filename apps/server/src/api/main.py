@@ -27,6 +27,7 @@ from .routers import (
     ingest,
     jobs,
     media,
+    notifications,
     rbac,
     user_api_keys,
 )
@@ -243,3 +244,4 @@ app.include_router(admin_tenants.router)
 app.include_router(rbac.router)
 app.include_router(conversations.router)
 app.include_router(user_api_keys.router)
+app.include_router(notifications.router)
