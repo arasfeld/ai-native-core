@@ -193,9 +193,9 @@ Goal: Keep users informed with transactional emails, in-app notifications, budge
 
 | Priority | Item | Status | Notes |
 | -------- | ---- | ------ | ----- |
-| 98 | **Transactional email templates** | ⬜ | Welcome, invoice receipt, payment failed, subscription renewed (React Email + Resend) |
-| 99 | **In-app notification center** | ⬜ | Bell icon + drawer; mark read/unread; system + billing notifications |
-| 100 | **Budget warning notifications** | ⬜ | Email + in-app alert at 80% and 100% of monthly token budget |
+| 98 | **Transactional email templates** | ✅ | Welcome, invoice receipt, payment failed, subscription renewed (React Email + Resend) |
+| 99 | **In-app notification center** | ✅ | Bell icon + drawer; mark read/unread; system + billing notifications |
+| 100 | **Budget warning notifications** | ✅ | Email + in-app alert at 80% and 100% of monthly token budget |
 | 101 | **Security alerts** | ⬜ | Email on new login from unrecognized device/IP |
 | 102 | **Mobile push notifications** | ⬜ | Expo Notifications + push token management |
 
