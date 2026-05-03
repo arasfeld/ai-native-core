@@ -73,6 +73,7 @@ import { BotIcon } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { UserMenu } from "@/components/user-menu";
+import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { authClient } from "@/lib/auth-client";
 
@@ -201,6 +202,7 @@ export function Chat({
               Guest · 10k limit
             </span>
           )}
+          {session && <NotificationBell />}
           <UserMenu />
         </div>
       </header>
