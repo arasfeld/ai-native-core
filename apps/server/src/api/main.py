@@ -121,6 +121,21 @@ CREATE INDEX IF NOT EXISTS user_api_keys_user_id_idx ON user_api_keys(user_id);
 CREATE INDEX IF NOT EXISTS user_api_keys_key_hash_idx ON user_api_keys(key_hash);
 """
 
+_CREATE_NOTIFICATIONS = """
+CREATE TABLE IF NOT EXISTS notifications (
+  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    TEXT        NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+  type       TEXT        NOT NULL,
+  title      TEXT        NOT NULL,
+  body       TEXT        NOT NULL,
+  read_at    TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS notifications_user_id_idx ON notifications(user_id);
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS budget_warned_80_at  TIMESTAMPTZ;
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS budget_warned_100_at TIMESTAMPTZ;
+"""
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -132,6 +147,7 @@ async def lifespan(app: FastAPI):
         await conn.execute(_CREATE_RBAC)
         await conn.execute(_CREATE_CONVERSATIONS)
         await conn.execute(_CREATE_USER_API_KEYS)
+        await conn.execute(_CREATE_NOTIFICATIONS)
 
     # Load runtime AI config from DB (populated by migration 0002)
     try:
