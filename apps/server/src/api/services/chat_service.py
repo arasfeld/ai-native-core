@@ -13,6 +13,7 @@ from memory import MemoryExtractor, estimate_tokens
 from ..agent_factory import AgentFactory
 from ..auth.deps import AuthUser
 from ..repositories.session_repository import SessionRepository
+from .budget_notifications import check_budget_thresholds
 from .context_service import ContextService
 
 log = structlog.get_logger()
@@ -97,6 +98,12 @@ class ChatService:
             await self._session_repo.save_message(session_id, "assistant", full_reply)
             tokens_used = estimate_tokens(request.message) + estimate_tokens(full_reply)
             await self._session_repo.add_token_usage(session_id, tokens_used, user.id)
+
+            # Background: budget threshold notifications (registered users only)
+            if not is_guest:
+                asyncio.ensure_future(
+                    check_budget_thresholds(self._session_repo._pool, user.id, user.email)
+                )
 
             # Background: extract long-term memories (only for registered users)
             if self._extractor and not is_guest:
