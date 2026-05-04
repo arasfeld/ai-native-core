@@ -7,11 +7,17 @@ import {
   TabsTrigger,
 } from "@repo/ui/components/tabs";
 import { useRouter } from "next/navigation";
+import { OrganizationTab } from "@/features/organizations/components/OrganizationTab";
 import { ApiKeysTab } from "./ApiKeysTab";
 import { AppearanceTab } from "./AppearanceTab";
 import { ProfileTab } from "./ProfileTab";
 
-const VALID_TABS = ["profile", "appearance", "api-keys"] as const;
+const VALID_TABS = [
+  "profile",
+  "appearance",
+  "api-keys",
+  "organization",
+] as const;
 type Tab = (typeof VALID_TABS)[number];
 
 function isValidTab(t: string): t is Tab {
@@ -34,6 +40,7 @@ export function SettingsPage({ tab }: { tab: string }) {
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
           <TabsTrigger value="api-keys">API Keys</TabsTrigger>
+          <TabsTrigger value="organization">Organization</TabsTrigger>
         </TabsList>
         <TabsContent value="profile" className="mt-6">
           <ProfileTab />
@@ -43,6 +50,9 @@ export function SettingsPage({ tab }: { tab: string }) {
         </TabsContent>
         <TabsContent value="api-keys" className="mt-6">
           <ApiKeysTab />
+        </TabsContent>
+        <TabsContent value="organization" className="mt-6">
+          <OrganizationTab />
         </TabsContent>
       </Tabs>
     </div>
