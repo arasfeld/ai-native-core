@@ -53,12 +53,28 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
-        after: async (user: { name?: string | null; email: string }) => {
+        after: async (user: {
+          id: string;
+          name?: string | null;
+          email: string;
+        }) => {
           const html = await renderWelcomeEmail({
             name: user.name ?? undefined,
             appUrl: env.BETTER_AUTH_URL,
           });
           await sendEmail(user.email, "Welcome to AI Native Core", html);
+
+          // Eagerly bootstrap personal org (tenant + owner membership)
+          const apiUrl = process.env.API_URL ?? "http://localhost:8000";
+          try {
+            await fetch(`${apiUrl}/auth/bootstrap-tenant`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ user_id: user.id, email: user.email }),
+            });
+          } catch {
+            // Non-fatal: chat_service.get_or_create_tenant is the safety net
+          }
         },
       },
     },

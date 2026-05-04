@@ -187,3 +187,38 @@ async def delete_account(request: Request, current_user: CurrentUser) -> Respons
 
     log.info("auth.account.deleted", user_id=current_user.id)
     return Response(status_code=204)
+
+
+class BootstrapTenantRequest(BaseModel):
+    user_id: str
+    email: str
+
+
+@router.post("/bootstrap-tenant", status_code=204)
+async def bootstrap_tenant(body: BootstrapTenantRequest, request: Request) -> Response:
+    """Called by better-auth signup hook to eagerly create personal org (no auth required)."""
+    import re
+
+    pool = request.app.state.db_pool
+    slug_base = re.sub(r"[^a-z0-9]+", "-", body.email.split("@")[0].lower()).strip("-")
+    slug = f"{slug_base}-{body.user_id[:4]}"
+    await pool.execute(
+        """
+        INSERT INTO tenants (id, name, plan, token_limit, slug)
+        VALUES ($1, $2, 'free', 100000, $3)
+        ON CONFLICT (id) DO NOTHING
+        """,
+        body.user_id,
+        body.email,
+        slug,
+    )
+    await pool.execute(
+        """
+        INSERT INTO organization_members (org_id, user_id, role)
+        VALUES ($1, $2, 'owner')
+        ON CONFLICT (org_id, user_id) DO NOTHING
+        """,
+        body.user_id,
+        body.user_id,
+    )
+    return Response(status_code=204)
