@@ -48,9 +48,12 @@ class ChatService:
         if not is_guest:
             await self._session_repo.get_or_create_tenant(user.id, user.email)
 
+        # Budget keyed by org_id (= user_id for personal orgs; different for team orgs)
+        budget_key = user.org_id if user.org_id else user.id
+
         # Check token budget
         try:
-            await self._session_repo.check_budget(session_id, user.id)
+            await self._session_repo.check_budget(session_id, budget_key)
         except Exception as exc:
             yield f"data: Error: {exc}\n\n"
             return
@@ -97,12 +100,12 @@ class ChatService:
             # Persist assistant reply and token usage
             await self._session_repo.save_message(session_id, "assistant", full_reply)
             tokens_used = estimate_tokens(request.message) + estimate_tokens(full_reply)
-            await self._session_repo.add_token_usage(session_id, tokens_used, user.id)
+            await self._session_repo.add_token_usage(session_id, tokens_used, budget_key)
 
             # Background: budget threshold notifications (registered users only)
             if not is_guest:
                 asyncio.ensure_future(
-                    check_budget_thresholds(self._session_repo._pool, user.id, user.email)
+                    check_budget_thresholds(self._session_repo._pool, budget_key, user.email)
                 )
 
             # Background: extract long-term memories (only for registered users)

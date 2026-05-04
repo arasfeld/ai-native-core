@@ -1,10 +1,12 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 
 class FakeUser:
     id = "user-1"
     email = "test@example.com"
+    org_id = "user-1"
 
 
 class FakeRequest:
