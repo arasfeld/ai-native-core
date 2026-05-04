@@ -8,7 +8,7 @@ export async function GET() {
   if (!session) return new Response("Unauthorized", { status: 401 });
 
   const proxyHeaders = await buildProxyHeaders();
-  const res = await fetch(`${API_URL}/notifications`, {
+  const res = await fetch(`${API_URL}/organizations/current/members`, {
     headers: proxyHeaders,
   });
   const data = await res.json();
