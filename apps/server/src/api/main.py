@@ -137,6 +137,36 @@ ALTER TABLE tenants ADD COLUMN IF NOT EXISTS budget_warned_80_at  TIMESTAMPTZ;
 ALTER TABLE tenants ADD COLUMN IF NOT EXISTS budget_warned_100_at TIMESTAMPTZ;
 """
 
+_CREATE_ORGANIZATIONS = """
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS slug TEXT;
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS logo_url TEXT;
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS invite_link_token TEXT;
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS invite_link_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE TABLE IF NOT EXISTS organization_members (
+  org_id     TEXT        NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  user_id    TEXT        NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+  role       TEXT        NOT NULL DEFAULT 'member',
+  invited_by TEXT        REFERENCES "user"(id),
+  joined_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (org_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS organization_members_user_id_idx ON organization_members(user_id);
+
+CREATE TABLE IF NOT EXISTS organization_invites (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id      TEXT        NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  email       TEXT        NOT NULL,
+  role        TEXT        NOT NULL DEFAULT 'member',
+  token       TEXT        NOT NULL UNIQUE,
+  invited_by  TEXT        NOT NULL REFERENCES "user"(id),
+  expires_at  TIMESTAMPTZ NOT NULL,
+  accepted_at TIMESTAMPTZ,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS organization_invites_token_idx ON organization_invites(token);
+"""
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -149,6 +179,7 @@ async def lifespan(app: FastAPI):
         await conn.execute(_CREATE_CONVERSATIONS)
         await conn.execute(_CREATE_USER_API_KEYS)
         await conn.execute(_CREATE_NOTIFICATIONS)
+        await conn.execute(_CREATE_ORGANIZATIONS)
 
     # Load runtime AI config from DB (populated by migration 0002)
     try:
