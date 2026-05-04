@@ -74,6 +74,7 @@ import Link from "next/link";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { UserMenu } from "@/components/user-menu";
 import { NotificationBell } from "@/features/notifications/components/NotificationBell";
+import { OrgSwitcher } from "@/features/organizations";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { authClient } from "@/lib/auth-client";
 
@@ -203,6 +204,7 @@ export function Chat({
             </span>
           )}
           {session && <NotificationBell />}
+          {session && <OrgSwitcher />}
           <UserMenu />
         </div>
       </header>
