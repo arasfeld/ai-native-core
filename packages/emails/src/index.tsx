@@ -1,10 +1,16 @@
 import { render } from "@react-email/render";
 import { Resend } from "resend";
 import { BudgetWarningEmail } from "./templates/BudgetWarningEmail";
+import { OrganizationInviteEmail } from "./templates/OrganizationInviteEmail";
 import { PasswordResetEmail } from "./templates/PasswordResetEmail";
 import { WelcomeEmail } from "./templates/WelcomeEmail";
 
-export { BudgetWarningEmail, PasswordResetEmail, WelcomeEmail };
+export {
+  BudgetWarningEmail,
+  OrganizationInviteEmail,
+  PasswordResetEmail,
+  WelcomeEmail,
+};
 
 function getResend(): Resend | null {
   return process.env.RESEND_API_KEY
@@ -43,4 +49,13 @@ export async function renderBudgetWarningEmail(props: {
   upgradeUrl: string;
 }): Promise<string> {
   return render(<BudgetWarningEmail {...props} />);
+}
+
+export async function renderOrgInviteEmail(props: {
+  orgName: string;
+  inviterName: string;
+  role: string;
+  acceptUrl: string;
+}): Promise<string> {
+  return render(<OrganizationInviteEmail {...props} />);
 }
