@@ -28,6 +28,7 @@ from .routers import (
     jobs,
     media,
     notifications,
+    organizations,
     rbac,
     user_api_keys,
 )
@@ -276,3 +277,4 @@ app.include_router(rbac.router)
 app.include_router(conversations.router)
 app.include_router(user_api_keys.router)
 app.include_router(notifications.router)
+app.include_router(organizations.router)
