@@ -18,6 +18,7 @@ _bearer = HTTPBearer(auto_error=False)
 class AuthUser(BaseModel):
     id: str
     email: str
+    org_id: str = ""
     name: str | None = None
     image: str | None = None
     email_verified: bool = False
@@ -89,7 +90,7 @@ async def get_current_user(
         row["id"],
     )
 
-    return AuthUser(
+    user = AuthUser(
         id=row["id"],
         email=row["email"],
         name=row["name"],
@@ -97,6 +98,20 @@ async def get_current_user(
         email_verified=row["emailVerified"],
         permissions=frozenset(r["id"] for r in perm_rows),
     )
+
+    # Resolve org_id: prefer X-Org-Id header, fallback to personal org (org_id = user_id)
+    requested_org_id = request.headers.get("X-Org-Id")
+    if requested_org_id:
+        member_row = await pool.fetchrow(
+            "SELECT role FROM organization_members WHERE org_id = $1 AND user_id = $2",
+            requested_org_id,
+            user.id,
+        )
+        org_id = requested_org_id if member_row else user.id
+    else:
+        org_id = user.id
+
+    return user.model_copy(update={"org_id": org_id})
 
 
 async def get_optional_user(
