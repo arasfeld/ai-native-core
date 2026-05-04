@@ -152,11 +152,11 @@ Goal: Support the GitHub model — users have a personal account AND can create/
 
 | Priority | Item | Status | Notes |
 | -------- | ---- | ------ | ----- |
-| 84 | **Organization creation + settings** | ⬜ | Name, slug, logo, description; org settings page |
-| 85 | **Member invitation flow** | ⬜ | Invite by email → accept link → join org; resend/revoke invites |
-| 86 | **Org roles + permission checks** | ⬜ | `owner`, `admin`, `member`; enforced in API and UI |
+| 84 | **Organization creation + settings** | ✅ | Name, slug, logo, description; org settings page |
+| 85 | **Member invitation flow** | ✅ | Invite by email → accept link → join org; resend/revoke invites |
+| 86 | **Org roles + permission checks** | ✅ | `owner`, `admin`, `member`; enforced in API and UI |
 | 87 | **Org-level Stripe billing** | ⬜ | Org gets its own Stripe customer; seats-based or flat-rate org plan |
-| 88 | **Personal/org context switcher** | ⬜ | Header switcher (like GitHub); routes scoped to active context |
+| 88 | **Personal/org context switcher** | ✅ | Header switcher (like GitHub); routes scoped to active context |
 
 ---
 
