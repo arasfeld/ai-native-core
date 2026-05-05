@@ -31,6 +31,7 @@ from .routers import (
     media,
     notifications,
     organizations,
+    preferences,
     rbac,
     user_api_keys,
 )
@@ -293,3 +294,4 @@ app.include_router(conversations.router)
 app.include_router(user_api_keys.router)
 app.include_router(notifications.router)
 app.include_router(organizations.router)
+app.include_router(preferences.router)
