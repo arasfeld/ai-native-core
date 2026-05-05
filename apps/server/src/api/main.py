@@ -7,6 +7,8 @@ from arq.connections import RedisSettings
 from arq.connections import create_pool as arq_create_pool
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from .middleware.rate_limit import RateLimitMiddleware
 from memory import EpisodicStore, MemoryExtractor, SessionStore, SummaryCompressor
 from rag import PgVectorRetriever
 
@@ -262,6 +264,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(RateLimitMiddleware)
 
 app.include_router(health.router)
 app.include_router(auth.router)
