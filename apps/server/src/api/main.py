@@ -170,6 +170,17 @@ CREATE TABLE IF NOT EXISTS organization_invites (
 CREATE INDEX IF NOT EXISTS organization_invites_token_idx ON organization_invites(token);
 """
 
+_CREATE_USER_PREFERENCES = """
+CREATE TABLE IF NOT EXISTS user_preferences (
+  user_id             TEXT        PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
+  system_instructions TEXT        NOT NULL DEFAULT '',
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE conversations
+  ADD COLUMN IF NOT EXISTS system_instructions TEXT NOT NULL DEFAULT '';
+"""
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -183,6 +194,7 @@ async def lifespan(app: FastAPI):
         await conn.execute(_CREATE_USER_API_KEYS)
         await conn.execute(_CREATE_NOTIFICATIONS)
         await conn.execute(_CREATE_ORGANIZATIONS)
+        await conn.execute(_CREATE_USER_PREFERENCES)
 
     # Load runtime AI config from DB (populated by migration 0002)
     try:
