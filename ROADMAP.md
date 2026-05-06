@@ -171,7 +171,7 @@ Goal: Make chat state persistent and manageable — named sessions, sidebar navi
 | 91 | **Conversation management** | ✅ | Inline rename, delete with confirmation dialog |
 | 92 | **Full-text search** | ⬜ | Search messages by content across all conversations |
 | 93 | **Conversation export** | ⬜ | Download as markdown, JSON, or PDF |
-| 94 | **Custom system instructions** | ⬜ | Per-conversation OR global user setting for system prompt customization |
+| 94 | **Custom system instructions** | ✅ | Global via user_preferences + per-conversation on conversations table; additive resolution in ChatService; AiTab in settings + ConversationInstructions panel in chat |
 
 ---
 
