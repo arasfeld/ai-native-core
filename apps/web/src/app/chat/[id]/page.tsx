@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 const API_URL = process.env.API_URL ?? "http://localhost:8000";
 
 type RawMessage = { role: string; content: string };
+type ConversationData = { system_instructions: string } | null;
 
 async function fetchMessages(
   conversationId: string,
@@ -24,6 +25,23 @@ async function fetchMessages(
   }
 }
 
+async function fetchConversation(
+  conversationId: string,
+  cookieHeader: string,
+): Promise<ConversationData> {
+  try {
+    const res = await fetch(`${API_URL}/conversations`, {
+      headers: { cookie: cookieHeader },
+    });
+    if (!res.ok) return null;
+    const list: Array<{ id: string; system_instructions: string }> =
+      await res.json();
+    return list.find((c) => c.id === conversationId) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function ConversationPage({
   params,
 }: {
@@ -34,7 +52,12 @@ export default async function ConversationPage({
   const session = await auth.api.getSession({ headers: hdrs });
   if (!session) redirect("/login");
 
-  const raw = await fetchMessages(id, hdrs.get("cookie") ?? "");
+  const cookieHeader = hdrs.get("cookie") ?? "";
+  const [raw, conversation] = await Promise.all([
+    fetchMessages(id, cookieHeader),
+    fetchConversation(id, cookieHeader),
+  ]);
+
   const initialMessages: UIMessage[] = raw.map((m, i) => ({
     id: String(i),
     role: m.role === "human" ? "user" : "assistant",
@@ -43,5 +66,11 @@ export default async function ConversationPage({
     createdAt: new Date(),
   }));
 
-  return <Chat conversationId={id} initialMessages={initialMessages} />;
+  return (
+    <Chat
+      conversationId={id}
+      initialMessages={initialMessages}
+      systemInstructions={conversation?.system_instructions ?? ""}
+    />
+  );
 }

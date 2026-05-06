@@ -73,6 +73,7 @@ import { BotIcon } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { UserMenu } from "@/components/user-menu";
+import { ConversationInstructions } from "@/features/chat/components/ConversationInstructions";
 import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { OrgSwitcher } from "@/features/organizations";
 import { useGeolocation } from "@/hooks/use-geolocation";
@@ -147,9 +148,11 @@ const SUGGESTIONS = [
 export function Chat({
   conversationId = "default",
   initialMessages = [],
+  systemInstructions = "",
 }: {
   conversationId?: string;
   initialMessages?: UIMessage[];
+  systemInstructions?: string;
 }): ReactNode {
   const { data: session } = authClient.useSession();
   const tokensRemaining = useTokenUsage(!!session);
@@ -208,6 +211,12 @@ export function Chat({
           <UserMenu />
         </div>
       </header>
+      {conversationId !== "default" && session && (
+        <ConversationInstructions
+          conversationId={conversationId}
+          initialInstructions={systemInstructions}
+        />
+      )}
       <Conversation className="flex-1">
         <ConversationContent>
           {messages.length === 0 ? (
