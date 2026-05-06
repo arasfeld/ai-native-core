@@ -64,7 +64,7 @@ def test_create_returns_id_and_title(app, mock_pool):
 
 def test_patch_updates_title(app, mock_pool):
     mock_pool.fetchrow = AsyncMock(
-        return_value={"id": "conv-abc", "title": "New chat", "user_id": "user-1"}
+        return_value={"id": "conv-abc", "title": "New chat", "system_instructions": ""}
     )
     mock_pool.execute = AsyncMock()
     client = authed_client(app, mock_pool)

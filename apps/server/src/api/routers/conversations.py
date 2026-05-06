@@ -18,6 +18,7 @@ CurrentUser = Annotated[AuthUser, Depends(get_current_user)]
 class ConversationOut(BaseModel):
     id: str
     title: str
+    system_instructions: str = ""
     created_at: str | None = None
     updated_at: str | None = None
 
@@ -27,7 +28,8 @@ class CreateConversationRequest(BaseModel):
 
 
 class PatchConversationRequest(BaseModel):
-    title: str = Field(..., min_length=1, max_length=200)
+    title: str | None = Field(None, min_length=1, max_length=200)
+    system_instructions: str | None = None
 
 
 class MessageOut(BaseModel):
@@ -43,7 +45,7 @@ def _get_pool(request: Request):
 async def list_conversations(user: CurrentUser, request: Request):
     pool = _get_pool(request)
     rows = await pool.fetch(
-        "SELECT id, title, created_at, updated_at FROM conversations "
+        "SELECT id, title, system_instructions, created_at, updated_at FROM conversations "
         "WHERE user_id = $1 ORDER BY updated_at DESC",
         user.id,
     )
@@ -51,6 +53,7 @@ async def list_conversations(user: CurrentUser, request: Request):
         ConversationOut(
             id=row["id"],
             title=row["title"],
+            system_instructions=row["system_instructions"],
             created_at=row["created_at"].isoformat() if row["created_at"] else None,
             updated_at=row["updated_at"].isoformat() if row["updated_at"] else None,
         )
@@ -89,7 +92,7 @@ async def get_messages(conversation_id: str, user: CurrentUser, request: Request
 
 
 @router.patch("/{conversation_id}", response_model=ConversationOut)
-async def rename_conversation(
+async def patch_conversation(
     conversation_id: str,
     body: PatchConversationRequest,
     user: CurrentUser,
@@ -97,18 +100,23 @@ async def rename_conversation(
 ):
     pool = _get_pool(request)
     row = await pool.fetchrow(
-        "SELECT id FROM conversations WHERE id = $1 AND user_id = $2",
+        "SELECT id, title, system_instructions FROM conversations WHERE id = $1 AND user_id = $2",
         conversation_id,
         user.id,
     )
     if not row:
         raise HTTPException(status_code=404, detail="Conversation not found")
+
+    new_title = body.title if body.title is not None else row["title"]
+    new_instructions = body.system_instructions if body.system_instructions is not None else row["system_instructions"]
+
     await pool.execute(
-        "UPDATE conversations SET title = $1, updated_at = NOW() WHERE id = $2",
-        body.title,
+        "UPDATE conversations SET title = $1, system_instructions = $2, updated_at = NOW() WHERE id = $3",
+        new_title,
+        new_instructions,
         conversation_id,
     )
-    return ConversationOut(id=conversation_id, title=body.title)
+    return ConversationOut(id=conversation_id, title=new_title, system_instructions=new_instructions)
 
 
 @router.delete("/{conversation_id}", status_code=204)
