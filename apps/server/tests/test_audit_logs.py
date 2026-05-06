@@ -48,3 +48,38 @@ def test_write_swallows_db_errors():
     pool.execute = AsyncMock(side_effect=Exception("DB down"))
     # Must not raise
     asyncio.run(_write(pool, "actor-1", "user.banned", "user", "target-1", {}, None))
+
+
+# ── GET /admin/audit-logs ─────────────────────────────────────────────────────
+
+
+def test_list_audit_logs_returns_entries():
+    from datetime import datetime, timezone
+
+    from api.routers.audit_logs import router
+
+    app = FastAPI()
+    app.include_router(router)
+    mock_pool = AsyncMock()
+    mock_pool.fetch = AsyncMock(
+        return_value=[
+            {
+                "id": "log-1",
+                "actor_id": "admin-1",
+                "actor_email": "admin@example.com",
+                "action": "user.banned",
+                "resource_type": "user",
+                "resource_id": "user-123",
+                "metadata": {},
+                "ip_address": "1.2.3.4",
+                "created_at": datetime(2026, 4, 29, 12, 0, 0, tzinfo=timezone.utc),
+            }
+        ]
+    )
+    client = authed_admin_client(app, mock_pool)
+    resp = client.get("/admin/audit-logs")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) == 1
+    assert data[0]["action"] == "user.banned"
+    assert data[0]["actor_email"] == "admin@example.com"

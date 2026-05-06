@@ -21,6 +21,7 @@ from .routers import (
     admin,
     admin_tenants,
     admin_users,
+    audit_logs,
     auth,
     billing,
     chat,
@@ -182,6 +183,21 @@ ALTER TABLE conversations
   ADD COLUMN IF NOT EXISTS system_instructions TEXT NOT NULL DEFAULT '';
 """
 
+_CREATE_AUDIT_LOGS = """
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  actor_id      TEXT        REFERENCES "user"(id) ON DELETE SET NULL,
+  action        TEXT        NOT NULL,
+  resource_type TEXT        NOT NULL,
+  resource_id   TEXT,
+  metadata      JSONB       NOT NULL DEFAULT '{}',
+  ip_address    TEXT,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS audit_logs_actor_idx      ON audit_logs (actor_id);
+CREATE INDEX IF NOT EXISTS audit_logs_created_at_idx ON audit_logs (created_at DESC);
+"""
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -196,6 +212,7 @@ async def lifespan(app: FastAPI):
         await conn.execute(_CREATE_NOTIFICATIONS)
         await conn.execute(_CREATE_ORGANIZATIONS)
         await conn.execute(_CREATE_USER_PREFERENCES)
+        await conn.execute(_CREATE_AUDIT_LOGS)
 
     # Load runtime AI config from DB (populated by migration 0002)
     try:
@@ -295,3 +312,4 @@ app.include_router(user_api_keys.router)
 app.include_router(notifications.router)
 app.include_router(organizations.router)
 app.include_router(preferences.router)
+app.include_router(audit_logs.router)
