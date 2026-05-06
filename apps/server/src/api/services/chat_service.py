@@ -34,6 +34,22 @@ class ChatService:
         self._session_repo = session_repo
         self._extractor = extractor
 
+    async def _fetch_global_instructions(self, user_id: str) -> str:
+        row = await self._session_repo._pool.fetchrow(
+            "SELECT system_instructions FROM user_preferences WHERE user_id = $1", user_id
+        )
+        return (row.get("system_instructions") or "") if row else ""
+
+    async def _fetch_conversation_instructions(self, conversation_id: str, user_id: str) -> str:
+        if conversation_id == "default":
+            return ""
+        row = await self._session_repo._pool.fetchrow(
+            "SELECT system_instructions FROM conversations WHERE id = $1 AND user_id = $2",
+            conversation_id,
+            user_id,
+        )
+        return (row.get("system_instructions") or "") if row else ""
+
     async def stream(
         self, request: Any, user: AuthUser, *, is_guest: bool = False
     ) -> AsyncIterator[str]:
@@ -58,6 +74,14 @@ class ChatService:
             yield f"data: Error: {exc}\n\n"
             return
 
+        # Fetch and combine system instructions (registered users only)
+        effective_system_prompt = request.system_prompt or ""
+        if not is_guest:
+            global_instr = await self._fetch_global_instructions(user.id)
+            conv_instr = await self._fetch_conversation_instructions(request.session_id, user.id)
+            parts = [p for p in [global_instr, conv_instr, request.system_prompt] if p]
+            effective_system_prompt = "\n\n".join(parts)
+
         # Build context
         context_messages, location_place = await self._context_service.build(
             message=request.message,
@@ -80,12 +104,12 @@ class ChatService:
         # Build agent and stream
         agent = self._agent_factory.build(
             use_rag=request.use_rag,
-            system_prompt=request.system_prompt,
+            system_prompt=effective_system_prompt or None,
         )
         state = {
             "messages": [*context_messages, HumanMessage(content=request.message)],
             "session_id": session_id,
-            "system_prompt": request.system_prompt,
+            "system_prompt": effective_system_prompt or None,
         }
 
         accumulated: list[str] = []
