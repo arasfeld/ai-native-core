@@ -129,7 +129,7 @@ Goal: Add role-based access control, properly gate the admin panel, rate limit t
 | 76 | **Admin route gating** | ✅ | `require_permission()` FastAPI dependency on all admin routes; `isAdmin` gate in Next.js proxy + middleware |
 | 77 | **Rate limiting middleware** | ✅ | Global 60/min per IP; chat 20/min (session) or 5/min (guest); auth bootstrap 5/min per IP; pure ASGI, SSE-safe |
 | 78 | **2FA / TOTP** | ⬜ | Authenticator app support (better-auth 2FA plugin); backup codes |
-| 79 | **Audit log** | ⬜ | `audit_logs` DB table; record auth/billing/admin actions with actor + timestamp |
+| 79 | **Audit log** | ✅ | `audit_logs` table; fire-and-forget helper; admin actions (ban/unban/delete user, tenant plan/limit, account deletion); admin viewer at `/admin/audit-log` |
 
 ---
 
