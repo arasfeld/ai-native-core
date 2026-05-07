@@ -12,6 +12,7 @@ import { AiTab } from "./AiTab";
 import { ApiKeysTab } from "./ApiKeysTab";
 import { AppearanceTab } from "./AppearanceTab";
 import { ProfileTab } from "./ProfileTab";
+import { SecurityTab } from "./SecurityTab";
 
 const VALID_TABS = [
   "profile",
@@ -19,6 +20,7 @@ const VALID_TABS = [
   "api-keys",
   "organization",
   "ai",
+  "security",
 ] as const;
 type Tab = (typeof VALID_TABS)[number];
 
@@ -44,6 +46,7 @@ export function SettingsPage({ tab }: { tab: string }) {
           <TabsTrigger value="api-keys">API Keys</TabsTrigger>
           <TabsTrigger value="organization">Organization</TabsTrigger>
           <TabsTrigger value="ai">AI</TabsTrigger>
+          <TabsTrigger value="security">Security</TabsTrigger>
         </TabsList>
         <TabsContent value="profile" className="mt-6">
           <ProfileTab />
@@ -59,6 +62,9 @@ export function SettingsPage({ tab }: { tab: string }) {
         </TabsContent>
         <TabsContent value="ai" className="mt-6">
           <AiTab />
+        </TabsContent>
+        <TabsContent value="security" className="mt-6">
+          <SecurityTab />
         </TabsContent>
       </Tabs>
     </div>
