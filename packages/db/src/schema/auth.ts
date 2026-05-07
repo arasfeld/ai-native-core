@@ -32,6 +32,7 @@ export const session = pgTable(
       .notNull(),
     ipAddress: text("ipAddress"),
     userAgent: text("userAgent"),
+    twoFactorVerified: boolean("twoFactorVerified").default(false).notNull(),
     userId: text("userId")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
@@ -86,6 +87,15 @@ export const verification = pgTable(
   },
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
+
+export const twoFactor = pgTable("twoFactor", {
+  id: text("id").primaryKey(),
+  secret: text("secret").notNull(),
+  backupCodes: text("backupCodes").notNull(),
+  userId: text("userId")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+});
 
 export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),
