@@ -107,7 +107,7 @@ def test_ban_user(app, mock_pool):
     resp = client.post("/admin/users/user-1/ban")
     assert resp.status_code == 200
     assert resp.json()["banned"] is True
-    call_sql = mock_pool.execute.call_args[0][0]
+    call_sql = mock_pool.execute.call_args_list[0][0][0]
     assert "banned" in call_sql
 
 
@@ -125,5 +125,5 @@ def test_delete_user(app, mock_pool):
     client = admin_client(app, mock_pool)
     resp = client.delete("/admin/users/user-1")
     assert resp.status_code == 204
-    call_sql = mock_pool.execute.call_args[0][0]
+    call_sql = mock_pool.execute.call_args_list[0][0][0]
     assert "DELETE FROM" in call_sql

@@ -83,3 +83,58 @@ def test_list_audit_logs_returns_entries():
     assert len(data) == 1
     assert data[0]["action"] == "user.banned"
     assert data[0]["actor_email"] == "admin@example.com"
+
+
+# ── admin_users instrumentation ───────────────────────────────────────────────
+
+
+def _make_admin_users_app(mock_pool) -> tuple[FastAPI, TestClient]:
+    from api.routers.admin_users import router
+
+    app = FastAPI()
+    app.include_router(router)
+    client = authed_admin_client(app, mock_pool)
+    return app, client
+
+
+def test_ban_user_logs_audit_event():
+    mock_pool = AsyncMock()
+    mock_pool.execute = AsyncMock()
+    app, client = _make_admin_users_app(mock_pool)
+
+    with patch("api.routers.admin_users.log_audit_event") as mock_log:
+        resp = client.post("/admin/users/user-123/ban")
+
+    assert resp.status_code == 200
+    mock_log.assert_called_once()
+    args = mock_log.call_args[0]
+    assert args[1] == "admin-1"      # actor_id
+    assert args[2] == "user.banned"  # action
+    assert args[3] == "user"         # resource_type
+    assert args[4] == "user-123"     # resource_id
+
+
+def test_unban_user_logs_audit_event():
+    mock_pool = AsyncMock()
+    mock_pool.execute = AsyncMock()
+    app, client = _make_admin_users_app(mock_pool)
+
+    with patch("api.routers.admin_users.log_audit_event") as mock_log:
+        resp = client.post("/admin/users/user-123/unban")
+
+    assert resp.status_code == 200
+    mock_log.assert_called_once()
+    assert mock_log.call_args[0][2] == "user.unbanned"
+
+
+def test_delete_user_logs_audit_event():
+    mock_pool = AsyncMock()
+    mock_pool.execute = AsyncMock()
+    app, client = _make_admin_users_app(mock_pool)
+
+    with patch("api.routers.admin_users.log_audit_event") as mock_log:
+        resp = client.delete("/admin/users/user-123")
+
+    assert resp.status_code == 204
+    mock_log.assert_called_once()
+    assert mock_log.call_args[0][2] == "user.deleted"

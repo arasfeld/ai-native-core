@@ -10,7 +10,9 @@ from fastapi import APIRouter, Request
 from fastapi.responses import Response
 from pydantic import BaseModel
 
+from ..auth import CurrentUser
 from ..rbac import Permission, require_permission
+from ..services.audit import get_client_ip, log_audit_event
 
 log = structlog.get_logger()
 router = APIRouter(prefix="/admin/users", tags=["admin"])
@@ -87,9 +89,11 @@ async def list_users(request: Request, search: str = "") -> list[AdminUserOut]:
     "/{user_id}/ban",
     dependencies=[require_permission(Permission.ADMIN_USERS_WRITE)],
 )
-async def ban_user(user_id: str, request: Request) -> dict:
+async def ban_user(user_id: str, request: Request, actor: CurrentUser) -> dict:
     pool: asyncpg.Pool = request.app.state.db_pool
     await pool.execute('UPDATE "user" SET banned = TRUE WHERE id = $1', user_id)
+    log_audit_event(pool, actor.id, "user.banned", "user", user_id,
+                    ip_address=get_client_ip(request))
     log.info("admin.user.banned", user_id=user_id)
     return {"banned": True}
 
@@ -98,9 +102,11 @@ async def ban_user(user_id: str, request: Request) -> dict:
     "/{user_id}/unban",
     dependencies=[require_permission(Permission.ADMIN_USERS_WRITE)],
 )
-async def unban_user(user_id: str, request: Request) -> dict:
+async def unban_user(user_id: str, request: Request, actor: CurrentUser) -> dict:
     pool: asyncpg.Pool = request.app.state.db_pool
     await pool.execute('UPDATE "user" SET banned = FALSE WHERE id = $1', user_id)
+    log_audit_event(pool, actor.id, "user.unbanned", "user", user_id,
+                    ip_address=get_client_ip(request))
     log.info("admin.user.unbanned", user_id=user_id)
     return {"banned": False}
 
@@ -110,8 +116,10 @@ async def unban_user(user_id: str, request: Request) -> dict:
     status_code=204,
     dependencies=[require_permission(Permission.ADMIN_USERS_WRITE)],
 )
-async def delete_user(user_id: str, request: Request) -> Response:
+async def delete_user(user_id: str, request: Request, actor: CurrentUser) -> Response:
     pool: asyncpg.Pool = request.app.state.db_pool
     await pool.execute('DELETE FROM "user" WHERE id = $1', user_id)
+    log_audit_event(pool, actor.id, "user.deleted", "user", user_id,
+                    ip_address=get_client_ip(request))
     log.info("admin.user.deleted", user_id=user_id)
     return Response(status_code=204)
