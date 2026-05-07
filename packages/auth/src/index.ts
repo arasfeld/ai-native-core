@@ -1,4 +1,5 @@
 import { expo } from "@better-auth/expo";
+import { twoFactor } from "better-auth/plugins";
 import { authSchema, db } from "@repo/db";
 import {
   renderPasswordResetEmail,
@@ -118,7 +119,13 @@ export const auth = betterAuth({
       },
     },
   },
-  plugins: [expo()],
+  plugins: [
+    expo(),
+    twoFactor({
+      issuer: "AI Native Core",
+      otpOptions: { period: 30, digits: 6 },
+    }),
+  ],
 });
 
 export type Session = typeof auth.$Infer.Session;
