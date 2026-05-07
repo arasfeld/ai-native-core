@@ -8,6 +8,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel
 
 from ..auth import CurrentUser
+from ..services.audit import get_client_ip, log_audit_event
 
 log = structlog.get_logger()
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -182,6 +183,10 @@ async def delete_account(request: Request, current_user: CurrentUser) -> Respons
                 error=str(exc),
             )
 
+    log_audit_event(
+        pool, current_user.id, "account.deleted", "user", current_user.id,
+        ip_address=get_client_ip(request),
+    )
     await pool.execute("DELETE FROM tenants WHERE id = $1", current_user.id)
     await pool.execute('DELETE FROM "user" WHERE id = $1', current_user.id)
 

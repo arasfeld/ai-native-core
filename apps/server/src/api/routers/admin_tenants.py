@@ -9,7 +9,9 @@ import structlog
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from ..auth import CurrentUser
 from ..rbac import Permission, require_permission
+from ..services.audit import get_client_ip, log_audit_event
 
 log = structlog.get_logger()
 router = APIRouter(prefix="/admin/tenants", tags=["admin"])
@@ -83,13 +85,28 @@ async def list_tenants(request: Request) -> list[AdminTenantOut]:
     response_model=AdminTenantOut,
     dependencies=[require_permission(Permission.ADMIN_USERS_WRITE)],
 )
-async def patch_tenant(tenant_id: str, body: PatchTenantIn, request: Request) -> AdminTenantOut:
+async def patch_tenant(
+    tenant_id: str, body: PatchTenantIn, request: Request, actor: CurrentUser
+) -> AdminTenantOut:
     pool: asyncpg.Pool = request.app.state.db_pool
+    existing = await pool.fetchrow(
+        'SELECT plan, "tokenLimit" FROM tenants WHERE id = $1', tenant_id
+    )
     if body.plan is not None:
         await pool.execute("UPDATE tenants SET plan = $1 WHERE id = $2", body.plan, tenant_id)
+        log_audit_event(
+            pool, actor.id, "tenant.plan_changed", "tenant", tenant_id,
+            metadata={"old": existing["plan"] if existing else None, "new": body.plan},
+            ip_address=get_client_ip(request),
+        )
     if body.token_limit is not None:
         await pool.execute(
             'UPDATE tenants SET "tokenLimit" = $1 WHERE id = $2', body.token_limit, tenant_id
+        )
+        log_audit_event(
+            pool, actor.id, "tenant.limit_changed", "tenant", tenant_id,
+            metadata={"old": existing["tokenLimit"] if existing else None, "new": body.token_limit},
+            ip_address=get_client_ip(request),
         )
     row = await pool.fetchrow(_BASE_QUERY + " WHERE t.id = $1", tenant_id)
     if row is None:
