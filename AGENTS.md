@@ -20,6 +20,8 @@ AI Native Core is a production-ready monorepo template for building AI-native mu
 
 ## Monorepo Structure
 
+For the full directory tree and dependency rules, see **[ARCHITECTURE.md §2](./ARCHITECTURE.md#2-monorepo-structure)**.
+
 ```
 apps/
   extension/  — Browser extension (WXT, Chrome + Firefox)
@@ -30,8 +32,12 @@ apps/
   worker/     — ARQ background job processor
 
 packages/     — Shared code (primarily TypeScript / frontend)
+  auth/       — better-auth config + shared client
   db/         — Database schema + SQL migrations (Drizzle ORM)
+  emails/     — React Email templates (Resend)
+  env/        — Shared env schema + validation
   prompts/    — Shared Jinja2 prompt templates
+  tokens/     — Token counting utilities
   types/      — Shared TypeScript types (generated from OpenAPI spec)
   ui/         — Shared React components (shadcn/ui)
 
@@ -129,6 +135,20 @@ uv run --package <package-name> <command>       # Python
 - **Protected paths** (`/billing`, `/profile`, `/settings`) still require a session — enforced in `apps/web/src/proxy.ts`.
 - **Tenant auto-creation:** `ChatService.stream()` calls `get_or_create_tenant()` on the first message from any registered user (idempotent upsert). Guests never get a tenant row.
 - **Token budget:** monthly, per-tenant — `TenantMonthlyBudget` in `services/memory` sums `session_token_usage.tokens` for the current calendar month across all sessions for a `tenant_id`.
+
+## What's Already Built
+
+Before scaffolding anything new, confirm it doesn't already exist:
+
+**Auth:** email/password, Google + GitHub OAuth, email verification, 2FA/TOTP, session management, account deletion
+**Access control:** RBAC with roles/permissions, admin panel (user management, tenant management, audit log)
+**Organizations:** create/join orgs, member invitations, org roles (owner/admin/member), context switcher
+**Chat:** persistent conversation history with sidebar, custom system instructions (global + per-conversation)
+**User settings:** theme (dark/light/system), chat defaults, personal API key management
+**Billing:** Stripe subscriptions, per-tenant monthly token budgets, guest mode with 10k-token cap
+**Notifications:** transactional email (React Email + Resend), in-app notification center, budget alerts
+**AI:** streaming chat (SSE), RAG (pgvector), multi-modal (image input, DALL-E, Whisper, TTS), tool calling, LangGraph agents
+**Infrastructure:** rate limiting middleware, audit logging, ARQ background jobs, structured logging
 
 ## Roadmap
 
