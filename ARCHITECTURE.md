@@ -681,62 +681,131 @@ pnpm --filter @repo/ui test
 
 ---
 
-## 11. Future Extensions
+## 11. Extending the Template
 
-### Multi-tenancy
+This section covers how to add your own features on top of the existing stack.
 
-Add `tenant_id` (UUID) to all database tables. Enable Postgres row-level security:
+### Adding a new LLM provider
 
-```sql
-ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
-CREATE POLICY tenant_isolation ON messages
-    USING (tenant_id = current_setting('app.tenant_id')::uuid);
-```
-
-### Authentication
-
-- **Frontend**: NextAuth.js (supports OAuth, email/password, magic links)
-- **Backend**: FastAPI-Users or a custom JWT middleware
-- Session tokens passed as `Authorization: Bearer <token>` headers
-
-### Billing
-
-- Integrate Stripe for subscription plans.
-- Track token usage per user/session in the `usage_events` table.
-- Map token counts to cost using provider pricing tables.
-- Expose usage dashboard in the frontend.
-
-### Long-term Memory
-
-- **Episode memory**: store conversation summaries as vector embeddings, retrieve relevant episodes.
-- **Summary compression**: when session history exceeds token budget, summarize and compress older messages.
-- **User preferences**: extract and persist user preferences from conversations as structured data.
-
-### Background Jobs
-
-ARQ (async Redis Queue) is used for background tasks:
+1. Create `services/ai/src/ai/providers/<name>.py` implementing the `BaseLLM` protocol:
 
 ```python
-# apps/worker/tasks/ingest.py
-async def ingest_document(ctx, document_url: str, tenant_id: str):
-    """Background task: download, chunk, embed, store a document."""
-    ...
+# services/ai/src/ai/providers/myprovider.py
+from ai.base import BaseLLM, Message, LLMResponse
+from typing import AsyncIterator
+
+class MyProvider(BaseLLM):
+    async def chat(self, messages: list[Message], **kwargs) -> LLMResponse:
+        # call your provider SDK here
+        ...
+
+    async def stream(self, messages: list[Message], **kwargs) -> AsyncIterator[str]:
+        # yield token strings
+        ...
+
+    async def embed(self, text: str) -> list[float]:
+        # return embedding vector
+        ...
 ```
 
-Tasks are enqueued from the API and processed by `apps/worker`.
+2. Register it in `services/ai/src/ai/factory.py`:
 
-### Multi-modal ✅
+```python
+case "myprovider": return MyProvider()
+```
 
-- **Image input**: send `image_url` content parts in chat messages; supported by OpenAI, Anthropic, and Ollama vision models. The web UI already handles file uploads and image rendering.
-- **Image generation**: `GenerateImageTool` in `services/tools` (DALL-E 3); callable from any LangGraph agent.
-- **Audio transcription**: `POST /media/transcribe` — upload an audio file, get back text (Whisper via `OpenAIProvider.transcribe()`).
-- **Text-to-speech**: `POST /media/tts` — send text, receive a streamed MP3 audio response (`OpenAIProvider.synthesize()`).
-- **Structured outputs**: use provider JSON mode or Instructor for reliable Pydantic extraction.
+3. Add any required env vars to `packages/env/src/index.ts` using the existing pattern.
 
-### Evaluation Pipelines ✅
+---
 
-- **Unit tests** (`pytest`, no API keys): agent logic, message conversion, weather tools, prompt registry — `uv run pytest`
-- **Golden-answer evals** (`RUN_EVALS=1 uv run pytest services/agents/tests/evals/`): runs real LLM at temperature=0 against JSON Q&A fixtures, asserts keyword presence, enforces ≥80% pass threshold
-- **LangSmith integration** (`langsmith_runner.py`): pushes datasets and scored runs to LangSmith when `LANGCHAIN_API_KEY` is set
-- **CI** (`.github/workflows/`): `test.yml` runs unit tests + linting on every PR; `eval.yml` runs golden evals on main-branch pushes when `vars.RUN_EVALS == 'true'`
-- **Prompt A/B testing**: use `render_prompt("chat", version=N)` with any version from the registry to compare prompt variants on the same eval dataset
+### Adding a new agent
+
+1. Define a `StateGraph` in `services/agents/src/agents/<name>_agent.py`:
+
+```python
+from langgraph.graph import StateGraph, END
+from typing import TypedDict, Annotated
+from langchain_core.messages import BaseMessage
+import operator
+
+class MyAgentState(TypedDict):
+    messages: Annotated[list[BaseMessage], operator.add]
+    session_id: str
+
+async def agent_node(state: MyAgentState) -> MyAgentState:
+    # call LLM, update state
+    ...
+
+def build_my_agent_graph(llm) -> StateGraph:
+    graph = StateGraph(MyAgentState)
+    graph.add_node("agent", agent_node)
+    graph.set_entry_point("agent")
+    graph.add_edge("agent", END)
+    return graph.compile()
+```
+
+2. Add a system prompt template in `packages/prompts/src/prompts/system/<name>.j2`.
+
+3. Expose via a thin FastAPI router in `apps/server/src/api/routers/<name>.py` following the Router → Service → Repository pattern (see §8).
+
+---
+
+### Adding a new tool
+
+1. Create `services/tools/src/tools/<name>.py`:
+
+```python
+from pydantic import BaseModel, Field
+from tools.base import tool_registry
+
+class MyToolInput(BaseModel):
+    query: str = Field(description="The query to process")
+
+@tool_registry.register
+async def my_tool(input: MyToolInput) -> str:
+    """One-line description the LLM uses to decide when to call this tool."""
+    # implement tool logic
+    return result
+```
+
+Tools must: have a clear `description`, accept a Pydantic `BaseModel`, return a string, handle errors gracefully (return error string, never raise).
+
+---
+
+### Adding a new API route
+
+Follow the three-layer pattern strictly:
+
+```
+Router (apps/server/src/api/routers/<feature>.py)
+  → validates request, calls service, returns response
+  → no business logic here
+
+Service (apps/server/src/services/<feature>_service.py)
+  → orchestrates business logic
+  → no FastAPI imports — plain Python class
+
+Repository (apps/server/src/repositories/<feature>_repository.py)
+  → all DB access — parameterized queries only
+  → no business logic here
+```
+
+If the Next.js frontend needs to call this route, add a proxy route in `apps/web/src/app/api/<feature>/route.ts` that forwards the request to the FastAPI server (see existing proxy routes for the pattern).
+
+---
+
+### Adding a new frontend feature
+
+1. Create `apps/web/src/features/<feature-name>/` with:
+   - `components/` — React components for this feature
+   - `index.ts` — barrel export
+
+2. Route files in `apps/web/src/app/` are thin shells:
+
+```tsx
+// apps/web/src/app/<feature>/page.tsx
+import { FeaturePage } from "@/features/<feature-name>";
+export default FeaturePage;
+```
+
+3. Add shared components to `packages/ui/src/components/` only if mobile or extension also needs them. Web-only components stay in `apps/web/src/features/`.
