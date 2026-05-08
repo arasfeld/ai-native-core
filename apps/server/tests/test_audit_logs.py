@@ -1,14 +1,14 @@
 """Tests for the audit log service and router."""
+
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from api.auth.deps import AuthUser, get_current_user
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -54,13 +54,14 @@ def test_write_swallows_db_errors():
 
 
 def test_list_audit_logs_returns_entries():
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from api.routers.audit_logs import router
 
     app = FastAPI()
     app.include_router(router)
     mock_pool = AsyncMock()
+    mock_pool.fetchrow = AsyncMock(return_value={"total": 1})
     mock_pool.fetch = AsyncMock(
         return_value=[
             {
@@ -72,7 +73,7 @@ def test_list_audit_logs_returns_entries():
                 "resource_id": "user-123",
                 "metadata": {},
                 "ip_address": "1.2.3.4",
-                "created_at": datetime(2026, 4, 29, 12, 0, 0, tzinfo=timezone.utc),
+                "created_at": datetime(2026, 4, 29, 12, 0, 0, tzinfo=UTC),
             }
         ]
     )
@@ -80,9 +81,38 @@ def test_list_audit_logs_returns_entries():
     resp = client.get("/admin/audit-logs")
     assert resp.status_code == 200
     data = resp.json()
-    assert len(data) == 1
-    assert data[0]["action"] == "user.banned"
-    assert data[0]["actor_email"] == "admin@example.com"
+    assert data["total"] == 1
+    assert len(data["entries"]) == 1
+    assert data["entries"][0]["action"] == "user.banned"
+    assert data["entries"][0]["actor_email"] == "admin@example.com"
+
+
+def test_list_audit_logs_applies_filters():
+    from datetime import datetime
+
+    from api.routers.audit_logs import router
+
+    app = FastAPI()
+    app.include_router(router)
+    mock_pool = AsyncMock()
+    mock_pool.fetchrow = AsyncMock(return_value={"total": 0})
+    mock_pool.fetch = AsyncMock(return_value=[])
+    client = authed_admin_client(app, mock_pool)
+    resp = client.get(
+        "/admin/audit-logs",
+        params={
+            "actor": "alice",
+            "action": "user.banned",
+            "resource_type": "user",
+            "since": datetime(2026, 1, 1, tzinfo=UTC).isoformat(),
+        },
+    )
+    assert resp.status_code == 200
+    sql = mock_pool.fetch.call_args[0][0]
+    assert "u.email ILIKE" in sql
+    assert "al.action ILIKE" in sql
+    assert "al.resource_type =" in sql
+    assert "al.created_at >=" in sql
 
 
 # ── admin_users instrumentation ───────────────────────────────────────────────
@@ -108,10 +138,10 @@ def test_ban_user_logs_audit_event():
     assert resp.status_code == 200
     mock_log.assert_called_once()
     args = mock_log.call_args[0]
-    assert args[1] == "admin-1"      # actor_id
+    assert args[1] == "admin-1"  # actor_id
     assert args[2] == "user.banned"  # action
-    assert args[3] == "user"         # resource_type
-    assert args[4] == "user-123"     # resource_id
+    assert args[3] == "user"  # resource_type
+    assert args[4] == "user-123"  # resource_id
 
 
 def test_unban_user_logs_audit_event():

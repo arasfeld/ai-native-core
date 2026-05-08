@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
     stripe_pro_price_id: str = ""  # Stripe Price ID for the "pro" plan
+    pro_plan_monthly_usd: float = 0.0  # Monthly price (USD) used for MRR estimation
     web_url: str = "http://localhost:3000"
     log_level: str = "INFO"
     log_format: str = "console"  # "console" | "json"
