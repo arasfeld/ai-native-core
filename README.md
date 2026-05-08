@@ -22,6 +22,21 @@ A production-ready monorepo template for building AI-native multi-platform appli
 | Monorepo | Turborepo + pnpm (TS) + uv (Python) |
 | Git hooks | Lefthook — biome + ruff on pre-commit; `check-types` on pre-push |
 
+## Features
+
+Everything you need to ship an AI product — included and working:
+
+- **Multi-platform** — web (Next.js), mobile (Expo + React Native), desktop (Tauri), browser extension (WXT)
+- **Auth** — email/password, Google + GitHub OAuth, email verification, 2FA/TOTP, session management, account deletion
+- **RBAC** — roles, permissions, admin panel with user + tenant management, audit log
+- **Organizations** — create/join orgs, member invitations, org roles (owner/admin/member), context switcher
+- **Chat** — persistent conversation history, sidebar navigation, custom system instructions (global + per-conversation)
+- **AI** — streaming chat (SSE), RAG (pgvector), multi-modal (image input, DALL-E, Whisper, TTS), tool calling, LangGraph agents
+- **Billing** — Stripe subscriptions, per-tenant monthly token budgets, guest mode with 10k-token cap
+- **Notifications** — transactional email (React Email + Resend), in-app notification center, budget alerts
+- **User settings** — theme (dark/light/system), chat defaults, personal API key management
+- **Background jobs** — ARQ worker for document ingestion and scheduled agent runs
+
 ## Quick Start
 
 ```bash
@@ -66,16 +81,20 @@ Switch models by setting `LLM_PROVIDER` in `.env`:
 
 ```
 apps/
-  web/        Next.js frontend
+  web/        Next.js frontend + Tauri desktop shell (src-tauri/)
   mobile/     Expo + React Native
-  desktop/    Tauri desktop app
   server/     FastAPI server
   worker/     ARQ background jobs
   playground/ AI development sandbox
+  extension/  Browser extension (WXT — Chrome + Firefox)
 
 packages/     Shared TypeScript / frontend code
-  ui/         Shared React components
+  ui/         Shared React components (shadcn/ui)
   types/      TypeScript types (generated from OpenAPI)
+  auth/       better-auth config + shared client
+  emails/     React Email templates (Resend)
+  env/        Shared env schema + validation
+  tokens/     Token counting utilities
   prompts/    Shared Jinja2 prompt templates
   db/         Postgres schema + migrations
 
