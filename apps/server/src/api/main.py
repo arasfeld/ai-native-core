@@ -7,18 +7,18 @@ from arq.connections import RedisSettings
 from arq.connections import create_pool as arq_create_pool
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-from .middleware.rate_limit import RateLimitMiddleware
 from memory import EpisodicStore, MemoryExtractor, SessionStore, SummaryCompressor
 from rag import PgVectorRetriever
 
 from .agent_factory import AgentFactory
 from .config import settings
 from .logging import configure_logging
+from .middleware.rate_limit import RateLimitMiddleware
 from .rbac import seed_rbac
 from .repositories.session_repository import SessionRepository
 from .routers import (
     admin,
+    admin_analytics,
     admin_tenants,
     admin_users,
     audit_logs,
@@ -306,6 +306,7 @@ app.include_router(media.router)
 app.include_router(admin.router)
 app.include_router(admin_users.router)
 app.include_router(admin_tenants.router)
+app.include_router(admin_analytics.router)
 app.include_router(rbac.router)
 app.include_router(conversations.router)
 app.include_router(user_api_keys.router)

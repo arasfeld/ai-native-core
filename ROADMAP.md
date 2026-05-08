@@ -133,7 +133,7 @@ Goal: Add role-based access control, properly gate the admin panel, rate limit t
 
 ---
 
-## Phase 16 — Admin Dashboard
+## Phase 16 — Admin Dashboard ✅
 
 Goal: Give operators full visibility and control — user management, tenant management, global analytics, and an audit log viewer.
 
@@ -141,8 +141,8 @@ Goal: Give operators full visibility and control — user management, tenant man
 | -------- | ---- | ------ | ----- |
 | 80 | **User management UI** | ✅ | ag-grid DataGrid; search, ban/unban, reset password, delete with typed confirmation |
 | 81 | **Tenant/org management UI** | ✅ | ag-grid DataGrid; plan + token_limit override modal; token usage rollup per tenant |
-| 82 | **Global analytics** | ⬜ | MRR, DAU, total token usage, signups/day charts |
-| 83 | **Audit log viewer** | ⬜ | Browse + filter audit log with actor, action, timestamp, resource |
+| 82 | **Global analytics** | ✅ | `/admin/analytics` — KPI cards (users, Pro subs, MRR, DAU, tokens) + recharts area/line charts; configurable lookback (7/30/90/180d); MRR derived from `PRO_PLAN_MONTHLY_USD` × active Stripe subs |
+| 83 | **Audit log viewer** | ✅ | `/admin/audit-log` — ag-grid DataGrid with filters (actor email, action, resource type, since/until); paginated with total count; row click → metadata modal |
 
 ---
 
