@@ -47,6 +47,15 @@ ai-native-core/
 │   └── worker/                 # ARQ background job processor (Python)
 │
 ├── packages/                   # Shared code (primarily TypeScript / frontend)
+│   ├── auth/                   # better-auth config + shared client (web + extension)
+│   │
+│   ├── emails/                 # React Email templates (Resend)
+│   │   └── src/emails/         # Welcome, invoice, billing alerts, security alerts
+│   │
+│   ├── env/                    # Shared env schema + validation (t3-env / zod)
+│   │
+│   ├── tokens/                 # Token counting utilities (shared TS)
+│   │
 │   ├── ui/                     # Shared React components (shadcn/ui base)
 │   │   └── src/components/     # Button, Card, Chat, Message, etc.
 │   │
@@ -127,19 +136,23 @@ ai-native-core/
 ### Package / Service Dependency Rules
 
 ```
-apps/extension  → packages/auth
+apps/extension  → packages/auth, packages/ui
 apps/mobile     → packages/ui, packages/types
 apps/playground → services/ai, services/agents, packages/prompts
 apps/server     → services/ai, services/agents, services/rag, services/tools, services/memory, packages/prompts
-apps/web        → packages/ui, packages/types, packages/auth
+apps/web        → packages/ui, packages/types, packages/auth, packages/emails, packages/env, packages/tokens
 apps/worker     → services/agents, services/tools
 services/agents → services/ai, services/tools, packages/prompts
 services/ai     → (no internal deps — base layer)
 services/memory → services/ai, services/rag
 services/rag    → services/ai
 services/tools  → services/ai (optional)
+packages/auth   → packages/db
 packages/db     → (no internal deps, SQL only)
+packages/emails → (no internal deps)
+packages/env    → (no internal deps)
 packages/prompts → (no internal deps)
+packages/tokens → (no internal deps)
 packages/types  → (no internal deps, generated)
 packages/ui     → (no internal deps)
 ```
