@@ -26,6 +26,13 @@ class Settings(BaseSettings):
     resend_api_key: str = ""
     resend_from_email: str = "noreply@example.com"
 
+    # Observability — Sentry (empty DSN disables it)
+    sentry_dsn: str = ""
+    sentry_environment: str = "development"
+    sentry_traces_sample_rate: float = 0.1
+    sentry_profiles_sample_rate: float = 0.1
+    sentry_release: str = "0.1.0"
+
     model_config = {"env_file": str(_ENV_FILE), "extra": "ignore"}
 
 

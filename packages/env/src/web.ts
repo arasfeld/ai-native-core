@@ -3,6 +3,8 @@ import { z } from "zod";
 const schema = z.object({
   NEXT_PUBLIC_APP_URL: z.url().default("http://localhost:3000"),
   NEXT_PUBLIC_API_URL: z.url().default("http://localhost:8000"),
+  NEXT_PUBLIC_SENTRY_DSN: z.string().default(""),
+  NEXT_PUBLIC_SENTRY_ENVIRONMENT: z.string().default("development"),
 });
 
 const parsed = schema.safeParse(process.env);

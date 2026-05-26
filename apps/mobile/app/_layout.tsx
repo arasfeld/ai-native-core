@@ -1,11 +1,24 @@
 import "../global.css";
+import * as Sentry from "@sentry/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+const sentryDsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
+if (sentryDsn) {
+  Sentry.init({
+    dsn: sentryDsn,
+    environment:
+      process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT ??
+      (__DEV__ ? "development" : "production"),
+    tracesSampleRate: 0.1,
+    sendDefaultPii: false,
+  });
+}
+
 const queryClient = new QueryClient();
 
-export default function RootLayout() {
+function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
@@ -16,3 +29,5 @@ export default function RootLayout() {
     </QueryClientProvider>
   );
 }
+
+export default sentryDsn ? Sentry.wrap(RootLayout) : RootLayout;

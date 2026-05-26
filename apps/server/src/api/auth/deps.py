@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Annotated
 
 import asyncpg
+import sentry_sdk
 import structlog
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -111,7 +112,9 @@ async def get_current_user(
     else:
         org_id = user.id
 
-    return user.model_copy(update={"org_id": org_id})
+    resolved = user.model_copy(update={"org_id": org_id})
+    sentry_sdk.set_user({"id": resolved.id})
+    return resolved
 
 
 async def get_optional_user(

@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 import asyncpg
+import sentry_sdk
 import structlog
 from ai import get_llm
 from arq.connections import RedisSettings
@@ -44,6 +45,17 @@ configure_logging(
     log_level=settings.log_level,
 )
 log = structlog.get_logger()
+
+if settings.sentry_dsn:
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        environment=settings.sentry_environment,
+        traces_sample_rate=settings.sentry_traces_sample_rate,
+        profiles_sample_rate=settings.sentry_profiles_sample_rate,
+        send_default_pii=False,
+        release=settings.sentry_release,
+    )
+    log.info("sentry.initialized", environment=settings.sentry_environment)
 
 _CREATE_TENANTS = """
 CREATE TABLE IF NOT EXISTS tenants (
