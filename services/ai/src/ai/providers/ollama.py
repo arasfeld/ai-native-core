@@ -67,6 +67,5 @@ class OllamaProvider:
 
     async def synthesize(self, text: str, voice: str = "alloy") -> bytes:
         raise NotImplementedError(
-            "Ollama does not provide a TTS API. "
-            "Use LLM_PROVIDER=openai for text-to-speech."
+            "Ollama does not provide a TTS API. Use LLM_PROVIDER=openai for text-to-speech."
         )

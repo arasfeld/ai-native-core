@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@repo/ui/components/dialog";
 import { Input } from "@repo/ui/components/input";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 type ApiKey = {
   id: string;
@@ -42,16 +42,16 @@ export function ApiKeysTab() {
   const [revokeId, setRevokeId] = useState<string | null>(null);
   const [revoking, setRevoking] = useState(false);
 
-  useEffect(() => {
-    fetchKeys();
-  }, []);
-
-  async function fetchKeys() {
+  const fetchKeys = useCallback(async () => {
     setLoading(true);
     const res = await fetch("/api/user/api-keys");
     if (res.ok) setKeys(await res.json());
     setLoading(false);
-  }
+  }, []);
+
+  useEffect(() => {
+    fetchKeys();
+  }, [fetchKeys]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();

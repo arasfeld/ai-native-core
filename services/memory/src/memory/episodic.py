@@ -176,6 +176,4 @@ class EpisodicStore:
     async def delete(self, fact_id: int) -> None:
         """Remove a specific memory by ID."""
         async with self._pool.acquire() as conn:
-            await conn.execute(
-                "DELETE FROM episodic_memories WHERE id = $1", fact_id
-            )
+            await conn.execute("DELETE FROM episodic_memories WHERE id = $1", fact_id)

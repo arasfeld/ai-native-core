@@ -39,10 +39,12 @@ def admin_client(app, mock_pool):
         return AuthUser(
             id="admin-1",
             email="admin@example.com",
-            permissions=frozenset([
-                Permission.ADMIN_USERS_READ,
-                Permission.ADMIN_USERS_WRITE,
-            ]),
+            permissions=frozenset(
+                [
+                    Permission.ADMIN_USERS_READ,
+                    Permission.ADMIN_USERS_WRITE,
+                ]
+            ),
         )
 
     app.dependency_overrides[get_current_user] = override
@@ -122,9 +124,7 @@ def test_remove_role_permission_deletes(app, mock_pool):
 
 
 def test_list_user_roles_returns_assignments(app, mock_pool):
-    mock_pool.fetch = AsyncMock(
-        return_value=[{"id": "ur-1", "role_id": "admin", "org_id": None}]
-    )
+    mock_pool.fetch = AsyncMock(return_value=[{"id": "ur-1", "role_id": "admin", "org_id": None}])
     client = admin_client(app, mock_pool)
     resp = client.get("/rbac/users/user-1/roles")
     assert resp.status_code == 200

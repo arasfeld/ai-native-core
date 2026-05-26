@@ -1,16 +1,19 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 from ai import LLMResponse
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import AIMessage, HumanMessage
 
 
 @pytest.fixture
 def mock_store():
     store = AsyncMock()
-    store.get_messages = AsyncMock(return_value=[
-        HumanMessage(content="hello"),
-        AIMessage(content="hi there"),
-    ])
+    store.get_messages = AsyncMock(
+        return_value=[
+            HumanMessage(content="hello"),
+            AIMessage(content="hi there"),
+        ]
+    )
     store.add_message = AsyncMock()
     store.add_token_usage = AsyncMock()
     store.get_token_usage = AsyncMock(return_value=0)

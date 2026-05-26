@@ -38,6 +38,7 @@ class PgVectorRetriever:
     @asynccontextmanager
     async def _conn(self):
         import asyncpg
+
         if self._pool is not None:
             async with self._pool.acquire() as conn:
                 yield conn

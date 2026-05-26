@@ -25,7 +25,10 @@ export async function PUT(req: Request) {
   const body = await req.json();
   const res = await fetch(`${API_URL}/preferences`, {
     method: "PUT",
-    headers: { ...(await buildProxyHeaders()), "content-type": "application/json" },
+    headers: {
+      ...(await buildProxyHeaders()),
+      "content-type": "application/json",
+    },
     body: JSON.stringify(body),
   });
   const data = await res.json();

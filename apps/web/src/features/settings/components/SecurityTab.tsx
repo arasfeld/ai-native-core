@@ -38,7 +38,7 @@ export function SecurityTab() {
   async function handleStartSetup() {
     setError("");
     setLoading(true);
-    const { data, error: err } = await authClient.twoFactor.getTotpUri({
+    const { data, error: err } = await authClient.twoFactor.enable({
       password,
     });
     setLoading(false);
@@ -46,10 +46,11 @@ export function SecurityTab() {
       setError(err?.message ?? "Failed to start 2FA setup.");
       return;
     }
-    const uri = (data as { totpURI: string }).totpURI;
-    const match = uri.match(/secret=([^&]+)/);
+    const { totpURI, backupCodes: codes } = data;
+    const match = totpURI.match(/secret=([^&]+)/);
     setRawSecret(match?.[1] ?? "");
-    setQrDataUrl(await QRCode.toDataURL(uri));
+    setQrDataUrl(await QRCode.toDataURL(totpURI));
+    setBackupCodes(codes);
     setPassword("");
     setStep("setup");
   }
@@ -57,17 +58,14 @@ export function SecurityTab() {
   async function handleEnable() {
     setError("");
     setLoading(true);
-    const { data, error: err } = await authClient.twoFactor.enable({
-      password,
-      totpCode,
+    const { error: err } = await authClient.twoFactor.verifyTotp({
+      code: totpCode,
     });
     setLoading(false);
-    if (err || !data) {
-      setError(err?.message ?? "Invalid code. Please try again.");
+    if (err) {
+      setError(err.message ?? "Invalid code. Please try again.");
       return;
     }
-    setBackupCodes((data as { backupCodes: string[] }).backupCodes);
-    setPassword("");
     setTotpCode("");
     setStep("backup-codes");
   }
@@ -88,14 +86,16 @@ export function SecurityTab() {
   async function handleRegenerateBackupCodes() {
     setError("");
     setLoading(true);
-    const { data, error: err } =
-      await authClient.twoFactor.generateBackupCodes();
+    const { data, error: err } = await authClient.twoFactor.generateBackupCodes(
+      { password },
+    );
     setLoading(false);
     if (err || !data) {
       setError(err?.message ?? "Failed to regenerate backup codes.");
       return;
     }
-    setBackupCodes((data as { backupCodes: string[] }).backupCodes);
+    setBackupCodes(data.backupCodes);
+    setPassword("");
     setStep("backup-codes");
   }
 
@@ -144,7 +144,9 @@ export function SecurityTab() {
                 6-digit code it shows to confirm.
               </p>
               {qrDataUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
+                // QR is a transient data: URL; next/image's optimizer can't
+                // process it and the size is already known.
+                // biome-ignore lint/performance/noImgElement: inline data: URL
                 <img
                   src={qrDataUrl}
                   alt="TOTP QR code"
@@ -235,7 +237,7 @@ export function SecurityTab() {
 
           {step === "idle-enabled" && (
             <>
-              <p className="text-sm text-green-600 dark:text-green-400">
+              <p className="text-green-600 text-sm dark:text-green-400">
                 Two-factor authentication is active on your account.
               </p>
               <div className="space-y-1">

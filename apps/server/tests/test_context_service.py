@@ -1,7 +1,8 @@
-import pytest
-from unittest.mock import AsyncMock, patch
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from dataclasses import dataclass
+from unittest.mock import AsyncMock, patch
+
+import pytest
+from langchain_core.messages import SystemMessage
 
 
 @dataclass
@@ -35,9 +36,7 @@ async def test_build_returns_history_with_user_message(
     repo = SessionRepository(store=mock_store, pool=mock_pool)
     svc = ContextService(session_repo=repo, compressor=mock_compressor, episodic=mock_episodic)
 
-    messages, place = await svc.build(
-        message="hello", session_id="user-1:default"
-    )
+    messages, place = await svc.build(message="hello", session_id="user-1:default")
 
     # History (2 msgs) + episodic system message
     assert any(isinstance(m, SystemMessage) for m in messages)
@@ -53,9 +52,10 @@ async def test_build_injects_location_system_message(
     repo = SessionRepository(store=mock_store, pool=mock_pool)
     svc = ContextService(session_repo=repo, compressor=mock_compressor, episodic=mock_episodic)
 
-    with patch("api.services.context_service.get_location_context", new=AsyncMock(
-        return_value="User is in Brooklyn, NY.\nWeather: 65°F, clear."
-    )):
+    with patch(
+        "api.services.context_service.get_location_context",
+        new=AsyncMock(return_value="User is in Brooklyn, NY.\nWeather: 65°F, clear."),
+    ):
         messages, _ = await svc.build(
             message="what's the weather?",
             session_id="user-1:default",
@@ -69,21 +69,22 @@ async def test_build_injects_location_system_message(
 
 
 @pytest.mark.asyncio
-async def test_build_returns_location_place(
-    mock_store, mock_pool, mock_episodic, mock_compressor
-):
+async def test_build_returns_location_place(mock_store, mock_pool, mock_episodic, mock_compressor):
     from api.repositories.session_repository import SessionRepository
     from api.services.context_service import ContextService
 
     repo = SessionRepository(store=mock_store, pool=mock_pool)
     svc = ContextService(session_repo=repo, compressor=mock_compressor, episodic=mock_episodic)
 
-    with patch("api.services.context_service.get_location_context", new=AsyncMock(
-        return_value="User is in Brooklyn, NY.\nWeather: 65°F, clear."
-    )):
+    with patch(
+        "api.services.context_service.get_location_context",
+        new=AsyncMock(return_value="User is in Brooklyn, NY.\nWeather: 65°F, clear."),
+    ):
         result = await svc.build(
-            message="hello", session_id="user-1:default",
-            lat=40.6782, lng=-73.9442,
+            message="hello",
+            session_id="user-1:default",
+            lat=40.6782,
+            lng=-73.9442,
         )
 
     # build() returns (messages, place) tuple

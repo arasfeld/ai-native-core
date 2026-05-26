@@ -88,10 +88,12 @@ def test_list_tenants_returns_list(app, mock_pool):
 
 def test_patch_tenant_plan(app, mock_pool):
     updated_row = {**MOCK_TENANT_ROW, "plan": "pro", "token_limit": 2000000}
-    mock_pool.fetchrow = AsyncMock(side_effect=[
-        {"plan": "free", "tokenLimit": 100000},  # SELECT plan, "tokenLimit" call
-        updated_row,                              # BASE_QUERY refetch call
-    ])
+    mock_pool.fetchrow = AsyncMock(
+        side_effect=[
+            {"plan": "free", "tokenLimit": 100000},  # SELECT plan, "tokenLimit" call
+            updated_row,  # BASE_QUERY refetch call
+        ]
+    )
     client = admin_client(app, mock_pool)
     resp = client.patch("/admin/tenants/tenant-1", json={"plan": "pro", "token_limit": 2000000})
     assert resp.status_code == 200
@@ -101,10 +103,12 @@ def test_patch_tenant_plan(app, mock_pool):
 
 def test_patch_tenant_only_plan(app, mock_pool):
     updated_row = {**MOCK_TENANT_ROW, "plan": "pro"}
-    mock_pool.fetchrow = AsyncMock(side_effect=[
-        {"plan": "free", "tokenLimit": 100000},  # SELECT plan, "tokenLimit" call
-        updated_row,                              # BASE_QUERY refetch call
-    ])
+    mock_pool.fetchrow = AsyncMock(
+        side_effect=[
+            {"plan": "free", "tokenLimit": 100000},  # SELECT plan, "tokenLimit" call
+            updated_row,  # BASE_QUERY refetch call
+        ]
+    )
     client = admin_client(app, mock_pool)
     resp = client.patch("/admin/tenants/tenant-1", json={"plan": "pro"})
     assert resp.status_code == 200

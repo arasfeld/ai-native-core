@@ -45,7 +45,7 @@ class ChatAgent(BaseAgent):
                     provider=type(self.llm).__name__,
                 )
                 self._llm_with_tools = self.llm
-                self._tools = []      # disable tool loop
+                self._tools = []  # disable tool loop
                 self._tool_map = {}
         else:
             self._llm_with_tools = self.llm
@@ -62,7 +62,9 @@ class ChatAgent(BaseAgent):
     async def _agent_node(self, state: ChatState) -> dict[str, Any]:
         system = state.get("system_prompt") or self.system_prompt
         messages = lc_to_messages(state["messages"], system=system or None)
-        log.info("chat_agent.invoke", session_id=state.get("session_id"), message_count=len(messages))
+        log.info(
+            "chat_agent.invoke", session_id=state.get("session_id"), message_count=len(messages)
+        )
         response = await self._llm_with_tools.chat(messages)
         return {"messages": [AIMessage(content=response.content)]}
 

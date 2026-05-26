@@ -95,7 +95,11 @@ async def patch_tenant(
     if body.plan is not None:
         await pool.execute("UPDATE tenants SET plan = $1 WHERE id = $2", body.plan, tenant_id)
         log_audit_event(
-            pool, actor.id, "tenant.plan_changed", "tenant", tenant_id,
+            pool,
+            actor.id,
+            "tenant.plan_changed",
+            "tenant",
+            tenant_id,
             metadata={"old": existing["plan"] if existing else None, "new": body.plan},
             ip_address=get_client_ip(request),
         )
@@ -104,7 +108,11 @@ async def patch_tenant(
             'UPDATE tenants SET "tokenLimit" = $1 WHERE id = $2', body.token_limit, tenant_id
         )
         log_audit_event(
-            pool, actor.id, "tenant.limit_changed", "tenant", tenant_id,
+            pool,
+            actor.id,
+            "tenant.limit_changed",
+            "tenant",
+            tenant_id,
             metadata={"old": existing["tokenLimit"] if existing else None, "new": body.token_limit},
             ip_address=get_client_ip(request),
         )

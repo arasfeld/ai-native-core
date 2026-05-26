@@ -1,9 +1,8 @@
 """Unit tests for lc_to_messages conversion utility."""
 
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
-
 from agents.utils import lc_to_messages
 from ai import Message
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 
 def test_converts_human_message():

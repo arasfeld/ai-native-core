@@ -39,10 +39,9 @@ def _score(response: str, expected_keywords: list[str]) -> float:
 
 
 async def _run_agent(question: str) -> str:
-    from langchain_core.messages import HumanMessage
-
     from agents import ChatState, build_chat_graph
     from ai import get_llm
+    from langchain_core.messages import HumanMessage
 
     llm = get_llm()
     agent = build_chat_graph(llm=llm)
@@ -82,7 +81,6 @@ def _ensure_dataset(client, qa_pairs: list[dict]):
 def main() -> int:
     try:
         from langsmith import Client
-        from langsmith.schemas import Run, Example
     except ImportError:
         print("langsmith not installed — skipping LangSmith upload.")
         return 0
@@ -94,7 +92,7 @@ def main() -> int:
 
     qa_pairs = _load_qa()
     client = Client(api_key=api_key)
-    dataset = _ensure_dataset(client, qa_pairs)
+    _ensure_dataset(client, qa_pairs)
     print(f"Dataset '{DATASET_NAME}' ready with {len(qa_pairs)} examples.")
 
     # Run agent against each example and collect scores
@@ -105,7 +103,7 @@ def main() -> int:
         scores.append(score)
 
         # Log run to LangSmith
-        run_id = client.create_run(
+        client.create_run(
             name="chat-golden-eval",
             run_type="chain",
             inputs={"question": qa["question"]},

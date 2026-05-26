@@ -48,10 +48,12 @@ def admin_client(app, mock_pool):
         return AuthUser(
             id="admin-1",
             email="admin@example.com",
-            permissions=frozenset([
-                Permission.ADMIN_USERS_READ,
-                Permission.ADMIN_USERS_WRITE,
-            ]),
+            permissions=frozenset(
+                [
+                    Permission.ADMIN_USERS_READ,
+                    Permission.ADMIN_USERS_WRITE,
+                ]
+            ),
         )
 
     app.dependency_overrides[get_current_user] = override

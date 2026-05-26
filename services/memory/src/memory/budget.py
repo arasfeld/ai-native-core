@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+from typing import Any
+
 import structlog
 
 from .session import SessionStore
@@ -21,16 +24,13 @@ class BudgetExceeded(Exception):
         )
 
 
-from typing import Any
-
 def estimate_tokens(content: Any) -> int:
     """Rough token estimate based on character count (~4 chars per token)."""
     if isinstance(content, str):
         return max(1, len(content) // 4)
-    import json
     try:
         return max(1, len(json.dumps(content)) // 4)
-    except Exception:
+    except (TypeError, ValueError):
         return 1
 
 

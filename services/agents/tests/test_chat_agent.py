@@ -1,10 +1,8 @@
 """Unit tests for ChatAgent."""
 
 import pytest
-from langchain_core.messages import AIMessage, HumanMessage
-
 from agents import ChatState, build_chat_graph
-from ai import LLMResponse
+from langchain_core.messages import AIMessage, HumanMessage
 
 
 @pytest.fixture

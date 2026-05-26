@@ -21,17 +21,21 @@ class FakeRequest:
 @pytest.fixture
 def mock_context_service():
     from langchain_core.messages import HumanMessage
+
     svc = AsyncMock()
-    svc.build = AsyncMock(return_value=(
-        [HumanMessage(content="hello")],  # context messages
-        None,  # no location place
-    ))
+    svc.build = AsyncMock(
+        return_value=(
+            [HumanMessage(content="hello")],  # context messages
+            None,  # no location place
+        )
+    )
     return svc
 
 
 @pytest.fixture
 def mock_session_repo(mock_store, mock_pool):
     from api.repositories.session_repository import SessionRepository
+
     return SessionRepository(store=mock_store, pool=mock_pool)
 
 
@@ -55,9 +59,7 @@ def mock_agent_factory(mock_agent):
 
 
 @pytest.mark.asyncio
-async def test_stream_yields_tokens(
-    mock_context_service, mock_session_repo, mock_agent_factory
-):
+async def test_stream_yields_tokens(mock_context_service, mock_session_repo, mock_agent_factory):
     from api.services.chat_service import ChatService
 
     svc = ChatService(

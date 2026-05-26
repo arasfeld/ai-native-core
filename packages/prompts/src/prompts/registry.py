@@ -111,9 +111,7 @@ class PromptRegistry:
         v = version if version is not None else self.latest_version(name)
         available = self.versions(name)
         if v not in available:
-            raise KeyError(
-                f"Prompt '{name}' version {v} not found. Available: {available}"
-            )
+            raise KeyError(f"Prompt '{name}' version {v} not found. Available: {available}")
         template = self._env.get_template(f"{name}.v{v}.j2")
         return template.render(**(context or {}))
 

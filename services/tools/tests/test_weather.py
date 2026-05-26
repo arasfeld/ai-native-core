@@ -1,9 +1,7 @@
 """Unit tests for weather and reverse-geocoding tools using respx HTTP mocks."""
 
 import httpx
-import pytest
 import respx
-
 from tools.weather import get_weather, reverse_geocode
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse"
@@ -108,9 +106,7 @@ _WEATHER_RESPONSE = {
 
 @respx.mock
 async def test_get_weather_returns_summary():
-    respx.get(OPEN_METEO_URL).mock(
-        return_value=httpx.Response(200, json=_WEATHER_RESPONSE)
-    )
+    respx.get(OPEN_METEO_URL).mock(return_value=httpx.Response(200, json=_WEATHER_RESPONSE))
     result = await get_weather(39.302, -84.387)
     assert "18.5" in result
     assert "°C" in result
@@ -119,9 +115,7 @@ async def test_get_weather_returns_summary():
 
 @respx.mock
 async def test_get_weather_includes_forecast_days():
-    respx.get(OPEN_METEO_URL).mock(
-        return_value=httpx.Response(200, json=_WEATHER_RESPONSE)
-    )
+    respx.get(OPEN_METEO_URL).mock(return_value=httpx.Response(200, json=_WEATHER_RESPONSE))
     result = await get_weather(39.302, -84.387)
     assert "2026-03-15" in result
     assert "2026-03-16" in result

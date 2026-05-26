@@ -1,5 +1,4 @@
 import { expo } from "@better-auth/expo";
-import { twoFactor } from "better-auth/plugins";
 import { authSchema, db } from "@repo/db";
 import {
   renderPasswordResetEmail,
@@ -9,6 +8,7 @@ import {
 import { env } from "@repo/env/server";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { twoFactor } from "better-auth/plugins";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {

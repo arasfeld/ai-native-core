@@ -1,8 +1,7 @@
 import { useChat } from "@ai-sdk/react";
-import { type UIMessage, DefaultChatTransport } from "ai";
+import { DefaultChatTransport, type UIMessage } from "ai";
 import { fetch as expoFetch } from "expo/fetch";
 import { useRef, useState } from "react";
-import { useLocation } from "@/hooks/use-location";
 import {
   ActivityIndicator,
   FlatList,
@@ -14,8 +13,9 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { authClient } from "@/lib/auth-client";
+import { useLocation } from "@/hooks/use-location";
 import { WEB_URL } from "@/lib/api";
+import { authClient } from "@/lib/auth-client";
 
 function fetchWithAuth(
   url: RequestInfo | URL,
@@ -95,25 +95,29 @@ export default function ChatScreen() {
             className={
               "max-w-[80%] rounded-xl px-3.5 py-2.5" +
               (item.role === "user"
-                ? " self-end bg-primary"
-                : " self-start bg-secondary")
+                ? "self-end bg-primary"
+                : "self-start bg-secondary")
             }
           >
-            {(item as UIMessage).parts.map((part, i) =>
-              part.type === "text" ? (
+            {(item as UIMessage).parts.map((part, i) => {
+              if (part.type !== "text") return null;
+              // Parts are append-only stream chunks for a fixed message;
+              // their order is stable so the index is a stable key.
+              const partKey = `${item.id}-${i}`;
+              return (
                 <Text
-                  key={`${item.id}-${i}`}
+                  key={partKey}
                   className={
                     "text-[15px] leading-6" +
                     (item.role === "user"
-                      ? " text-primary-foreground"
-                      : " text-secondary-foreground")
+                      ? "text-primary-foreground"
+                      : "text-secondary-foreground")
                   }
                 >
                   {part.text}
                 </Text>
-              ) : null,
-            )}
+              );
+            })}
           </View>
         )}
         ListFooterComponent={
@@ -150,7 +154,7 @@ export default function ChatScreen() {
           disabled={!input.trim() || isBusy}
           className={
             "h-10 w-10 items-center justify-center rounded-full" +
-            (!input.trim() || isBusy ? " bg-muted" : " bg-primary")
+            (!input.trim() || isBusy ? "bg-muted" : "bg-primary")
           }
         >
           {isBusy ? (

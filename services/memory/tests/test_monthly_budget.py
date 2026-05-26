@@ -1,8 +1,10 @@
 """Tests for TenantMonthlyBudget."""
-import pytest
+
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+from memory.budget import BudgetExceeded, TenantMonthlyBudget
 from memory.session import SessionStore
-from memory.budget import TenantMonthlyBudget, BudgetExceeded
 
 
 @pytest.fixture

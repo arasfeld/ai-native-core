@@ -58,6 +58,5 @@ class OpenRouterProvider:
 
     async def synthesize(self, text: str, voice: str = "alloy") -> bytes:
         raise NotImplementedError(
-            "OpenRouter does not provide a TTS API. "
-            "Use LLM_PROVIDER=openai for text-to-speech."
+            "OpenRouter does not provide a TTS API. Use LLM_PROVIDER=openai for text-to-speech."
         )

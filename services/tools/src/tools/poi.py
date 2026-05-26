@@ -66,9 +66,7 @@ class NearbyPOITool(BaseTool):
     def _run(self, lat: float, lng: float, category: str, radius_m: int = 1000) -> str:
         raise NotImplementedError("Use async version")
 
-    async def _arun(
-        self, lat: float, lng: float, category: str, radius_m: int = 1000
-    ) -> str:
+    async def _arun(self, lat: float, lng: float, category: str, radius_m: int = 1000) -> str:
         return await nearby_poi(lat, lng, category, radius_m)
 
 

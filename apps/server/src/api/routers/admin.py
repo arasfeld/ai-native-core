@@ -1,4 +1,5 @@
 """Admin router — runtime AI configuration management."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request
@@ -41,9 +42,7 @@ async def update_ai_config(
     """Update a feature's AI config and refresh in-memory state."""
     pool = request.app.state.db_pool
 
-    row = await pool.fetchrow(
-        "SELECT feature FROM ai_feature_configs WHERE feature = $1", feature
-    )
+    row = await pool.fetchrow("SELECT feature FROM ai_feature_configs WHERE feature = $1", feature)
     if row is None:
         raise HTTPException(status_code=404, detail=f"Feature '{feature}' not found")
 

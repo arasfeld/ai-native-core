@@ -1,4 +1,5 @@
 """Agent Factory — builds the appropriate LangGraph agent for each request."""
+
 from __future__ import annotations
 
 from agents import build_chat_graph, build_rag_graph
@@ -33,6 +34,4 @@ class AgentFactory:
         if use_rag:
             return build_rag_graph(llm=self._get_llm("rag"))
         tools = registry.get_all()
-        return build_chat_graph(
-            llm=self._get_llm("chat"), system_prompt=system_prompt, tools=tools
-        )
+        return build_chat_graph(llm=self._get_llm("chat"), system_prompt=system_prompt, tools=tools)

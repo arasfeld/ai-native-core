@@ -3,14 +3,13 @@
 Each test gets a fresh app with a fresh MemoryStorage so state never leaks.
 Limits are set very low (2–3/min) so tests fire only a handful of requests.
 """
+
 from __future__ import annotations
 
-import pytest
+from api.middleware.rate_limit import RateLimitMiddleware
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from limits.aio.storage import MemoryStorage
-
-from api.middleware.rate_limit import RateLimitMiddleware
 
 
 def make_app(
@@ -89,7 +88,9 @@ def test_chat_session_limit_triggers_429():
 def test_chat_session_and_guest_are_separate_buckets():
     """A session user hitting their limit doesn't block a guest, and vice versa."""
     client = TestClient(
-        make_app(chat_session_limit="2/minute", chat_guest_limit="2/minute", global_limit="100/minute")
+        make_app(
+            chat_session_limit="2/minute", chat_guest_limit="2/minute", global_limit="100/minute"
+        )
     )
     cookies = {"better-auth.session_token": "tok.sig"}
     # Exhaust session limit

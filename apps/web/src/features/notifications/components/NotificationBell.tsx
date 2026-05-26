@@ -1,7 +1,7 @@
 "use client";
 
 import { BellIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { NotificationPopover } from "./NotificationPopover";
 
 type Notification = {
@@ -20,7 +20,7 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  async function fetchNotifications() {
+  const fetchNotifications = useCallback(async () => {
     try {
       const res = await fetch("/api/notifications");
       if (!res.ok) return;
@@ -29,7 +29,7 @@ export function NotificationBell() {
     } catch {
       // ignore network errors
     }
-  }
+  }, []);
 
   useEffect(() => {
     fetchNotifications();
@@ -37,7 +37,7 @@ export function NotificationBell() {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, []);
+  }, [fetchNotifications]);
 
   const unreadCount = notifications.filter((n) => n.read_at === null).length;
 

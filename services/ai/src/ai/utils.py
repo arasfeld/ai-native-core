@@ -1,4 +1,5 @@
 """Shared utilities for OpenAI-compatible providers."""
+
 import json
 
 from .base import Message, Usage

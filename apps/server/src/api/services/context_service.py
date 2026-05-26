@@ -1,4 +1,5 @@
 """Context Service — assembles message context for a chat turn."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -64,9 +65,7 @@ class ContextService:
         if facts:
             facts_text = "\n".join(f"- {f.content}" for f in facts)
             history = [
-                SystemMessage(
-                    content=f"Relevant facts from previous conversations:\n{facts_text}"
-                ),
+                SystemMessage(content=f"Relevant facts from previous conversations:\n{facts_text}"),
                 *history,
             ]
 

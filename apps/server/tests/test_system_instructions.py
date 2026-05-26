@@ -1,6 +1,8 @@
 """Tests for conversations.system_instructions and ChatService resolution."""
+
 from __future__ import annotations
 
+from datetime import UTC
 from unittest.mock import AsyncMock
 
 import pytest
@@ -52,9 +54,9 @@ def test_patch_conversation_persists_system_instructions(app, mock_pool):
 
 
 def test_list_conversations_includes_system_instructions(app, mock_pool):
-    from datetime import datetime, timezone
+    from datetime import datetime
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     mock_pool.fetch.return_value = [
         {
             "id": "conv-1",

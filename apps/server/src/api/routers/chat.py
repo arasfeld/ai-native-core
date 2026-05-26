@@ -1,4 +1,5 @@
 """Chat router — thin HTTP adapter. All orchestration is in ChatService."""
+
 from typing import Any
 
 from fastapi import APIRouter, Depends, Request
@@ -46,9 +47,7 @@ async def chat(
     chat_service: ChatService = ChatServiceDep,
 ) -> StreamingResponse:
     """Stream a chat response via Server-Sent Events. Auth is optional; guests use IP-based identity."""
-    user = current_user or _guest_user_from_ip(
-        request.client.host if request.client else "unknown"
-    )
+    user = current_user or _guest_user_from_ip(request.client.host if request.client else "unknown")
     return StreamingResponse(
         chat_service.stream(req, user, is_guest=current_user is None),
         media_type="text/event-stream",

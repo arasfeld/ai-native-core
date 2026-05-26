@@ -92,8 +92,9 @@ async def list_users(request: Request, search: str = "") -> list[AdminUserOut]:
 async def ban_user(user_id: str, request: Request, actor: CurrentUser) -> dict:
     pool: asyncpg.Pool = request.app.state.db_pool
     await pool.execute('UPDATE "user" SET banned = TRUE WHERE id = $1', user_id)
-    log_audit_event(pool, actor.id, "user.banned", "user", user_id,
-                    ip_address=get_client_ip(request))
+    log_audit_event(
+        pool, actor.id, "user.banned", "user", user_id, ip_address=get_client_ip(request)
+    )
     log.info("admin.user.banned", user_id=user_id)
     return {"banned": True}
 
@@ -105,8 +106,9 @@ async def ban_user(user_id: str, request: Request, actor: CurrentUser) -> dict:
 async def unban_user(user_id: str, request: Request, actor: CurrentUser) -> dict:
     pool: asyncpg.Pool = request.app.state.db_pool
     await pool.execute('UPDATE "user" SET banned = FALSE WHERE id = $1', user_id)
-    log_audit_event(pool, actor.id, "user.unbanned", "user", user_id,
-                    ip_address=get_client_ip(request))
+    log_audit_event(
+        pool, actor.id, "user.unbanned", "user", user_id, ip_address=get_client_ip(request)
+    )
     log.info("admin.user.unbanned", user_id=user_id)
     return {"banned": False}
 
@@ -119,7 +121,8 @@ async def unban_user(user_id: str, request: Request, actor: CurrentUser) -> dict
 async def delete_user(user_id: str, request: Request, actor: CurrentUser) -> Response:
     pool: asyncpg.Pool = request.app.state.db_pool
     await pool.execute('DELETE FROM "user" WHERE id = $1', user_id)
-    log_audit_event(pool, actor.id, "user.deleted", "user", user_id,
-                    ip_address=get_client_ip(request))
+    log_audit_event(
+        pool, actor.id, "user.deleted", "user", user_id, ip_address=get_client_ip(request)
+    )
     log.info("admin.user.deleted", user_id=user_id)
     return Response(status_code=204)

@@ -24,9 +24,7 @@ class AnthropicProvider:
                 "name": t.name,
                 "description": t.description,
                 "input_schema": (
-                    t.args_schema.model_json_schema()
-                    if t.args_schema
-                    else {"type": "object"}
+                    t.args_schema.model_json_schema() if t.args_schema else {"type": "object"}
                 ),
             }
             for t in tools
@@ -49,11 +47,13 @@ class AnthropicProvider:
 
             if m.role == "tool":
                 # Accumulate tool results to batch into a user message
-                pending_tool_results.append({
-                    "type": "tool_result",
-                    "tool_use_id": m.tool_call_id,
-                    "content": m.content,
-                })
+                pending_tool_results.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": m.tool_call_id,
+                        "content": m.content,
+                    }
+                )
                 continue
 
             # Flush pending tool results as a user message before next assistant turn
@@ -67,15 +67,19 @@ class AnthropicProvider:
                 if m.content:
                     blocks.append({"type": "text", "text": m.content})
                 for tc in m.tool_calls:
-                    blocks.append({
-                        "type": "tool_use",
-                        "id": tc["id"],
-                        "name": tc["name"],
-                        "input": tc["args"],
-                    })
+                    blocks.append(
+                        {
+                            "type": "tool_use",
+                            "id": tc["id"],
+                            "name": tc["name"],
+                            "input": tc["args"],
+                        }
+                    )
                 turns.append({"role": m.role, "content": blocks})
             elif isinstance(m.content, list):
-                turns.append({"role": m.role, "content": [self._convert_part(p) for p in m.content]})
+                turns.append(
+                    {"role": m.role, "content": [self._convert_part(p) for p in m.content]}
+                )
             else:
                 turns.append({"role": m.role, "content": m.content})
 
@@ -138,11 +142,13 @@ class AnthropicProvider:
             elif block.type == "tool_use":
                 if tool_calls is None:
                     tool_calls = []
-                tool_calls.append({
-                    "name": block.name,
-                    "args": block.input,
-                    "id": block.id,
-                })
+                tool_calls.append(
+                    {
+                        "name": block.name,
+                        "args": block.input,
+                        "id": block.id,
+                    }
+                )
 
         usage = None
         if response.usage:
@@ -188,6 +194,5 @@ class AnthropicProvider:
 
     async def synthesize(self, text: str, voice: str = "alloy") -> bytes:
         raise NotImplementedError(
-            "Anthropic does not provide a TTS API. "
-            "Use LLM_PROVIDER=openai for text-to-speech."
+            "Anthropic does not provide a TTS API. Use LLM_PROVIDER=openai for text-to-speech."
         )

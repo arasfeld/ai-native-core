@@ -1,5 +1,11 @@
+import {
+  ArrowRightIcon,
+  BotIcon,
+  ShieldIcon,
+  UsersIcon,
+  ZapIcon,
+} from "lucide-react";
 import Link from "next/link";
-import { ArrowRightIcon, BotIcon, ShieldIcon, UsersIcon, ZapIcon } from "lucide-react";
 
 const FEATURES = [
   {
@@ -58,9 +64,9 @@ export function LandingPage() {
             The AI-Native SaaS Starter
           </h1>
           <p className="text-lg text-muted-foreground">
-            A production-ready monorepo template with LangGraph agents, streaming
-            chat, RAG, multi-tenancy, and billing — so you can ship your idea, not
-            the infrastructure.
+            A production-ready monorepo template with LangGraph agents,
+            streaming chat, RAG, multi-tenancy, and billing — so you can ship
+            your idea, not the infrastructure.
           </p>
         </div>
 
@@ -82,12 +88,15 @@ export function LandingPage() {
 
         <div className="mt-6 grid w-full max-w-4xl gap-4 text-left sm:grid-cols-2">
           {FEATURES.map(({ icon: Icon, title, description }) => (
-            <div key={title} className="space-y-2 rounded-lg border bg-card p-5">
+            <div
+              key={title}
+              className="space-y-2 rounded-lg border bg-card p-5"
+            >
               <div className="flex items-center gap-2 font-semibold text-sm">
                 <Icon className="size-4 text-muted-foreground" />
                 {title}
               </div>
-              <p className="text-sm leading-relaxed text-muted-foreground">
+              <p className="text-muted-foreground text-sm leading-relaxed">
                 {description}
               </p>
             </div>
@@ -95,7 +104,7 @@ export function LandingPage() {
         </div>
       </main>
 
-      <footer className="border-t px-6 py-4 text-center text-xs text-muted-foreground">
+      <footer className="border-t px-6 py-4 text-center text-muted-foreground text-xs">
         AI Native Core — open-source monorepo template
       </footer>
     </div>

@@ -25,6 +25,9 @@ function getInitials(name: string): string {
 }
 
 function setActiveOrgCookie(orgId: string) {
+  // Plain document.cookie write — cookieStore is not yet broadly supported and
+  // we need this readable from middleware on the same request.
+  // biome-ignore lint/suspicious/noDocumentCookie: see above
   document.cookie = `active_org_id=${orgId}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
 }
 

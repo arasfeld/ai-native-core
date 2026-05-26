@@ -1,4 +1,5 @@
 """Rate limiting middleware — pure ASGI, SSE-safe."""
+
 from __future__ import annotations
 
 import http.cookies
@@ -94,16 +95,16 @@ class RateLimitMiddleware:
         ip = _get_ip(scope)
 
         # 1. Global floor — every endpoint except health probes
-        if path not in _GLOBAL_EXEMPT:
-            if not await self._strategy.hit(self._global, f"global:{ip}"):
-                await _respond_429(scope, receive, send)
-                return
+        if path not in _GLOBAL_EXEMPT and not await self._strategy.hit(
+            self._global, f"global:{ip}"
+        ):
+            await _respond_429(scope, receive, send)
+            return
 
         # 2. Auth endpoint protection (unauthenticated, high-value target)
-        if path in _AUTH_PATHS:
-            if not await self._strategy.hit(self._auth, f"auth:{ip}"):
-                await _respond_429(scope, receive, send)
-                return
+        if path in _AUTH_PATHS and not await self._strategy.hit(self._auth, f"auth:{ip}"):
+            await _respond_429(scope, receive, send)
+            return
 
         # 3. Chat-specific limits: tighter, keyed by session or guest IP
         if path == "/chat" and method == "POST":
@@ -112,10 +113,9 @@ class RateLimitMiddleware:
                 if not await self._strategy.hit(self._chat_session, f"chat:session:{session_key}"):
                     await _respond_429(scope, receive, send)
                     return
-            else:
-                if not await self._strategy.hit(self._chat_guest, f"chat:guest:{ip}"):
-                    await _respond_429(scope, receive, send)
-                    return
+            elif not await self._strategy.hit(self._chat_guest, f"chat:guest:{ip}"):
+                await _respond_429(scope, receive, send)
+                return
 
         await self.app(scope, receive, send)
 

@@ -24,12 +24,14 @@ export function useGeolocation() {
         },
         (err) => {
           console.warn("Geolocation error:", err);
-          setStatus(err.code === err.PERMISSION_DENIED ? "denied" : "unavailable");
+          setStatus(
+            err.code === err.PERMISSION_DENIED ? "denied" : "unavailable",
+          );
         },
-        { 
+        {
           enableHighAccuracy: true,
-          timeout: 15000, 
-          maximumAge: 10 * 60 * 1000 
+          timeout: 15000,
+          maximumAge: 10 * 60 * 1000,
         },
       );
     };

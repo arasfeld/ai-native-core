@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextlib
+import json
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -97,16 +99,12 @@ class SessionStore:
             )
 
         messages: list[BaseMessage] = []
-        import json
-
         for row in rows:
             content = row["content"]
             # Attempt to parse JSON for multi-modal content
             if content.startswith("[") or content.startswith("{"):
-                try:
+                with contextlib.suppress(json.JSONDecodeError):
                     content = json.loads(content)
-                except json.JSONDecodeError:
-                    pass
 
             if row["role"] == "human":
                 messages.append(HumanMessage(content=content))
@@ -116,12 +114,7 @@ class SessionStore:
 
     async def add_message(self, session_id: str, role: str, content: str | list | dict) -> None:
         """Append a single turn to the session history."""
-        import json
-
-        if not isinstance(content, str):
-            content_str = json.dumps(content)
-        else:
-            content_str = content
+        content_str = content if isinstance(content, str) else json.dumps(content)
 
         async with self._conn() as conn:
             await conn.execute(

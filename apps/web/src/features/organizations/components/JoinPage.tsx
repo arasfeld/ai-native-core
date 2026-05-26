@@ -36,6 +36,8 @@ export function JoinPage({ token }: { token: string }) {
     });
     if (res.ok) {
       const data = await res.json();
+      // Plain document.cookie write — see OrgSwitcher.tsx for rationale.
+      // biome-ignore lint/suspicious/noDocumentCookie: middleware-readable cookie
       document.cookie = `active_org_id=${data.org_id}; path=/; max-age=31536000; SameSite=Lax`;
       router.push("/");
     } else {

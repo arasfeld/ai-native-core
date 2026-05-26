@@ -107,7 +107,9 @@ export function ProfilePage() {
       {/* Avatar + identity */}
       <div className="flex items-center gap-4">
         {session.user.image ? (
-          // eslint-disable-next-line @next/next/no-img-element
+          // Avatar comes from arbitrary OAuth providers; next/image would
+          // require maintaining a remotePatterns allowlist for every host.
+          // biome-ignore lint/performance/noImgElement: external avatar host
           <img
             src={session.user.image}
             alt="Avatar"

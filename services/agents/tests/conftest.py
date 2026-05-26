@@ -1,8 +1,8 @@
 """Shared fixtures for agent unit tests."""
 
-import pytest
 from unittest.mock import AsyncMock
 
+import pytest
 from ai import LLMResponse
 
 

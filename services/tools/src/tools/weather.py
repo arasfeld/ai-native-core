@@ -19,15 +19,29 @@ log = structlog.get_logger()
 # ---------------------------------------------------------------------------
 _WMO: dict[int, str] = {
     0: "clear sky",
-    1: "mainly clear", 2: "partly cloudy", 3: "overcast",
-    45: "fog", 48: "depositing rime fog",
-    51: "light drizzle", 53: "moderate drizzle", 55: "dense drizzle",
-    61: "slight rain", 63: "moderate rain", 65: "heavy rain",
-    71: "slight snow", 73: "moderate snow", 75: "heavy snow",
+    1: "mainly clear",
+    2: "partly cloudy",
+    3: "overcast",
+    45: "fog",
+    48: "depositing rime fog",
+    51: "light drizzle",
+    53: "moderate drizzle",
+    55: "dense drizzle",
+    61: "slight rain",
+    63: "moderate rain",
+    65: "heavy rain",
+    71: "slight snow",
+    73: "moderate snow",
+    75: "heavy snow",
     77: "snow grains",
-    80: "slight rain showers", 81: "moderate rain showers", 82: "violent rain showers",
-    85: "snow showers", 86: "heavy snow showers",
-    95: "thunderstorm", 96: "thunderstorm with slight hail", 99: "thunderstorm with heavy hail",
+    80: "slight rain showers",
+    81: "moderate rain showers",
+    82: "violent rain showers",
+    85: "snow showers",
+    86: "heavy snow showers",
+    95: "thunderstorm",
+    96: "thunderstorm with slight hail",
+    99: "thunderstorm with heavy hail",
 }
 
 
@@ -109,9 +123,14 @@ async def reverse_geocode(lat: float, lng: float) -> str:
             data = r.json()
             addr = data.get("address", {})
             parts = [
-                addr.get("city") or addr.get("town") or addr.get("village")
-                or addr.get("township") or addr.get("municipality")
-                or addr.get("suburb") or addr.get("neighbourhood") or addr.get("hamlet"),
+                addr.get("city")
+                or addr.get("town")
+                or addr.get("village")
+                or addr.get("township")
+                or addr.get("municipality")
+                or addr.get("suburb")
+                or addr.get("neighbourhood")
+                or addr.get("hamlet"),
                 addr.get("county") or addr.get("state_district"),
                 addr.get("state") or addr.get("region"),
                 addr.get("country"),

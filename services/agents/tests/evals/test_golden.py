@@ -11,9 +11,8 @@ import os
 from pathlib import Path
 
 import pytest
-from langchain_core.messages import HumanMessage
-
 from agents import ChatState, build_chat_graph
+from langchain_core.messages import HumanMessage
 
 FIXTURES = Path(__file__).parent / "fixtures" / "chat_qa.json"
 

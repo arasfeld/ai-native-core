@@ -28,7 +28,13 @@
       "!**/.svelte-kit",
       "!**/wrangler.jsonc",
       "!**/.source",
-      "!**/convex/_generated"
+      "!**/convex/_generated",
+      "!**/.output",
+      "!**/.wxt",
+      "!.superpowers",
+      "!packages/ui/src/components/ai",
+      "!packages/ui/src/components/button-group.tsx",
+      "!packages/ui/src/components/input-group.tsx"
     ]
   },
   "formatter": {

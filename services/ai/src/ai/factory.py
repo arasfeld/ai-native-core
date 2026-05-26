@@ -32,24 +32,28 @@ def _create_llm(provider: str, model: str | None = None) -> BaseLLM:
     match provider:
         case "openai":
             from .providers.openai import OpenAIProvider
+
             p = OpenAIProvider()
             if model:
                 p.model = model
             return p
         case "anthropic":
             from .providers.anthropic import AnthropicProvider
+
             p = AnthropicProvider()
             if model:
                 p.model = model
             return p
         case "openrouter":
             from .providers.openrouter import OpenRouterProvider
+
             p = OpenRouterProvider()
             if model:
                 p.model = model
             return p
         case "ollama":
             from .providers.ollama import OllamaProvider
+
             p = OllamaProvider()
             if model:
                 p.model = model

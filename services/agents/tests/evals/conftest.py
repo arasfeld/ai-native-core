@@ -1,7 +1,6 @@
 """Fixtures for eval tests — requires real LLM access."""
 
 import pytest
-
 from ai import get_llm
 
 

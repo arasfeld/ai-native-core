@@ -142,9 +142,9 @@ export default function PromptPage() {
         {/* Right: output */}
         <div className="flex min-w-0 flex-1 flex-col p-6">
           <div className="mb-3 flex items-center justify-between">
-            <label id="output-label" className="font-medium text-sm">
+            <h2 id="output-label" className="font-medium text-sm">
               Output
-            </label>
+            </h2>
             {output && (
               <button
                 type="button"
@@ -159,8 +159,7 @@ export default function PromptPage() {
             )}
           </div>
 
-          <div
-            role="region"
+          <section
             aria-labelledby="output-label"
             className="min-h-0 flex-1 overflow-auto rounded-md border bg-muted/30 p-4"
           >
@@ -178,7 +177,7 @@ export default function PromptPage() {
                 Output will appear here.
               </p>
             ) : null}
-          </div>
+          </section>
         </div>
       </div>
     </div>

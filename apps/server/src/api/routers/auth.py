@@ -184,7 +184,11 @@ async def delete_account(request: Request, current_user: CurrentUser) -> Respons
             )
 
     log_audit_event(
-        pool, current_user.id, "account.deleted", "user", current_user.id,
+        pool,
+        current_user.id,
+        "account.deleted",
+        "user",
+        current_user.id,
         ip_address=get_client_ip(request),
     )
     await pool.execute("DELETE FROM tenants WHERE id = $1", current_user.id)

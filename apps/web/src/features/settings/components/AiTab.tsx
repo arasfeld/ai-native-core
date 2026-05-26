@@ -44,8 +44,8 @@ export function AiTab() {
       <div className="space-y-2">
         <Label htmlFor="global-instructions">Global system instructions</Label>
         <p className="text-muted-foreground text-sm">
-          These instructions are prepended to every conversation. Use them to set
-          your preferred language, tone, or any standing context.
+          These instructions are prepended to every conversation. Use them to
+          set your preferred language, tone, or any standing context.
         </p>
         {loading ? (
           <p className="text-muted-foreground text-sm">Loading…</p>

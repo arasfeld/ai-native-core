@@ -1,7 +1,6 @@
 """Unit tests for the prompt registry and template rendering."""
 
 import pytest
-
 from prompts import registry, render_prompt
 
 
@@ -46,7 +45,7 @@ def test_render_without_context_omits_context_block():
 
 
 def test_unknown_prompt_raises():
-    with pytest.raises(Exception):
+    with pytest.raises(KeyError):
         render_prompt("nonexistent_prompt_xyz")
 
 

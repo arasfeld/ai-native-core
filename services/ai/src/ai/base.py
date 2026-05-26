@@ -8,7 +8,7 @@ class Message(BaseModel):
     role: str  # "system" | "user" | "assistant" | "tool"
     content: str | list[dict[str, Any]]
     tool_call_id: str | None = None  # for role="tool" messages
-    name: str | None = None           # tool name for role="tool" messages
+    name: str | None = None  # tool name for role="tool" messages
     tool_calls: list[dict[str, Any]] | None = None  # for role="assistant" with tool calls
 
 
