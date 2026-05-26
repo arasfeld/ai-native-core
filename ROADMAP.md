@@ -223,7 +223,7 @@ Goal: Instrument the product with PostHog, Sentry, health metrics, and an admin 
 | -------- | ---- | ------ | ----- |
 | 108 | **PostHog integration** | ⬜ | Web + mobile event tracking, funnels, session recording, feature flags |
 | 109 | **Sentry integration** | ⬜ | Error tracking + performance monitoring (server + web + mobile) |
-| 110 | **Health metrics endpoint** | ⬜ | `GET /health/detailed` — DB, Redis, queue, LLM provider status |
+| 110 | **Health metrics endpoint** | ✅ | `GET /health/detailed` (admin-gated) — DB `SELECT 1`, ARQ Redis ping, queued_jobs probe, `llm.embed` with bounded timeouts; aggregates ok/degraded/down |
 | 111 | **Admin analytics dashboard** | ⬜ | MRR, retention, DAU, token usage trends; built on PostHog or direct DB queries |
 
 ---
