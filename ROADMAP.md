@@ -23,7 +23,7 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full system design.
 - **Phase 7** — Structured logging (structlog), token budget, prompt versioning
 - **Phase 8** — Auth (JWT + NextAuth v5), multi-tenancy (tenants table), Stripe billing, long-term memory, background agents
 - **Phase 9** — Multi-modal: image input (vision), image generation (DALL-E tool), audio transcription (Whisper), TTS streaming (`POST /media/transcribe`, `POST /media/tts`)
-- **Phase 22 (partial)** — Observability: `/health/detailed` probe (db/redis/queue/llm); Sentry SDK wired into server, web, and mobile
+- **Phase 22 (partial)** — Observability: `/health/detailed` probe (db/redis/queue/llm); Sentry SDK wired into server, web, and mobile; PostHog product analytics on web and mobile (identify on session, pageview/lifecycle capture)
 
 ---
 
@@ -222,7 +222,7 @@ Goal: Instrument the product with PostHog, Sentry, health metrics, and an admin 
 
 | Priority | Item | Status | Notes |
 | -------- | ---- | ------ | ----- |
-| 108 | **PostHog integration** | ⬜ | Web + mobile event tracking, funnels, session recording, feature flags |
+| 108 | **PostHog integration** | ✅ | `posthog-js` (Next.js App Router) + `posthog-react-native` (Expo); both gated on a key env var so they no-op locally. Web captures `$pageview` on route changes; mobile enables lifecycle autocapture. Both call `posthog.identify(user.id, …)` when a better-auth session is present and `posthog.reset()` on logout. |
 | 109 | **Sentry integration** | ✅ | Error tracking + performance monitoring across FastAPI (`sentry-sdk[fastapi]`), Next.js (`@sentry/nextjs` with tunnel route + sourcemap upload), and Expo (`@sentry/react-native`); all gated on a DSN env var so it no-ops in local dev |
 | 110 | **Health metrics endpoint** | ✅ | `GET /health/detailed` (admin-gated) — DB `SELECT 1`, ARQ Redis ping, queued_jobs probe, `llm.embed` with bounded timeouts; aggregates ok/degraded/down |
 | 111 | **Admin analytics dashboard** | ⬜ | MRR, retention, DAU, token usage trends; built on PostHog or direct DB queries |

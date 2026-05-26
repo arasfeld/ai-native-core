@@ -149,7 +149,7 @@ Before scaffolding anything new, confirm it doesn't already exist:
 **Notifications:** transactional email (React Email + Resend), in-app notification center, budget alerts
 **AI:** streaming chat (SSE), RAG (pgvector), multi-modal (image input, DALL-E, Whisper, TTS), tool calling, LangGraph agents
 **Infrastructure:** rate limiting middleware, audit logging, ARQ background jobs, structured logging
-**Observability:** `/health/detailed` admin probe (db/redis/queue/llm), Sentry SDK on FastAPI + Next.js + Expo
+**Observability:** `/health/detailed` admin probe (db/redis/queue/llm), Sentry SDK on FastAPI + Next.js + Expo, PostHog product analytics on Next.js + Expo
 
 ## Roadmap
 

@@ -5,6 +5,8 @@ const schema = z.object({
   NEXT_PUBLIC_API_URL: z.url().default("http://localhost:8000"),
   NEXT_PUBLIC_SENTRY_DSN: z.string().default(""),
   NEXT_PUBLIC_SENTRY_ENVIRONMENT: z.string().default("development"),
+  NEXT_PUBLIC_POSTHOG_KEY: z.string().default(""),
+  NEXT_PUBLIC_POSTHOG_HOST: z.url().default("https://us.i.posthog.com"),
 });
 
 const parsed = schema.safeParse(process.env);

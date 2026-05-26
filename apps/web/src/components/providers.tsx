@@ -4,6 +4,7 @@ import { TooltipProvider } from "@repo/ui/components/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import type * as React from "react";
+import { PostHogProvider } from "@/components/posthog-provider";
 
 const queryClient = new QueryClient();
 
@@ -17,7 +18,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
         disableTransitionOnChange
         enableColorScheme
       >
-        <TooltipProvider>{children}</TooltipProvider>
+        <TooltipProvider>
+          <PostHogProvider>{children}</PostHogProvider>
+        </TooltipProvider>
       </NextThemesProvider>
     </QueryClientProvider>
   );
