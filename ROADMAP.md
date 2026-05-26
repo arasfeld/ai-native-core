@@ -170,7 +170,7 @@ Goal: Make chat state persistent and manageable — named sessions, sidebar navi
 | 89 | **Conversation persistence** | ✅ | Named sessions stored in DB (`conversations` table); title auto-generated from first 60 chars |
 | 90 | **Conversation sidebar + switcher** | ✅ | Left sidebar on web listing all conversations grouped by date; click to load |
 | 91 | **Conversation management** | ✅ | Inline rename, delete with confirmation dialog |
-| 92 | **Full-text search** | ⬜ | Search messages by content across all conversations |
+| 92 | **Full-text search** | ✅ | `GET /conversations/search?q=…` — Postgres FTS over titles + messages (`websearch_to_tsquery`); GIN indexes on `chat_sessions.content` and `conversations.title`; `ts_headline` snippets with `\x02/\x03` highlight sentinels; debounced search box in sidebar |
 | 93 | **Conversation export** | ⬜ | Download as markdown, JSON, or PDF |
 | 94 | **Custom system instructions** | ✅ | Global via user_preferences + per-conversation on conversations table; additive resolution in ChatService; AiTab in settings + ConversationInstructions panel in chat |
 

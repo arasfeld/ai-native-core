@@ -37,6 +37,15 @@ class MessageOut(BaseModel):
     content: str
 
 
+class SearchResult(BaseModel):
+    conversation_id: str
+    title: str
+    updated_at: str | None = None
+    match_type: str  # "title" | "message"
+    snippet: str
+    role: str | None = None
+
+
 def _get_pool(request: Request):
     return request.app.state.db_pool
 
@@ -71,6 +80,88 @@ async def create_conversation(body: CreateConversationRequest, user: CurrentUser
         user.id,
     )
     return ConversationOut(id=body.id, title="New chat")
+
+
+@router.get("/search", response_model=list[SearchResult])
+async def search_conversations(
+    user: CurrentUser,
+    request: Request,
+    q: str = "",
+    limit: int = 30,
+):
+    """Full-text search across the user's conversation titles and message content."""
+    query = q.strip()
+    if len(query) < 2:
+        return []
+    limit = max(1, min(limit, 100))
+    pool = _get_pool(request)
+    # \x02/\x03 are STX/ETX — used as highlight sentinels in the snippet so
+    # the frontend can safely render <mark> without trusting raw HTML.
+    rows = await pool.fetch(
+        """
+        WITH q AS (
+          SELECT websearch_to_tsquery('english', $2) AS tsq
+        ),
+        title_matches AS (
+          SELECT
+            c.id   AS conversation_id,
+            c.title,
+            c.updated_at,
+            'title'::text AS match_type,
+            ts_headline(
+              'english', c.title, q.tsq,
+              'StartSel=' || chr(2) || ', StopSel=' || chr(3) || ', HighlightAll=true'
+            ) AS snippet,
+            2.0::real AS rank,
+            NULL::text AS role
+          FROM conversations c, q
+          WHERE c.user_id = $1
+            AND (to_tsvector('english', c.title) @@ q.tsq OR c.title ILIKE '%' || $2 || '%')
+        ),
+        msg_matches AS (
+          SELECT DISTINCT ON (c.id)
+            c.id   AS conversation_id,
+            c.title,
+            c.updated_at,
+            'message'::text AS match_type,
+            ts_headline(
+              'english', cs.content, q.tsq,
+              'StartSel=' || chr(2) || ', StopSel=' || chr(3) || ', MaxFragments=1, MaxWords=20, MinWords=5'
+            ) AS snippet,
+            ts_rank(to_tsvector('english', cs.content), q.tsq) AS rank,
+            cs.role
+          FROM conversations c
+          JOIN chat_sessions cs ON cs.session_id = $1 || ':' || c.id
+          CROSS JOIN q
+          WHERE c.user_id = $1
+            AND to_tsvector('english', cs.content) @@ q.tsq
+          ORDER BY c.id, ts_rank(to_tsvector('english', cs.content), q.tsq) DESC
+        )
+        SELECT conversation_id, title, updated_at, match_type, snippet, rank, role
+        FROM (
+          SELECT * FROM title_matches
+          UNION ALL
+          SELECT * FROM msg_matches
+          WHERE conversation_id NOT IN (SELECT conversation_id FROM title_matches)
+        ) combined
+        ORDER BY rank DESC, updated_at DESC
+        LIMIT $3
+        """,
+        user.id,
+        query,
+        limit,
+    )
+    return [
+        SearchResult(
+            conversation_id=r["conversation_id"],
+            title=r["title"],
+            updated_at=r["updated_at"].isoformat() if r["updated_at"] else None,
+            match_type=r["match_type"],
+            snippet=r["snippet"],
+            role=r["role"],
+        )
+        for r in rows
+    ]
 
 
 @router.get("/{conversation_id}/messages", response_model=list[MessageOut])
@@ -108,7 +199,11 @@ async def patch_conversation(
         raise HTTPException(status_code=404, detail="Conversation not found")
 
     new_title = body.title if body.title is not None else row["title"]
-    new_instructions = body.system_instructions if body.system_instructions is not None else row["system_instructions"]
+    new_instructions = (
+        body.system_instructions
+        if body.system_instructions is not None
+        else row["system_instructions"]
+    )
 
     await pool.execute(
         "UPDATE conversations SET title = $1, system_instructions = $2, updated_at = NOW() WHERE id = $3",
@@ -116,7 +211,9 @@ async def patch_conversation(
         new_instructions,
         conversation_id,
     )
-    return ConversationOut(id=conversation_id, title=new_title, system_instructions=new_instructions)
+    return ConversationOut(
+        id=conversation_id, title=new_title, system_instructions=new_instructions
+    )
 
 
 @router.delete("/{conversation_id}", status_code=204)
