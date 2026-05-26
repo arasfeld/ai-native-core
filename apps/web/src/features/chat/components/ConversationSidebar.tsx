@@ -13,10 +13,15 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
 import { Input } from "@repo/ui/components/input";
 import {
+  DownloadIcon,
   EllipsisIcon,
   PencilIcon,
   PlusIcon,
@@ -202,6 +207,26 @@ export function ConversationSidebar() {
     fetchConversations();
   }
 
+  async function handleExport(conv: Conversation, format: "markdown" | "json") {
+    const res = await fetch(
+      `/api/conversations/${conv.id}/export?format=${format}`,
+    );
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const disposition = res.headers.get("content-disposition") ?? "";
+    const match = disposition.match(/filename="([^"]+)"/);
+    a.download =
+      match?.[1] ??
+      `${conv.title.replace(/[^a-z0-9._-]+/gi, "-").toLowerCase() || "conversation"}.${format === "json" ? "json" : "md"}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   async function handleDelete(conv: Conversation) {
     await fetch(`/api/conversations/${conv.id}`, { method: "DELETE" });
     setDeleteTarget(null);
@@ -356,6 +381,33 @@ export function ConversationSidebar() {
                                 <PencilIcon className="mr-2 size-3" />
                                 Rename
                               </DropdownMenuItem>
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <DownloadIcon className="mr-2 size-3" />
+                                  Export
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent>
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleExport(conv, "markdown");
+                                    }}
+                                  >
+                                    Markdown (.md)
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleExport(conv, "json");
+                                    }}
+                                  >
+                                    JSON (.json)
+                                  </DropdownMenuItem>
+                                </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+                              <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 className="text-destructive"
                                 onClick={(e) => {

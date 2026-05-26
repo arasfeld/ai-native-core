@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Annotated
+import json
+import re
+from typing import Annotated, Literal
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
 from ..auth.deps import AuthUser, get_current_user
@@ -162,6 +165,81 @@ async def search_conversations(
         )
         for r in rows
     ]
+
+
+_SLUG_STRIP = re.compile(r"[^a-zA-Z0-9._-]+")
+
+
+def _safe_filename(title: str) -> str:
+    slug = _SLUG_STRIP.sub("-", title.strip()).strip("-").lower()
+    return slug[:80] or "conversation"
+
+
+@router.get("/{conversation_id}/export")
+async def export_conversation(
+    conversation_id: str,
+    user: CurrentUser,
+    request: Request,
+    format: Literal["markdown", "json"] = "markdown",
+):
+    """Download a conversation as Markdown or JSON."""
+    pool = _get_pool(request)
+    conv = await pool.fetchrow(
+        "SELECT id, title, system_instructions, created_at, updated_at "
+        "FROM conversations WHERE id = $1 AND user_id = $2",
+        conversation_id,
+        user.id,
+    )
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    scoped_id = f"{user.id}:{conversation_id}"
+    msgs = await pool.fetch(
+        "SELECT role, content FROM chat_sessions WHERE session_id = $1 ORDER BY id ASC",
+        scoped_id,
+    )
+
+    created = conv["created_at"].isoformat() if conv["created_at"] else None
+    updated = conv["updated_at"].isoformat() if conv["updated_at"] else None
+    safe = _safe_filename(conv["title"])
+
+    if format == "json":
+        payload = {
+            "id": conv["id"],
+            "title": conv["title"],
+            "system_instructions": conv["system_instructions"] or "",
+            "created_at": created,
+            "updated_at": updated,
+            "messages": [{"role": m["role"], "content": m["content"]} for m in msgs],
+        }
+        return Response(
+            content=json.dumps(payload, indent=2, ensure_ascii=False),
+            media_type="application/json",
+            headers={"Content-Disposition": f'attachment; filename="{safe}.json"'},
+        )
+
+    role_labels = {"user": "User", "assistant": "Assistant", "system": "System"}
+    lines: list[str] = [f"# {conv['title']}", ""]
+    if created:
+        lines += [f"_Created: {created}_", ""]
+    if conv["system_instructions"]:
+        lines += [
+            "## System instructions",
+            "",
+            conv["system_instructions"],
+            "",
+            "---",
+            "",
+        ]
+    for m in msgs:
+        label = role_labels.get(m["role"], m["role"].title())
+        lines += [f"## {label}", "", m["content"], "", "---", ""]
+    md = "\n".join(lines).rstrip() + "\n"
+    return Response(
+        content=md,
+        media_type="text/markdown; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{safe}.md"'},
+    )
 
 
 @router.get("/{conversation_id}/messages", response_model=list[MessageOut])

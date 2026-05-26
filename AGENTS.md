@@ -143,7 +143,7 @@ Before scaffolding anything new, confirm it doesn't already exist:
 **Auth:** email/password, Google + GitHub OAuth, email verification, 2FA/TOTP, session management, account deletion
 **Access control:** RBAC with roles/permissions, admin panel (user management, tenant management, audit log)
 **Organizations:** create/join orgs, member invitations, org roles (owner/admin/member), context switcher
-**Chat:** persistent conversation history with sidebar, full-text search across titles + messages (Postgres FTS), custom system instructions (global + per-conversation)
+**Chat:** persistent conversation history with sidebar, full-text search across titles + messages (Postgres FTS), custom system instructions (global + per-conversation), export to Markdown / JSON
 **User settings:** theme (dark/light/system), chat defaults, personal API key management
 **Billing:** Stripe subscriptions, per-tenant monthly token budgets, guest mode with 10k-token cap
 **Notifications:** transactional email (React Email + Resend), in-app notification center, budget alerts
