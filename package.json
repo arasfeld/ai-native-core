@@ -9,6 +9,7 @@
     "db:generate": "turbo -F @repo/db db:generate",
     "db:migrate": "turbo -F @repo/db db:migrate",
     "db:push": "turbo -F @repo/db db:push",
+    "db:reset": "turbo -F @repo/db db:reset",
     "db:studio": "turbo -F @repo/db db:studio",
     "dev": "turbo run dev",
     "dev:native": "turbo -F mobile dev",

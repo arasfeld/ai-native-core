@@ -19,6 +19,7 @@
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:reset": "tsx src/reset.ts",
     "db:studio": "drizzle-kit studio",
     "migrate": "tsx src/migrate.ts"
   },

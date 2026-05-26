@@ -13,6 +13,9 @@
     "db:push": {
       "cache": false
     },
+    "db:reset": {
+      "cache": false
+    },
     "db:generate": {
       "cache": false
     },
