@@ -126,3 +126,45 @@ def test_delete_account_removes_user(authed_client, mock_pool):
     resp = authed_client.delete("/auth/account")
 
     assert resp.status_code == 204
+
+
+def test_get_onboarding_returns_null_for_new_user(authed_client, mock_pool):
+    mock_pool.fetchrow = AsyncMock(return_value={"onboardingCompletedAt": None})
+
+    resp = authed_client.get("/auth/onboarding")
+
+    assert resp.status_code == 200
+    assert resp.json() == {"completedAt": None}
+
+
+def test_get_onboarding_returns_timestamp_when_completed(authed_client, mock_pool):
+    mock_pool.fetchrow = AsyncMock(
+        return_value={"onboardingCompletedAt": "2026-05-27T00:00:00+00:00"}
+    )
+
+    resp = authed_client.get("/auth/onboarding")
+
+    assert resp.status_code == 200
+    assert resp.json() == {"completedAt": "2026-05-27T00:00:00+00:00"}
+
+
+def test_post_onboarding_complete_marks_user(authed_client, mock_pool):
+    mock_pool.fetchrow = AsyncMock(
+        return_value={"onboardingCompletedAt": "2026-05-27T12:00:00+00:00"}
+    )
+
+    resp = authed_client.post("/auth/onboarding/complete")
+
+    assert resp.status_code == 200
+    assert resp.json() == {"completedAt": "2026-05-27T12:00:00+00:00"}
+    sql = mock_pool.fetchrow.call_args[0][0]
+    assert "COALESCE" in sql  # idempotent — never overwrites prior timestamp
+    assert "user-1" in mock_pool.fetchrow.call_args[0]
+
+
+def test_post_onboarding_complete_404_for_unknown_user(authed_client, mock_pool):
+    mock_pool.fetchrow = AsyncMock(return_value=None)
+
+    resp = authed_client.post("/auth/onboarding/complete")
+
+    assert resp.status_code == 404

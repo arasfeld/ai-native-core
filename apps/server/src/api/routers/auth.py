@@ -34,6 +34,10 @@ class ProfileUpdate(BaseModel):
     image: str | None = None
 
 
+class OnboardingStatus(BaseModel):
+    completedAt: str | None = None  # noqa: N815
+
+
 class SessionOut(BaseModel):
     id: str
     token: str
@@ -117,6 +121,39 @@ async def update_profile(
         image=row["image"],
         emailVerified=row["emailVerified"],
     )
+
+
+@router.get("/onboarding", response_model=OnboardingStatus)
+async def get_onboarding_status(request: Request, current_user: CurrentUser) -> OnboardingStatus:
+    """Return whether the current user has completed onboarding."""
+    pool = request.app.state.db_pool
+    row = await pool.fetchrow(
+        'SELECT "onboardingCompletedAt"::text FROM "user" WHERE id = $1',
+        current_user.id,
+    )
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return OnboardingStatus(completedAt=row["onboardingCompletedAt"])
+
+
+@router.post("/onboarding/complete", response_model=OnboardingStatus)
+async def complete_onboarding(request: Request, current_user: CurrentUser) -> OnboardingStatus:
+    """Mark onboarding as complete for the current user (idempotent)."""
+    pool = request.app.state.db_pool
+    row = await pool.fetchrow(
+        """
+        UPDATE "user"
+        SET "onboardingCompletedAt" = COALESCE("onboardingCompletedAt", NOW()),
+            "updatedAt" = NOW()
+        WHERE id = $1
+        RETURNING "onboardingCompletedAt"::text
+        """,
+        current_user.id,
+    )
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    log.info("auth.onboarding.completed", user_id=current_user.id)
+    return OnboardingStatus(completedAt=row["onboardingCompletedAt"])
 
 
 @router.get("/sessions", response_model=list[SessionOut])

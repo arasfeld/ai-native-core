@@ -11,6 +11,13 @@ export default async function ChatPage() {
   const session = await auth.api.getSession({ headers: hdrs });
 
   if (session) {
+    const user = session.user as {
+      onboardingCompletedAt?: Date | string | null;
+    };
+    if (!user.onboardingCompletedAt) {
+      redirect("/onboarding");
+    }
+
     const id = nanoid();
     try {
       await fetch(`${API_URL}/conversations`, {

@@ -133,6 +133,11 @@ export const auth = betterAuth({
         defaultValue: false,
         input: false,
       },
+      onboardingCompletedAt: {
+        type: "date" as const,
+        required: false,
+        input: false,
+      },
     },
   },
   plugins: [

@@ -9,6 +9,9 @@ export const user = pgTable("user", {
   isAdmin: boolean("isAdmin").default(false).notNull(),
   banned: boolean("banned").default(false).notNull(),
   image: text("image"),
+  onboardingCompletedAt: timestamp("onboardingCompletedAt", {
+    withTimezone: true,
+  }),
   createdAt: timestamp("createdAt", { withTimezone: true })
     .defaultNow()
     .notNull(),
