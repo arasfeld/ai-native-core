@@ -4,6 +4,7 @@ from typing import Annotated, Any, TypedDict
 
 import structlog
 from ai import BaseLLM, get_llm
+from ai.base import StreamEvent
 from langchain_core.messages import AIMessage, BaseMessage
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
@@ -54,10 +55,15 @@ class RAGAgent(BaseAgent):
         return await self._graph.ainvoke(input)
 
     async def stream(self, input: dict[str, Any]) -> AsyncIterator[str]:
+        async for event in self.stream_with_usage(input):
+            if event.type == "token" and event.content:
+                yield event.content
+
+    async def stream_with_usage(self, input: dict[str, Any]) -> AsyncIterator[StreamEvent]:
         system = self._build_system_prompt(input.get("context_chunks", []))
         messages = lc_to_messages(input.get("messages", []), system=system)
-        async for token in self.llm.stream(messages):
-            yield token
+        async for event in self.llm.stream_with_usage(messages):
+            yield event
 
 
 def build_rag_graph(llm: BaseLLM | None = None) -> RAGAgent:

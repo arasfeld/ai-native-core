@@ -74,6 +74,7 @@ import Link from "next/link";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { UserMenu } from "@/components/user-menu";
 import { ConversationInstructions } from "@/features/chat/components/ConversationInstructions";
+import { MessageActions } from "@/features/chat/components/MessageActions";
 import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { OrgSwitcher } from "@/features/organizations";
 import { useGeolocation } from "@/hooks/use-geolocation";
@@ -408,6 +409,18 @@ export function Chat({
                           ))}
                         </SourcesContent>
                       </Sources>
+                    )}
+
+                    {/* Thumbs feedback — only after streaming has finished
+                        and only for assistant messages that have a runId. */}
+                    {msg.role === "assistant" && !isStreamingThis && (
+                      <MessageActions
+                        runId={
+                          (msg.metadata as { runId?: string } | undefined)
+                            ?.runId ?? ""
+                        }
+                        sessionId={conversationId}
+                      />
                     )}
                   </MessageContent>
                 </Message>

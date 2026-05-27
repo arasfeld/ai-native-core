@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import asyncio
+import json
+import uuid
 from collections.abc import AsyncIterator
 from typing import Any
 
 import structlog
+from agents import trace_chat
 from langchain_core.messages import HumanMessage
 from memory import MemoryExtractor, estimate_tokens
 
@@ -51,13 +54,25 @@ class ChatService:
         return (row.get("system_instructions") or "") if row else ""
 
     async def stream(
-        self, request: Any, user: AuthUser, *, is_guest: bool = False
+        self,
+        request: Any,
+        user: AuthUser,
+        *,
+        is_guest: bool = False,
+        run_id: uuid.UUID | None = None,
     ) -> AsyncIterator[str]:
         """Stream SSE tokens for a chat turn.
 
         Yields lines in SSE format: ``data: <token>\\n\\n``
         Terminates with ``data: [DONE]\\n\\n``
+
+        ``run_id`` identifies this invocation in LangSmith and is mirrored to
+        clients as the leading meta event and an ``X-Run-Id`` response header.
+        Callers should generate it upfront so the header can be set before the
+        generator starts producing bytes.
         """
+        if run_id is None:
+            run_id = uuid.uuid4()
         session_id = SessionRepository.scope(user.id, request.session_id)
 
         # Ensure tenant record exists for registered users (idempotent upsert)
@@ -112,19 +127,76 @@ class ChatService:
             "system_prompt": effective_system_prompt or None,
         }
 
+        # Emit the run_id as the first SSE event so SSE clients can correlate
+        # the stream with a LangSmith trace (and submit feedback in Phase 3).
+        yield f"data: {json.dumps({'type': 'meta', 'run_id': str(run_id)})}\n\n"
+
         accumulated: list[str] = []
+        real_usage_total = 0
+        message_for_trace = (
+            request.message if isinstance(request.message, str) else str(request.message)
+        )
         try:
-            log.info("chat.stream.start", session_id=session_id, user_id=user.id, is_guest=is_guest)
-            async for token in agent.stream(state):
-                accumulated.append(token)
-                yield f"data: {token}\n\n"
+            log.info(
+                "chat.stream.start",
+                session_id=session_id,
+                user_id=user.id,
+                is_guest=is_guest,
+                run_id=str(run_id),
+            )
+            with trace_chat(
+                run_id=run_id,
+                name="chat.stream",
+                inputs={"message": message_for_trace, "use_rag": request.use_rag},
+                metadata={
+                    "session_id": session_id,
+                    "tenant_id": budget_key,
+                    "user_id": user.id,
+                    "is_guest": is_guest,
+                },
+                tags=[
+                    "chat",
+                    "rag" if request.use_rag else "no_rag",
+                    "guest" if is_guest else "registered",
+                ],
+            ) as run_tree:
+                async for event in agent.stream_with_usage(state):
+                    if event.type == "token" and event.content:
+                        accumulated.append(event.content)
+                        yield f"data: {event.content}\n\n"
+                    elif event.type == "usage" and event.usage:
+                        real_usage_total = event.usage.total_tokens
 
-            full_reply = "".join(accumulated)
+                full_reply = "".join(accumulated)
+                estimated_tokens = estimate_tokens(request.message) + estimate_tokens(full_reply)
+                tokens_used = real_usage_total or estimated_tokens
 
-            # Persist assistant reply and token usage
+                if run_tree is not None:
+                    run_tree.add_outputs({"response": full_reply})
+                    run_tree.add_metadata(
+                        {
+                            "tokens_real": real_usage_total,
+                            "tokens_estimated": estimated_tokens,
+                            "tokens_recorded": tokens_used,
+                            "tokens_source": "real" if real_usage_total else "estimate",
+                        }
+                    )
+
+            # Persist assistant reply and token usage. Prefer real usage when the
+            # provider exposed it (OpenAI/Anthropic/OpenRouter); fall back to the
+            # estimate for providers that don't stream usage (Ollama).
             await self._session_repo.save_message(session_id, "assistant", full_reply)
-            tokens_used = estimate_tokens(request.message) + estimate_tokens(full_reply)
             await self._session_repo.add_token_usage(session_id, tokens_used, budget_key)
+
+            log.info(
+                "chat.stream.complete",
+                session_id=session_id,
+                run_id=str(run_id),
+                tokens_real=real_usage_total,
+                tokens_estimated=estimated_tokens,
+                tokens_recorded=tokens_used,
+                source="real" if real_usage_total else "estimate",
+            )
 
             # Background: budget threshold notifications (registered users only)
             if not is_guest:
@@ -146,5 +218,5 @@ class ChatService:
             yield "data: [DONE]\n\n"
 
         except Exception as exc:
-            log.error("chat.stream.error", error=str(exc))
+            log.error("chat.stream.error", error=str(exc), run_id=str(run_id))
             yield f"data: Error: {exc}\n\n"

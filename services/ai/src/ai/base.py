@@ -1,5 +1,5 @@
 from collections.abc import AsyncIterator
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Literal, Protocol, runtime_checkable
 
 from pydantic import BaseModel
 
@@ -25,6 +25,22 @@ class LLMResponse(BaseModel):
     tool_calls: list[dict[str, Any]] | None = None  # populated when LLM requests tool calls
 
 
+class StreamEvent(BaseModel):
+    """A single event emitted from stream_with_usage().
+
+    Most events are ``type="token"`` carrying a content delta. A final
+    ``type="usage"`` event carries the total token usage for the call, when
+    the provider exposes it (OpenAI/OpenRouter via ``stream_options.include_usage``,
+    Anthropic via ``message_delta``). Providers that don't expose usage
+    (Ollama) simply don't emit a usage event — callers should fall back to
+    a token estimate in that case.
+    """
+
+    type: Literal["token", "usage"]
+    content: str | None = None
+    usage: Usage | None = None
+
+
 @runtime_checkable
 class BaseLLM(Protocol):
     """Protocol defining the interface for all LLM providers."""
@@ -35,6 +51,17 @@ class BaseLLM(Protocol):
 
     async def stream(self, messages: list[Message], **kwargs) -> AsyncIterator[str]:
         """Send messages and stream response tokens."""
+        ...
+
+    async def stream_with_usage(
+        self, messages: list[Message], **kwargs
+    ) -> AsyncIterator[StreamEvent]:
+        """Stream tokens and emit a final usage event.
+
+        Yields ``StreamEvent(type="token", content=...)`` for each token, then
+        optionally a final ``StreamEvent(type="usage", usage=...)`` if the
+        provider exposes streamed usage.
+        """
         ...
 
     async def embed(self, text: str) -> list[float]:

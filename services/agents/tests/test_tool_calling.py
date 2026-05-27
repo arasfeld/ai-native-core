@@ -114,6 +114,7 @@ async def test_chat_agent_executes_tool_and_returns_result():
 async def test_chat_agent_without_tools_streams_directly():
     """Without tools, agent streams tokens directly."""
     from agents import build_chat_graph
+    from ai import StreamEvent
 
     mock_llm = AsyncMock()
 
@@ -121,7 +122,12 @@ async def test_chat_agent_without_tools_streams_directly():
         for token in ["Mock", " response", "."]:
             yield token
 
+    async def fake_stream_with_usage(messages, **kwargs):
+        for token in ["Mock", " response", "."]:
+            yield StreamEvent(type="token", content=token)
+
     mock_llm.stream = fake_stream
+    mock_llm.stream_with_usage = fake_stream_with_usage
 
     agent = build_chat_graph(llm=mock_llm)
     tokens = []

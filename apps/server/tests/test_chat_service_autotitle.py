@@ -5,6 +5,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from ai import StreamEvent
 from api.auth.deps import AuthUser
 from api.repositories.session_repository import SessionRepository
 from api.services.chat_service import ChatService
@@ -14,6 +15,11 @@ from api.services.context_service import ContextService
 async def _async_gen(items):
     for item in items:
         yield item
+
+
+async def _async_events(tokens):
+    for t in tokens:
+        yield StreamEvent(type="token", content=t)
 
 
 def make_service(pool: AsyncMock) -> ChatService:
@@ -31,6 +37,7 @@ def make_service(pool: AsyncMock) -> ChatService:
 
     agent = MagicMock()
     agent.stream = MagicMock(return_value=_async_gen(["Hello", "!"]))
+    agent.stream_with_usage = MagicMock(return_value=_async_events(["Hello", "!"]))
 
     agent_factory = MagicMock()
     agent_factory.build = MagicMock(return_value=agent)

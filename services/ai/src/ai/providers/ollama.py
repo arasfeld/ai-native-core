@@ -3,7 +3,7 @@ from collections.abc import AsyncIterator
 
 from openai import AsyncOpenAI
 
-from ..base import LLMResponse, Message
+from ..base import LLMResponse, Message, StreamEvent
 from ..utils import messages_to_dicts, parse_openai_usage
 
 
@@ -51,6 +51,14 @@ class OllamaProvider:
             delta = chunk.choices[0].delta.content
             if delta:
                 yield delta
+
+    async def stream_with_usage(
+        self, messages: list[Message], **kwargs
+    ) -> AsyncIterator[StreamEvent]:
+        # Ollama's OpenAI shim doesn't reliably surface usage on streamed chunks;
+        # emit tokens only. Callers fall back to estimate_tokens for this provider.
+        async for token in self.stream(messages, **kwargs):
+            yield StreamEvent(type="token", content=token)
 
     async def embed(self, text: str) -> list[float]:
         response = await self.client.embeddings.create(

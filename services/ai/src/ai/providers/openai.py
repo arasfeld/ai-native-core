@@ -6,7 +6,7 @@ from collections.abc import AsyncIterator
 
 from openai import AsyncOpenAI
 
-from ..base import LLMResponse, Message
+from ..base import LLMResponse, Message, StreamEvent, Usage
 from ..utils import messages_to_dicts, parse_openai_usage
 
 
@@ -83,6 +83,35 @@ class OpenAIProvider:
             delta = chunk.choices[0].delta.content
             if delta:
                 yield delta
+
+    async def stream_with_usage(
+        self, messages: list[Message], **kwargs
+    ) -> AsyncIterator[StreamEvent]:
+        params = {**kwargs}
+        stream_options = params.pop("stream_options", {}) or {}
+        stream_options["include_usage"] = True
+
+        stream = await self.client.chat.completions.create(
+            model=self.model,
+            messages=messages_to_dicts(messages),
+            stream=True,
+            stream_options=stream_options,
+            **params,
+        )
+        async for chunk in stream:
+            if chunk.choices:
+                delta = chunk.choices[0].delta.content
+                if delta:
+                    yield StreamEvent(type="token", content=delta)
+            if getattr(chunk, "usage", None):
+                yield StreamEvent(
+                    type="usage",
+                    usage=Usage(
+                        prompt_tokens=chunk.usage.prompt_tokens,
+                        completion_tokens=chunk.usage.completion_tokens,
+                        total_tokens=chunk.usage.total_tokens,
+                    ),
+                )
 
     async def embed(self, text: str) -> list[float]:
         response = await self.client.embeddings.create(

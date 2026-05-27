@@ -1,9 +1,14 @@
+import { sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
+  check,
   index,
+  integer,
   jsonb,
+  numeric,
   pgTable,
+  smallint,
   text,
   timestamp,
   uuid,
@@ -81,5 +86,53 @@ export const documentChunks = pgTable(
       "hnsw",
       table.embedding.op("vector_cosine_ops"),
     ),
+  ],
+);
+
+export const messageFeedback = pgTable(
+  "message_feedback",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    runId: uuid("run_id").notNull(),
+    sessionId: text("session_id").notNull(),
+    tenantId: text("tenant_id").notNull(),
+    userId: text("user_id"),
+    rating: smallint("rating").notNull(),
+    comment: text("comment"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("message_feedback_run_id_idx").on(table.runId),
+    index("message_feedback_tenant_created_idx").on(
+      table.tenantId,
+      table.createdAt,
+    ),
+    index("message_feedback_session_idx").on(table.sessionId),
+    check("message_feedback_rating_check", sql`rating IN (-1, 1)`),
+  ],
+);
+
+export const evalRuns = pgTable(
+  "eval_runs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    commitSha: text("commit_sha").notNull(),
+    branch: text("branch"),
+    category: text("category").notNull(),
+    scorer: text("scorer").notNull(),
+    passCount: integer("pass_count").notNull(),
+    totalCount: integer("total_count").notNull(),
+    score: numeric("score", { precision: 5, scale: 4 }).notNull(),
+    threshold: numeric("threshold", { precision: 5, scale: 4 }),
+    langsmithRunUrl: text("langsmith_run_url"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("eval_runs_category_created_idx").on(table.category, table.createdAt),
+    index("eval_runs_scorer_created_idx").on(table.scorer, table.createdAt),
   ],
 );

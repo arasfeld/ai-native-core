@@ -20,6 +20,7 @@ from .repositories.session_repository import SessionRepository
 from .routers import (
     admin,
     admin_analytics,
+    admin_evals,
     admin_tenants,
     admin_users,
     audit_logs,
@@ -27,6 +28,7 @@ from .routers import (
     billing,
     chat,
     conversations,
+    feedback,
     health,
     ingest,
     jobs,
@@ -228,6 +230,40 @@ CREATE INDEX IF NOT EXISTS referrals_referrer_idx ON referrals (referrer_user_id
 CREATE INDEX IF NOT EXISTS referrals_code_idx     ON referrals (code);
 """
 
+_CREATE_MESSAGE_FEEDBACK = """
+CREATE TABLE IF NOT EXISTS message_feedback (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  run_id      UUID        NOT NULL,
+  session_id  TEXT        NOT NULL,
+  tenant_id   TEXT        NOT NULL,
+  user_id     TEXT,
+  rating      SMALLINT    NOT NULL CHECK (rating IN (-1, 1)),
+  comment     TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS message_feedback_run_id_idx          ON message_feedback (run_id);
+CREATE INDEX IF NOT EXISTS message_feedback_tenant_created_idx  ON message_feedback (tenant_id, created_at);
+CREATE INDEX IF NOT EXISTS message_feedback_session_idx         ON message_feedback (session_id);
+"""
+
+_CREATE_EVAL_RUNS = """
+CREATE TABLE IF NOT EXISTS eval_runs (
+  id                 UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  commit_sha         TEXT         NOT NULL,
+  branch             TEXT,
+  category           TEXT         NOT NULL,
+  scorer             TEXT         NOT NULL,
+  pass_count         INTEGER      NOT NULL,
+  total_count        INTEGER      NOT NULL,
+  score              NUMERIC(5,4) NOT NULL,
+  threshold          NUMERIC(5,4),
+  langsmith_run_url  TEXT,
+  created_at         TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS eval_runs_category_created_idx ON eval_runs (category, created_at DESC);
+CREATE INDEX IF NOT EXISTS eval_runs_scorer_created_idx   ON eval_runs (scorer, created_at DESC);
+"""
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -244,6 +280,8 @@ async def lifespan(app: FastAPI):
         await conn.execute(_CREATE_USER_PREFERENCES)
         await conn.execute(_CREATE_AUDIT_LOGS)
         await conn.execute(_CREATE_REFERRALS)
+        await conn.execute(_CREATE_MESSAGE_FEEDBACK)
+        await conn.execute(_CREATE_EVAL_RUNS)
 
     # Load runtime AI config from DB (populated by migration 0002)
     try:
@@ -346,3 +384,5 @@ app.include_router(organizations.router)
 app.include_router(preferences.router)
 app.include_router(audit_logs.router)
 app.include_router(referrals.router)
+app.include_router(feedback.router)
+app.include_router(admin_evals.router)

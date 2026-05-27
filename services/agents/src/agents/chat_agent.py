@@ -4,7 +4,7 @@ from typing import Annotated, Any, TypedDict
 
 import structlog
 from ai import BaseLLM, get_llm
-from ai.base import Message
+from ai.base import Message, StreamEvent, Usage
 from langchain_core.messages import AIMessage, BaseMessage
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
@@ -72,23 +72,39 @@ class ChatAgent(BaseAgent):
         return await self._graph.ainvoke(input)
 
     async def stream(self, input: dict[str, Any]) -> AsyncIterator[str]:
+        async for event in self.stream_with_usage(input):
+            if event.type == "token" and event.content:
+                yield event.content
+
+    async def stream_with_usage(self, input: dict[str, Any]) -> AsyncIterator[StreamEvent]:
         system = input.get("system_prompt") or self.system_prompt
         messages = lc_to_messages(input.get("messages", []), system=system or None)
+        total = Usage()
+        saw_usage = False
 
         if not self._tools:
             # Simple path: stream directly without tool loop
-            async for token in self.llm.stream(messages):
-                yield token
+            async for event in self.llm.stream_with_usage(messages):
+                if event.type == "usage" and event.usage:
+                    saw_usage = True
+                    total = _add_usage(total, event.usage)
+                else:
+                    yield event
+            if saw_usage:
+                yield StreamEvent(type="usage", usage=total)
             return
 
         # Tool-calling path: loop until no more tool calls, then yield final answer
         while True:
             response = await self._llm_with_tools.chat(messages)
+            if response.usage:
+                saw_usage = True
+                total = _add_usage(total, response.usage)
 
             if not response.tool_calls:
                 # Final answer — yield content
                 if response.content:
-                    yield response.content
+                    yield StreamEvent(type="token", content=response.content)
                 break
 
             log.info(
@@ -125,6 +141,17 @@ class ChatAgent(BaseAgent):
                         name=tc["name"],
                     )
                 )
+
+        if saw_usage:
+            yield StreamEvent(type="usage", usage=total)
+
+
+def _add_usage(a: Usage, b: Usage) -> Usage:
+    return Usage(
+        prompt_tokens=a.prompt_tokens + b.prompt_tokens,
+        completion_tokens=a.completion_tokens + b.completion_tokens,
+        total_tokens=a.total_tokens + b.total_tokens,
+    )
 
 
 def build_chat_graph(

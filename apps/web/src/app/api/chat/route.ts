@@ -105,6 +105,23 @@ export async function POST(req: NextRequest) {
             if (!match) continue;
             const token = match[1] ?? "";
             if (token === "[DONE]") continue;
+            // Leading meta event from FastAPI carries the LangSmith run_id —
+            // surface it as AI SDK message metadata so the client can submit
+            // feedback against the trace.
+            if (token.startsWith("{") && token.includes('"type"')) {
+              try {
+                const parsed = JSON.parse(token);
+                if (parsed?.type === "meta" && parsed?.run_id) {
+                  writer.write({
+                    type: "message-metadata",
+                    messageMetadata: { runId: parsed.run_id },
+                  });
+                  continue;
+                }
+              } catch {
+                // Fall through to treat as a regular token.
+              }
+            }
             const delta = token === "" ? "\n" : token;
             writer.write({ type: "text-delta", id: textId, delta });
           }

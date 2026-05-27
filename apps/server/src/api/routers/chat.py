@@ -1,5 +1,6 @@
 """Chat router — thin HTTP adapter. All orchestration is in ChatService."""
 
+import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, Request
@@ -48,7 +49,11 @@ async def chat(
 ) -> StreamingResponse:
     """Stream a chat response via Server-Sent Events. Auth is optional; guests use IP-based identity."""
     user = current_user or _guest_user_from_ip(request.client.host if request.client else "unknown")
+    # Allocate run_id here so it can ride the response headers before any SSE
+    # bytes are flushed. The service uses the same id in its SSE meta event.
+    run_id = uuid.uuid4()
     return StreamingResponse(
-        chat_service.stream(req, user, is_guest=current_user is None),
+        chat_service.stream(req, user, is_guest=current_user is None, run_id=run_id),
         media_type="text/event-stream",
+        headers={"X-Run-Id": str(run_id)},
     )

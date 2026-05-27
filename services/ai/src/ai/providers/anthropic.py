@@ -4,7 +4,7 @@ from collections.abc import AsyncIterator
 
 from anthropic import AsyncAnthropic
 
-from ..base import LLMResponse, Message, Usage
+from ..base import LLMResponse, Message, StreamEvent, Usage
 
 
 class AnthropicProvider:
@@ -179,6 +179,33 @@ class AnthropicProvider:
         async with self.client.messages.stream(**stream_kwargs) as stream:
             async for text in stream.text_stream:
                 yield text
+
+    async def stream_with_usage(
+        self, messages: list[Message], **kwargs
+    ) -> AsyncIterator[StreamEvent]:
+        system, turns = self._split_messages(messages)
+        stream_kwargs: dict = {
+            "model": self.model,
+            "max_tokens": self.max_tokens,
+            "messages": turns,
+            **kwargs,
+        }
+        if system:
+            stream_kwargs["system"] = system
+
+        async with self.client.messages.stream(**stream_kwargs) as stream:
+            async for text in stream.text_stream:
+                yield StreamEvent(type="token", content=text)
+            final = await stream.get_final_message()
+            if final.usage:
+                yield StreamEvent(
+                    type="usage",
+                    usage=Usage(
+                        prompt_tokens=final.usage.input_tokens,
+                        completion_tokens=final.usage.output_tokens,
+                        total_tokens=final.usage.input_tokens + final.usage.output_tokens,
+                    ),
+                )
 
     async def embed(self, text: str) -> list[float]:
         raise NotImplementedError(

@@ -57,13 +57,15 @@ async def test_stream_yields_tokens(agent, mock_llm):
 
 
 async def test_stream_uses_system_prompt(mock_llm):
+    from ai import StreamEvent
+
     captured: list = []
 
-    async def _stream(messages, **kwargs):
+    async def _stream_with_usage(messages, **kwargs):
         captured.extend(messages)
-        yield "ok"
+        yield StreamEvent(type="token", content="ok")
 
-    mock_llm.stream = _stream
+    mock_llm.stream_with_usage = _stream_with_usage
     agent = build_chat_graph(llm=mock_llm)
     state = {
         "messages": [HumanMessage(content="Hi")],
@@ -92,3 +94,28 @@ async def test_multi_turn_history_preserved(agent, mock_llm):
     roles = [m.role for m in call_messages]
     assert roles.count("user") == 2
     assert roles.count("assistant") == 1
+
+
+async def test_stream_with_usage_forwards_usage_event(mock_llm):
+    """stream_with_usage emits tokens then a final aggregated usage event."""
+    from ai import StreamEvent, Usage
+
+    async def _stream_with_usage(*args, **kwargs):
+        yield StreamEvent(type="token", content="hi")
+        yield StreamEvent(
+            type="usage",
+            usage=Usage(prompt_tokens=10, completion_tokens=3, total_tokens=13),
+        )
+
+    mock_llm.stream_with_usage = _stream_with_usage
+    agent = build_chat_graph(llm=mock_llm)
+
+    state = {
+        "messages": [HumanMessage(content="hi")],
+        "session_id": "test",
+        "system_prompt": "",
+    }
+    events = [e async for e in agent.stream_with_usage(state)]
+    assert any(e.type == "token" and e.content == "hi" for e in events)
+    usage_event = next(e for e in events if e.type == "usage")
+    assert usage_event.usage.total_tokens == 13
