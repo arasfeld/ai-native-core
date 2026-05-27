@@ -252,7 +252,7 @@ Goal: Ship a polished first-run experience, satisfy legal requirements, and add 
 | -------- | ---- | ------ | ----- |
 | 118 | **Onboarding wizard** | ⬜ | 3-step web flow: create account → try chat → upgrade CTA; skippable |
 | 119 | **Legal pages** | ✅ | `/terms` and `/privacy` rendered by `features/legal` with a shared `LegalLayout` (top nav back to `/`, `@tailwindcss/typography` prose styling, legal-link footer); content is a reviewable template covering accounts, acceptable use, AI-generated output, billing, retention, sub-processors, and user rights. Footer links added to the landing page. |
-| 120 | **GDPR compliance** | ⬜ | Data export endpoint; account deletion wipes all PII; cookie consent banner |
+| 120 | **GDPR compliance** | ✅ | `GET /auth/export` returns a per-user JSON download (profile, tenant, sessions, conversations, messages, token usage, notifications, audit log, API keys, org memberships) with an `account.exported` audit entry. Account deletion cascades user-owned tables via `ON DELETE CASCADE` and now also wipes `chat_sessions` / `session_token_usage` rows (which had no FK on `"user"`). Cookie consent banner gates PostHog initialization; a Privacy tab in `/settings` lets users re-consent and download their data |
 | 121 | **Referral system** | ⬜ | Unique share links → both parties earn bonus tokens |
 
 ---

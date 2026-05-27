@@ -11,6 +11,7 @@ import { OrganizationTab } from "@/features/organizations/components/Organizatio
 import { AiTab } from "./AiTab";
 import { ApiKeysTab } from "./ApiKeysTab";
 import { AppearanceTab } from "./AppearanceTab";
+import { PrivacyTab } from "./PrivacyTab";
 import { ProfileTab } from "./ProfileTab";
 import { SecurityTab } from "./SecurityTab";
 
@@ -21,6 +22,7 @@ const VALID_TABS = [
   "organization",
   "ai",
   "security",
+  "privacy",
 ] as const;
 type Tab = (typeof VALID_TABS)[number];
 
@@ -47,6 +49,7 @@ export function SettingsPage({ tab }: { tab: string }) {
           <TabsTrigger value="organization">Organization</TabsTrigger>
           <TabsTrigger value="ai">AI</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
+          <TabsTrigger value="privacy">Privacy</TabsTrigger>
         </TabsList>
         <TabsContent value="profile" className="mt-6">
           <ProfileTab />
@@ -65,6 +68,9 @@ export function SettingsPage({ tab }: { tab: string }) {
         </TabsContent>
         <TabsContent value="security" className="mt-6">
           <SecurityTab />
+        </TabsContent>
+        <TabsContent value="privacy" className="mt-6">
+          <PrivacyTab />
         </TabsContent>
       </Tabs>
     </div>

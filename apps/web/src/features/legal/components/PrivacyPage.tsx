@@ -92,8 +92,9 @@ export function PrivacyPage() {
       <p>
         Depending on where you live, you may have the right to access, correct,
         export, or delete personal data we hold about you, to object to or
-        restrict certain processing, and to withdraw consent. You can exercise
-        most of these rights directly from the profile page, or by emailing{" "}
+        restrict certain processing, and to withdraw consent. You can download a
+        copy of your data and manage cookie preferences from the Privacy tab in{" "}
+        <a href="/settings?tab=privacy">Settings</a>, or by emailing{" "}
         <a href="mailto:privacy@example.com">privacy@example.com</a>.
       </p>
 

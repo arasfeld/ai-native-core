@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import json
+from datetime import datetime
+from typing import Any
+
 import structlog
 from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import Response
@@ -158,6 +162,111 @@ async def revoke_session(
     return Response(status_code=204)
 
 
+def _json_default(value: Any) -> Any:
+    if isinstance(value, datetime):
+        return value.isoformat()
+    raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")
+
+
+@router.get("/export")
+async def export_user_data(request: Request, current_user: CurrentUser) -> Response:
+    """Return all personal data associated with the current user as a JSON download (GDPR Article 20)."""
+    pool = request.app.state.db_pool
+    user_id = current_user.id
+    session_prefix = f"{user_id}:%"
+
+    profile_row = await pool.fetchrow(
+        'SELECT id, email, name, image, "emailVerified", "createdAt", "updatedAt" '
+        'FROM "user" WHERE id = $1',
+        user_id,
+    )
+    if not profile_row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    tenant_row = await pool.fetchrow(
+        "SELECT id, name, slug, plan, token_limit, created_at FROM tenants WHERE id = $1",
+        user_id,
+    )
+    preferences_row = await pool.fetchrow(
+        "SELECT system_instructions, updated_at FROM user_preferences WHERE user_id = $1",
+        user_id,
+    )
+    session_rows = await pool.fetch(
+        'SELECT id, "ipAddress", "userAgent", "createdAt", "expiresAt" '
+        'FROM "session" WHERE "userId" = $1 ORDER BY "createdAt" DESC',
+        user_id,
+    )
+    conversation_rows = await pool.fetch(
+        "SELECT id, title, system_instructions, created_at, updated_at "
+        "FROM conversations WHERE user_id = $1 ORDER BY created_at",
+        user_id,
+    )
+    message_rows = await pool.fetch(
+        "SELECT session_id, role, content, created_at FROM chat_sessions "
+        "WHERE session_id LIKE $1 ORDER BY session_id, created_at",
+        session_prefix,
+    )
+    token_usage_rows = await pool.fetch(
+        "SELECT session_id, tokens, recorded_at FROM session_token_usage "
+        "WHERE tenant_id = $1 OR session_id LIKE $2 ORDER BY recorded_at",
+        user_id,
+        session_prefix,
+    )
+    notification_rows = await pool.fetch(
+        "SELECT id, type, title, body, read_at, created_at "
+        "FROM notifications WHERE user_id = $1 ORDER BY created_at DESC",
+        user_id,
+    )
+    audit_rows = await pool.fetch(
+        "SELECT id, action, resource_type, resource_id, metadata, ip_address, created_at "
+        "FROM audit_logs WHERE actor_id = $1 ORDER BY created_at DESC",
+        user_id,
+    )
+    api_key_rows = await pool.fetch(
+        "SELECT id, name, key_prefix, created_at, last_used_at, revoked_at "
+        "FROM user_api_keys WHERE user_id = $1 ORDER BY created_at",
+        user_id,
+    )
+    org_member_rows = await pool.fetch(
+        "SELECT org_id, role, joined_at FROM organization_members WHERE user_id = $1",
+        user_id,
+    )
+
+    export = {
+        "exported_at": datetime.utcnow().isoformat() + "Z",
+        "user": dict(profile_row),
+        "tenant": dict(tenant_row) if tenant_row else None,
+        "preferences": dict(preferences_row) if preferences_row else None,
+        "sessions": [dict(r) for r in session_rows],
+        "conversations": [dict(r) for r in conversation_rows],
+        "messages": [dict(r) for r in message_rows],
+        "token_usage": [dict(r) for r in token_usage_rows],
+        "notifications": [dict(r) for r in notification_rows],
+        "audit_log": [dict(r) for r in audit_rows],
+        "api_keys": [dict(r) for r in api_key_rows],
+        "organization_memberships": [dict(r) for r in org_member_rows],
+    }
+
+    log_audit_event(
+        pool,
+        user_id,
+        "account.exported",
+        "user",
+        user_id,
+        ip_address=get_client_ip(request),
+    )
+    log.info("auth.account.exported", user_id=user_id)
+
+    body = json.dumps(export, default=_json_default, indent=2)
+    timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+    filename = f"user-data-{user_id}-{timestamp}.json"
+    return Response(
+        content=body,
+        media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @router.delete("/account", status_code=204)
 async def delete_account(request: Request, current_user: CurrentUser) -> Response:
     """Permanently delete the current user's account, cancelling any Stripe subscription first."""
@@ -190,6 +299,15 @@ async def delete_account(request: Request, current_user: CurrentUser) -> Respons
         "user",
         current_user.id,
         ip_address=get_client_ip(request),
+    )
+    # chat_sessions / session_token_usage have no FK on "user" — wipe rows owned
+    # by this user (session_id is scoped as "{user_id}:{session_id}").
+    session_prefix = f"{current_user.id}:%"
+    await pool.execute("DELETE FROM chat_sessions WHERE session_id LIKE $1", session_prefix)
+    await pool.execute(
+        "DELETE FROM session_token_usage WHERE tenant_id = $1 OR session_id LIKE $2",
+        current_user.id,
+        session_prefix,
     )
     await pool.execute("DELETE FROM tenants WHERE id = $1", current_user.id)
     await pool.execute('DELETE FROM "user" WHERE id = $1', current_user.id)

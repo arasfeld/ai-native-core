@@ -5,11 +5,17 @@ import posthog from "posthog-js";
 import { PostHogProvider as Provider } from "posthog-js/react";
 import { type ReactNode, Suspense, useEffect } from "react";
 import { authClient } from "@/lib/auth-client";
+import { hasAcceptedAnalytics } from "@/lib/cookie-consent";
 
 const KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
 const HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://us.i.posthog.com";
 
-if (typeof window !== "undefined" && KEY && !posthog.__loaded) {
+if (
+  typeof window !== "undefined" &&
+  KEY &&
+  !posthog.__loaded &&
+  hasAcceptedAnalytics()
+) {
   posthog.init(KEY, {
     api_host: HOST,
     capture_pageview: false,
