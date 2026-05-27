@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { InvoiceHistory } from "./InvoiceHistory";
 
 type PlanInfo = {
   plan: string;
@@ -151,6 +152,9 @@ export function BillingPage() {
           </div>
         </div>
       )}
+
+      {/* Invoice history */}
+      <InvoiceHistory />
 
       {/* Plan comparison */}
       <div className="grid grid-cols-2 gap-4">

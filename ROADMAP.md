@@ -208,7 +208,7 @@ Goal: Provide full billing transparency, support org seat pricing, free trials, 
 
 | Priority | Item | Status | Notes |
 | -------- | ---- | ------ | ----- |
-| 103 | **Invoice history** | ⬜ | Pull from Stripe API; list + download PDF links |
+| 103 | **Invoice history** | ✅ | `GET /billing/invoices` proxies `stripe.Invoice.list` for the tenant's customer; `InvoiceHistory` table on `/billing` shows date, number, amount, status, and links to the hosted receipt and PDF |
 | 104 | **Usage analytics charts** | ⬜ | Time-series token usage graph; breakdown by feature/model |
 | 105 | **Per-seat pricing for orgs** | ⬜ | `seats` on org plan; enforce seat limit on member invites |
 | 106 | **Free trial support** | ⬜ | 14-day trial before charge; trial expiry emails and banners |

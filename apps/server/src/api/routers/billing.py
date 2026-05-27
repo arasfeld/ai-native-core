@@ -39,6 +39,25 @@ class PortalResponse(BaseModel):
     url: str
 
 
+class Invoice(BaseModel):
+    id: str
+    number: str | None
+    amount_due: int
+    amount_paid: int
+    currency: str
+    status: str | None
+    created: int
+    period_start: int
+    period_end: int
+    hosted_invoice_url: str | None
+    invoice_pdf: str | None
+
+
+class InvoiceList(BaseModel):
+    invoices: list[Invoice]
+    has_more: bool
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -127,6 +146,53 @@ async def create_checkout(request: Request, current_user: CurrentUser) -> Checko
     )
     log.info("billing.checkout.created", tenant_id=current_user.id, session_id=session.id)
     return CheckoutResponse(url=session.url)
+
+
+@router.get("/invoices", response_model=InvoiceList)
+async def list_invoices(
+    request: Request,
+    current_user: CurrentUser,
+    limit: int = 20,
+    starting_after: str | None = None,
+) -> InvoiceList:
+    """List past Stripe invoices for the current tenant, most recent first."""
+    if not settings.stripe_secret_key:
+        raise HTTPException(status_code=503, detail="Stripe is not configured")
+
+    stripe.api_key = settings.stripe_secret_key
+    pool = request.app.state.db_pool
+    tenant = await _get_tenant(pool, current_user.id)
+
+    if not tenant["stripe_customer_id"]:
+        return InvoiceList(invoices=[], has_more=False)
+
+    params: dict = {
+        "customer": tenant["stripe_customer_id"],
+        "limit": max(1, min(limit, 100)),
+    }
+    if starting_after:
+        params["starting_after"] = starting_after
+
+    page = stripe.Invoice.list(**params)
+    return InvoiceList(
+        invoices=[
+            Invoice(
+                id=inv["id"],
+                number=inv.get("number"),
+                amount_due=inv.get("amount_due", 0),
+                amount_paid=inv.get("amount_paid", 0),
+                currency=inv.get("currency", "usd"),
+                status=inv.get("status"),
+                created=inv["created"],
+                period_start=inv.get("period_start", inv["created"]),
+                period_end=inv.get("period_end", inv["created"]),
+                hosted_invoice_url=inv.get("hosted_invoice_url"),
+                invoice_pdf=inv.get("invoice_pdf"),
+            )
+            for inv in page.data
+        ],
+        has_more=bool(page.has_more),
+    )
 
 
 @router.post("/portal", response_model=PortalResponse)
