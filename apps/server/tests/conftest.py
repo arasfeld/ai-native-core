@@ -24,7 +24,8 @@ def mock_store():
 @pytest.fixture
 def mock_pool():
     pool = AsyncMock()
-    pool.fetchrow = AsyncMock(return_value={"token_limit": 50_000})
+    # `get_token_limit` SQL aliases `token_limit + referral_bonus_tokens` AS `total`.
+    pool.fetchrow = AsyncMock(return_value={"total": 50_000})
     pool.execute = AsyncMock()
     return pool
 

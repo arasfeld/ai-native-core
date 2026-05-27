@@ -268,6 +268,13 @@ async def export_user_data(request: Request, current_user: CurrentUser) -> Respo
         "SELECT org_id, role, joined_at FROM organization_members WHERE user_id = $1",
         user_id,
     )
+    referral_rows = await pool.fetch(
+        "SELECT id, code, referrer_user_id, referred_user_id, created_at, accepted_at, "
+        "       bonus_granted_at "
+        "FROM referrals WHERE referrer_user_id = $1 OR referred_user_id = $1 "
+        "ORDER BY created_at",
+        user_id,
+    )
 
     export = {
         "exported_at": datetime.utcnow().isoformat() + "Z",
@@ -282,6 +289,7 @@ async def export_user_data(request: Request, current_user: CurrentUser) -> Respo
         "audit_log": [dict(r) for r in audit_rows],
         "api_keys": [dict(r) for r in api_key_rows],
         "organization_memberships": [dict(r) for r in org_member_rows],
+        "referrals": [dict(r) for r in referral_rows],
     }
 
     log_audit_event(

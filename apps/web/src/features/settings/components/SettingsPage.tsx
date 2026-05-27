@@ -8,6 +8,7 @@ import {
 } from "@repo/ui/components/tabs";
 import { useRouter } from "next/navigation";
 import { OrganizationTab } from "@/features/organizations/components/OrganizationTab";
+import { ReferralTab } from "@/features/referrals/components/ReferralTab";
 import { AiTab } from "./AiTab";
 import { ApiKeysTab } from "./ApiKeysTab";
 import { AppearanceTab } from "./AppearanceTab";
@@ -23,6 +24,7 @@ const VALID_TABS = [
   "ai",
   "security",
   "privacy",
+  "referrals",
 ] as const;
 type Tab = (typeof VALID_TABS)[number];
 
@@ -50,6 +52,7 @@ export function SettingsPage({ tab }: { tab: string }) {
           <TabsTrigger value="ai">AI</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="privacy">Privacy</TabsTrigger>
+          <TabsTrigger value="referrals">Referrals</TabsTrigger>
         </TabsList>
         <TabsContent value="profile" className="mt-6">
           <ProfileTab />
@@ -71,6 +74,9 @@ export function SettingsPage({ tab }: { tab: string }) {
         </TabsContent>
         <TabsContent value="privacy" className="mt-6">
           <PrivacyTab />
+        </TabsContent>
+        <TabsContent value="referrals" className="mt-6">
+          <ReferralTab />
         </TabsContent>
       </Tabs>
     </div>

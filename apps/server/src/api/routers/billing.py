@@ -29,6 +29,7 @@ PLAN_TOKEN_LIMITS: dict[str, int] = {
 class PlanInfo(BaseModel):
     plan: str
     token_limit: int
+    referral_bonus_tokens: int
     tokens_used_this_month: int
     tokens_remaining: int
 
@@ -78,7 +79,10 @@ class UsageSummary(BaseModel):
 
 async def _get_tenant(pool, tenant_id: str) -> dict:
     row = await pool.fetchrow(
-        "SELECT id, name, plan, token_limit, stripe_customer_id, stripe_subscription_id FROM tenants WHERE id = $1",
+        "SELECT id, name, plan, token_limit, "
+        "       COALESCE(referral_bonus_tokens, 0) AS referral_bonus_tokens, "
+        "       stripe_customer_id, stripe_subscription_id "
+        "FROM tenants WHERE id = $1",
         tenant_id,
     )
     if row is None:
@@ -130,12 +134,14 @@ async def get_plan(request: Request, current_user: CurrentUser) -> PlanInfo:
     pool = request.app.state.db_pool
     tenant = await _get_tenant(pool, current_user.id)
     used = await _get_monthly_usage(pool, current_user.id)
-    limit = tenant["token_limit"]
+    bonus = int(tenant["referral_bonus_tokens"])
+    total_limit = int(tenant["token_limit"]) + bonus
     return PlanInfo(
         plan=tenant["plan"],
-        token_limit=limit,
+        token_limit=total_limit,
+        referral_bonus_tokens=bonus,
         tokens_used_this_month=used,
-        tokens_remaining=max(0, limit - used) if limit > 0 else -1,
+        tokens_remaining=max(0, total_limit - used) if total_limit > 0 else -1,
     )
 
 

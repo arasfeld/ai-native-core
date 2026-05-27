@@ -35,6 +35,7 @@ from .routers import (
     organizations,
     preferences,
     rbac,
+    referrals,
     user_api_keys,
 )
 from .services.chat_service import ChatService
@@ -210,6 +211,23 @@ CREATE INDEX IF NOT EXISTS audit_logs_actor_idx      ON audit_logs (actor_id);
 CREATE INDEX IF NOT EXISTS audit_logs_created_at_idx ON audit_logs (created_at DESC);
 """
 
+_CREATE_REFERRALS = """
+ALTER TABLE tenants
+  ADD COLUMN IF NOT EXISTS referral_bonus_tokens INTEGER NOT NULL DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS referrals (
+  id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  referrer_user_id  TEXT        NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+  referred_user_id  TEXT        UNIQUE REFERENCES "user"(id) ON DELETE SET NULL,
+  code              TEXT        NOT NULL UNIQUE,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  accepted_at       TIMESTAMPTZ,
+  bonus_granted_at  TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS referrals_referrer_idx ON referrals (referrer_user_id);
+CREATE INDEX IF NOT EXISTS referrals_code_idx     ON referrals (code);
+"""
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -225,6 +243,7 @@ async def lifespan(app: FastAPI):
         await conn.execute(_CREATE_ORGANIZATIONS)
         await conn.execute(_CREATE_USER_PREFERENCES)
         await conn.execute(_CREATE_AUDIT_LOGS)
+        await conn.execute(_CREATE_REFERRALS)
 
     # Load runtime AI config from DB (populated by migration 0002)
     try:
@@ -326,3 +345,4 @@ app.include_router(notifications.router)
 app.include_router(organizations.router)
 app.include_router(preferences.router)
 app.include_router(audit_logs.router)
+app.include_router(referrals.router)

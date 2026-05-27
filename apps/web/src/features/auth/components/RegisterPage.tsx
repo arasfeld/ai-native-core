@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { applyPendingReferral, readPendingReferralCode } from "@/lib/referral";
 import { OAuthButtons } from "./OAuthButtons";
 
 export function RegisterPage() {
@@ -13,6 +14,11 @@ export function RegisterPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    setReferralCode(readPendingReferralCode());
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -25,13 +31,15 @@ export function RegisterPage() {
       name: name.trim() || (email.split("@")[0] ?? email),
     });
 
-    setLoading(false);
-
     if (authError) {
+      setLoading(false);
       setError(authError.message ?? "Registration failed.");
-    } else {
-      router.push("/onboarding");
+      return;
     }
+
+    await applyPendingReferral();
+    setLoading(false);
+    router.push("/onboarding");
   }
 
   return (
@@ -43,6 +51,12 @@ export function RegisterPage() {
             Sign up to get started
           </p>
         </div>
+
+        {referralCode && (
+          <div className="rounded-md border border-primary/40 bg-primary/5 px-3 py-2 text-center text-sm">
+            You were invited! You'll get bonus tokens once you sign up.
+          </div>
+        )}
 
         <OAuthButtons />
 

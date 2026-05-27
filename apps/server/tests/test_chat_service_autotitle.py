@@ -45,7 +45,7 @@ def make_service(pool: AsyncMock) -> ChatService:
 @pytest.mark.asyncio
 async def test_auto_title_fires_on_first_message():
     pool = AsyncMock()
-    pool.fetchrow = AsyncMock(return_value={"token_limit": 100000})
+    pool.fetchrow = AsyncMock(return_value={"total": 100000})
     pool.fetch = AsyncMock(return_value=[])
     pool.execute = AsyncMock()
 
@@ -70,7 +70,7 @@ async def test_auto_title_fires_on_first_message():
 @pytest.mark.asyncio
 async def test_updated_at_bump_fires_every_turn():
     pool = AsyncMock()
-    pool.fetchrow = AsyncMock(return_value={"token_limit": 100000})
+    pool.fetchrow = AsyncMock(return_value={"total": 100000})
     pool.fetch = AsyncMock(return_value=[])
     pool.execute = AsyncMock()
 

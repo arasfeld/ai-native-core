@@ -44,8 +44,12 @@ class SessionRepository:
     async def get_token_limit(self, user_id: str) -> int:
         if user_id.startswith(_GUEST_PREFIX):
             return _GUEST_LIMIT
-        row = await self._pool.fetchrow("SELECT token_limit FROM tenants WHERE id = $1", user_id)
-        return row["token_limit"] if row else self._default_limit
+        row = await self._pool.fetchrow(
+            "SELECT token_limit + COALESCE(referral_bonus_tokens, 0) AS total "
+            "FROM tenants WHERE id = $1",
+            user_id,
+        )
+        return row["total"] if row else self._default_limit
 
     async def get_or_create_tenant(self, user_id: str, email: str) -> None:
         """Ensure a tenant row + owner membership row exist for this user (idempotent)."""

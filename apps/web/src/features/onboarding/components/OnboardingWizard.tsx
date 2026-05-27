@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { applyPendingReferral } from "@/lib/referral";
 
 const STEP_COUNT = 3;
 
@@ -34,6 +35,8 @@ export function OnboardingWizard() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // Apply any pending referral cookie (OAuth signups land here first).
+      void applyPendingReferral();
       try {
         const res = await fetch("/api/auth/onboarding", {
           cache: "no-store",
