@@ -209,7 +209,7 @@ Goal: Provide full billing transparency, support org seat pricing, free trials, 
 | Priority | Item | Status | Notes |
 | -------- | ---- | ------ | ----- |
 | 103 | **Invoice history** | ✅ | `GET /billing/invoices` proxies `stripe.Invoice.list` for the tenant's customer; `InvoiceHistory` table on `/billing` shows date, number, amount, status, and links to the hosted receipt and PDF |
-| 104 | **Usage analytics charts** | ⬜ | Time-series token usage graph; breakdown by feature/model |
+| 104 | **Usage analytics charts** | ✅ | `GET /billing/usage` returns daily tokens for the current tenant over a 7/30/90-day window; `UsageChart` (recharts area chart) on `/billing` shows the total and gap-filled time series. Breakdown by feature/model deferred — requires `feature`/`model` columns on `session_token_usage` |
 | 105 | **Per-seat pricing for orgs** | ⬜ | `seats` on org plan; enforce seat limit on member invites |
 | 106 | **Free trial support** | ⬜ | 14-day trial before charge; trial expiry emails and banners |
 | 107 | **Dunning management** | ⬜ | Payment failed → 3-day retry email sequence → downgrade to free |

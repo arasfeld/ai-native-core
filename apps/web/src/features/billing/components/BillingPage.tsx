@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { InvoiceHistory } from "./InvoiceHistory";
+import { UsageChart } from "./UsageChart";
 
 type PlanInfo = {
   plan: string;
@@ -83,7 +84,7 @@ export function BillingPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8 p-8">
+    <div className="mx-auto max-w-3xl space-y-8 p-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-semibold text-2xl">Billing</h1>
@@ -152,6 +153,9 @@ export function BillingPage() {
           </div>
         </div>
       )}
+
+      {/* Usage over time */}
+      <UsageChart />
 
       {/* Invoice history */}
       <InvoiceHistory />

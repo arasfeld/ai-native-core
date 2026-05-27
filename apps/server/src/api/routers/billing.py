@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 import stripe
 import structlog
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
 
 from ..auth import CurrentUser
@@ -56,6 +58,17 @@ class Invoice(BaseModel):
 class InvoiceList(BaseModel):
     invoices: list[Invoice]
     has_more: bool
+
+
+class DayTokens(BaseModel):
+    day: date
+    tokens: int
+
+
+class UsageSummary(BaseModel):
+    days: int
+    total_tokens: int
+    tokens_per_day: list[DayTokens]
 
 
 # ---------------------------------------------------------------------------
@@ -193,6 +206,38 @@ async def list_invoices(
         ],
         has_more=bool(page.has_more),
     )
+
+
+@router.get("/usage", response_model=UsageSummary)
+async def get_usage(
+    request: Request,
+    current_user: CurrentUser,
+    days: int = Query(30, ge=7, le=180, description="Look-back window in days"),
+) -> UsageSummary:
+    """Return daily token usage for the current tenant over the look-back window.
+
+    Guest users (with a ``guest:`` prefix) don't have a tenant row, so we treat
+    them as having zero usage history — the response is well-formed with
+    zero-filled rows the frontend can still render.
+    """
+    pool = request.app.state.db_pool
+
+    rows = await pool.fetch(
+        """
+        SELECT recorded_at::date AS day, COALESCE(SUM(tokens), 0)::int AS tokens
+        FROM session_token_usage
+        WHERE tenant_id = $1
+          AND recorded_at >= (CURRENT_DATE - ($2::int - 1))
+        GROUP BY day
+        ORDER BY day
+        """,
+        current_user.id,
+        days,
+    )
+
+    tokens_per_day = [DayTokens(day=row["day"], tokens=row["tokens"]) for row in rows]
+    total = sum(row["tokens"] for row in rows)
+    return UsageSummary(days=days, total_tokens=total, tokens_per_day=tokens_per_day)
 
 
 @router.post("/portal", response_model=PortalResponse)
