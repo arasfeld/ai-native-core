@@ -10,6 +10,8 @@ import {
   DialogTitle,
 } from "@repo/ui/components/dialog";
 import { Input } from "@repo/ui/components/input";
+import { ExternalLink } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 type ApiKey = {
@@ -104,7 +106,14 @@ export function ApiKeysTab() {
         <div>
           <h2 className="font-medium text-lg">API Keys</h2>
           <p className="text-muted-foreground text-sm">
-            Use API keys to authenticate programmatic requests.
+            Use API keys to authenticate programmatic requests.{" "}
+            <Link
+              href="/api-reference"
+              className="inline-flex items-center gap-1 underline decoration-dotted underline-offset-2 hover:decoration-solid"
+            >
+              View API reference
+              <ExternalLink className="size-3" />
+            </Link>
           </p>
         </div>
         <Button onClick={() => setDialogStep("form")}>Generate new key</Button>

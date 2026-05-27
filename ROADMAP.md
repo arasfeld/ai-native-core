@@ -265,7 +265,7 @@ Goal: Let developers build on top of the platform with API key auth, webhooks, p
 | -------- | ---- | ------ | ----- |
 | 122 | **API key auth middleware** | ✅ | `ak_`-prefixed bearer tokens authenticate any `get_current_user`-protected route (including `POST /chat`); SHA-256 hash lookup in `user_api_keys`, `last_used_at` touched on hit, revoked keys rejected |
 | 123 | **Webhook system** | ⬜ | Subscribe to events (message, usage_alert, subscription_change); HMAC-signed payloads |
-| 124 | **Public API docs page** | ⬜ | In-app OpenAPI explorer at `/api-reference` |
+| 124 | **Public API docs page** | ✅ | `/api-reference` renders Scalar's OpenAPI explorer; spec proxied via `/api/openapi` from FastAPI's `/openapi.json`; dark-mode synced with `next-themes`; linked from the API Keys settings tab |
 | 125 | **SDK examples** | ⬜ | Python + TypeScript snippets; auto-generated from OpenAPI spec |
 
 ---
