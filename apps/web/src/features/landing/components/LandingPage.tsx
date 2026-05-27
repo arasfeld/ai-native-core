@@ -104,8 +104,18 @@ export function LandingPage() {
         </div>
       </main>
 
-      <footer className="border-t px-6 py-4 text-center text-muted-foreground text-xs">
-        AI Native Core — open-source monorepo template
+      <footer className="border-t px-6 py-4 text-muted-foreground text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span>AI Native Core — open-source monorepo template</span>
+          <div className="flex items-center gap-4">
+            <Link href="/terms" className="hover:text-foreground">
+              Terms
+            </Link>
+            <Link href="/privacy" className="hover:text-foreground">
+              Privacy
+            </Link>
+          </div>
+        </div>
       </footer>
     </div>
   );
