@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from typing import Annotated
 
 import asyncpg
@@ -15,6 +16,8 @@ log = structlog.get_logger()
 
 _bearer = HTTPBearer(auto_error=False)
 
+API_KEY_PREFIX = "ak_"
+
 
 class AuthUser(BaseModel):
     id: str
@@ -26,11 +29,35 @@ class AuthUser(BaseModel):
     permissions: frozenset[str] = frozenset()
 
 
+async def _resolve_api_key(pool: asyncpg.Pool, token: str) -> asyncpg.Record | None:
+    """Look up an active API key by SHA-256 hash; touch last_used_at on hit."""
+    key_hash = hashlib.sha256(token.encode()).hexdigest()
+    row = await pool.fetchrow(
+        """
+        SELECT u.id, u.email, u.name, u.image, u."emailVerified", u.banned, k.id AS key_id
+        FROM user_api_keys k
+        JOIN "user" u ON u.id = k.user_id
+        WHERE k.key_hash = $1 AND k.revoked_at IS NULL
+        """,
+        key_hash,
+    )
+    if row is not None:
+        await pool.execute(
+            "UPDATE user_api_keys SET last_used_at = NOW() WHERE id = $1",
+            row["key_id"],
+        )
+    return row
+
+
 async def get_current_user(
     request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)] = None,
 ) -> AuthUser:
-    """Resolve the authenticated user and load their effective permissions."""
+    """Resolve the authenticated user and load their effective permissions.
+
+    Accepts either a better-auth session token (cookie or Bearer) or a personal API key
+    (Bearer token prefixed with ``ak_``, issued via ``/user/api-keys``).
+    """
     pool: asyncpg.Pool = request.app.state.db_pool
     token = (
         credentials.credentials if credentials else request.cookies.get("better-auth.session_token")
@@ -43,17 +70,22 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    is_api_key = token.startswith(API_KEY_PREFIX)
+
     try:
-        session_token = token.split(".")[0]
-        row = await pool.fetchrow(
-            """
-            SELECT u.id, u.email, u.name, u.image, u."emailVerified", u.banned
-            FROM "user" u
-            JOIN "session" s ON s."userId" = u.id
-            WHERE s.token = $1 AND s."expiresAt" > NOW()
-            """,
-            session_token,
-        )
+        if is_api_key:
+            row = await _resolve_api_key(pool, token)
+        else:
+            session_token = token.split(".")[0]
+            row = await pool.fetchrow(
+                """
+                SELECT u.id, u.email, u.name, u.image, u."emailVerified", u.banned
+                FROM "user" u
+                JOIN "session" s ON s."userId" = u.id
+                WHERE s.token = $1 AND s."expiresAt" > NOW()
+                """,
+                session_token,
+            )
     except Exception as exc:
         log.error("auth.db_error", error=str(exc))
         raise HTTPException(
@@ -64,7 +96,7 @@ async def get_current_user(
     if row is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired session",
+            detail="Invalid API key" if is_api_key else "Invalid or expired session",
         )
 
     if row["banned"]:
