@@ -28,6 +28,7 @@ type Props = {
 
 function borderColor(type: string): string {
   if (type === "budget_warning") return "border-l-amber-500";
+  if (type === "security_alert") return "border-l-red-500";
   if (type === "welcome") return "border-l-green-500";
   return "border-l-primary";
 }

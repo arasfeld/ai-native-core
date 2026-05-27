@@ -197,7 +197,7 @@ Goal: Keep users informed with transactional emails, in-app notifications, budge
 | 98 | **Transactional email templates** | ✅ | Welcome, invoice receipt, payment failed, subscription renewed (React Email + Resend) |
 | 99 | **In-app notification center** | ✅ | Bell icon + drawer; mark read/unread; system + billing notifications |
 | 100 | **Budget warning notifications** | ✅ | Email + in-app alert at 80% and 100% of monthly token budget |
-| 101 | **Security alerts** | ⬜ | Email on new login from unrecognized device/IP |
+| 101 | **Security alerts** | ✅ | better-auth `session.create.after` hook fires `maybeAlertOnNewLogin`: if the new session's IP is unseen across the user's other sessions (and they have ≥1 prior session), insert a `security_alert` in-app notification and send a `SecurityAlertEmail` (React Email + Resend) with device, IP, time, and a deep link to `/settings?tab=profile`. Best-effort — never throws. Signup is skipped because the first session has no priors. |
 | 102 | **Mobile push notifications** | ⬜ | Expo Notifications + push token management |
 
 ---

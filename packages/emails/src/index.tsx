@@ -3,12 +3,14 @@ import { Resend } from "resend";
 import { BudgetWarningEmail } from "./templates/BudgetWarningEmail";
 import { OrganizationInviteEmail } from "./templates/OrganizationInviteEmail";
 import { PasswordResetEmail } from "./templates/PasswordResetEmail";
+import { SecurityAlertEmail } from "./templates/SecurityAlertEmail";
 import { WelcomeEmail } from "./templates/WelcomeEmail";
 
 export {
   BudgetWarningEmail,
   OrganizationInviteEmail,
   PasswordResetEmail,
+  SecurityAlertEmail,
   WelcomeEmail,
 };
 
@@ -58,4 +60,14 @@ export async function renderOrgInviteEmail(props: {
   acceptUrl: string;
 }): Promise<string> {
   return render(<OrganizationInviteEmail {...props} />);
+}
+
+export async function renderSecurityAlertEmail(props: {
+  name?: string;
+  device: string;
+  ipAddress: string;
+  loginAt: string;
+  securityUrl: string;
+}): Promise<string> {
+  return render(<SecurityAlertEmail {...props} />);
 }

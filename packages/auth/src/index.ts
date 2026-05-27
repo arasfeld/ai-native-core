@@ -9,6 +9,7 @@ import { env } from "@repo/env/server";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { twoFactor } from "better-auth/plugins";
+import { maybeAlertOnNewLogin } from "./security-alert";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -76,6 +77,21 @@ export const auth = betterAuth({
           } catch {
             // Non-fatal: chat_service.get_or_create_tenant is the safety net
           }
+        },
+      },
+    },
+    session: {
+      create: {
+        after: async (session) => {
+          await maybeAlertOnNewLogin(
+            {
+              id: session.id,
+              userId: session.userId,
+              ipAddress: session.ipAddress ?? null,
+              userAgent: session.userAgent ?? null,
+            },
+            env.BETTER_AUTH_URL,
+          );
         },
       },
     },
