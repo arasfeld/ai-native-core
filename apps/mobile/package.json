@@ -7,6 +7,7 @@
     "android": "expo start --android",
     "check-types": "tsc --noEmit",
     "clean": "rm -rf dist node_modules",
+    "dev": "expo start",
     "ios": "expo start --ios",
     "start": "expo start",
     "web": "expo start --web"
@@ -42,6 +43,7 @@
     "expo-linking": "~55.0.7",
     "expo-localization": "^56.0.6",
     "expo-location": "^55.1.2",
+    "expo-network": "^56.0.4",
     "expo-notifications": "^56.0.14",
     "expo-router": "~55.0.4",
     "expo-secure-store": "~14.0.1",
