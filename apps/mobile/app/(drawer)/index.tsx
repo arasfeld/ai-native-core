@@ -1,4 +1,5 @@
 import { useChat } from "@ai-sdk/react";
+import { Button, Surface, TextField } from "@repo/ui-native";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { fetch as expoFetch } from "expo/fetch";
 import { useRef, useState } from "react";
@@ -7,9 +8,7 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -136,39 +135,32 @@ export default function ChatScreen() {
         }
       />
 
-      <View
-        className="flex-row items-end gap-2 border-border border-t bg-background px-3 pt-2"
+      <Surface
+        variant="default"
+        radius="none"
+        className="flex-row items-end gap-2 border-border/60 border-t px-3 pt-2"
         style={{ paddingBottom: insets.bottom + 8 }}
       >
-        <TextInput
-          className="max-h-[120px] flex-1 rounded-2xl border border-border bg-secondary px-3.5 py-2.5 text-[15px] text-foreground"
-          value={input}
-          onChangeText={setInput}
-          placeholder="Message..."
-          placeholderTextColorClassName="text-muted-foreground"
-          multiline
-          onSubmitEditing={onSubmit}
-        />
-        <Pressable
+        <TextField className="flex-1">
+          <TextField.Input
+            value={input}
+            onChangeText={setInput}
+            placeholder="Message..."
+            multiline
+            onSubmitEditing={onSubmit}
+          />
+        </TextField>
+        <Button
+          variant="primary"
+          size="md"
+          isIconOnly
+          isDisabled={!input.trim() || isBusy}
+          isLoading={isBusy}
           onPress={onSubmit}
-          disabled={!input.trim() || isBusy}
-          className={
-            "h-10 w-10 items-center justify-center rounded-full" +
-            (!input.trim() || isBusy ? "bg-muted" : "bg-primary")
-          }
         >
-          {isBusy ? (
-            <ActivityIndicator
-              size="small"
-              className="text-primary-foreground"
-            />
-          ) : (
-            <Text className="font-semibold text-lg text-primary-foreground">
-              ↑
-            </Text>
-          )}
-        </Pressable>
-      </View>
+          ↑
+        </Button>
+      </Surface>
     </KeyboardAvoidingView>
   );
 }
