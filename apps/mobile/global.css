@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import "uniwind";
 
+/* Pull workspace packages into Tailwind's class scan. */
+@source "../../packages/ui-native/src";
+
 /*
  * Design tokens — hex equivalents of the OKLCH values in apps/web/app/globals.css.
  * Source of truth for values: packages/tokens/index.js
