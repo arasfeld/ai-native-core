@@ -12,15 +12,6 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { usePushRegistration } from "@/hooks/use-push-registration";
 import { authClient } from "@/lib/auth-client";
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
-
 const sentryDsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
 if (sentryDsn) {
   Sentry.init({
@@ -75,15 +66,33 @@ function Router() {
   }, []);
 
   useEffect(() => {
-    const sub = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
-        const link = response.notification.request.content.data?.deepLink as
-          | string
-          | undefined;
-        if (link) router.push(link as never);
-      },
-    );
-    return () => sub.remove();
+    try {
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowBanner: true,
+          shouldShowList: true,
+          shouldPlaySound: true,
+          shouldSetBadge: false,
+        }),
+      });
+    } catch {
+      // Expo Go on SDK 53+ removed remote-push native support; setting a
+      // handler can throw. Push is dev-client / standalone only.
+    }
+    let sub: { remove: () => void } | undefined;
+    try {
+      sub = Notifications.addNotificationResponseReceivedListener(
+        (response) => {
+          const link = response.notification.request.content.data?.deepLink as
+            | string
+            | undefined;
+          if (link) router.push(link as never);
+        },
+      );
+    } catch {
+      // Same Expo Go caveat as above.
+    }
+    return () => sub?.remove();
   }, [router]);
 
   if (isPending) return null;

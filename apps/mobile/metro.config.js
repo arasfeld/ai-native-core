@@ -23,5 +23,5 @@ config.resolver.nodeModulesPaths = [
 
 module.exports = withUniwindConfig(wrapWithReanimatedMetroConfig(config), {
   cssEntryFile: "./global.css",
-  dtsFile: "./app/uniwind-types.d.ts",
+  dtsFile: "./uniwind-types.d.ts",
 });
