@@ -10,6 +10,7 @@ import resend
 import structlog
 
 from ..config import settings
+from .push_notifications import send_expo_push
 
 log = structlog.get_logger()
 
@@ -118,3 +119,14 @@ async def _notify(
 
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(None, _send_budget_email, user_email, percent, used, limit)
+
+    # tenant_id == user.id for personal tenants in this codebase (see
+    # SessionRepository.get_or_create_tenant), so push tokens registered under
+    # the user are reachable via the tenant_id we already have. Fire-and-forget.
+    await send_expo_push(
+        pool,
+        tenant_id,
+        title=title,
+        body=body,
+        data={"deepLink": "/billing"},
+    )

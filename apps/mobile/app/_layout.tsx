@@ -3,12 +3,23 @@ import { UIProvider } from "@repo/ui-native";
 import * as Sentry from "@sentry/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { setAudioModeAsync } from "expo-audio";
-import { Stack } from "expo-router";
+import * as Notifications from "expo-notifications";
+import { Stack, useRouter } from "expo-router";
 import { PostHogProvider, usePostHog } from "posthog-react-native";
 import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { usePushRegistration } from "@/hooks/use-push-registration";
 import { authClient } from "@/lib/auth-client";
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 const sentryDsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
 if (sentryDsn) {
@@ -52,7 +63,9 @@ function PostHogIdentify() {
 }
 
 function Router() {
+  const router = useRouter();
   const { data: session, isPending } = authClient.useSession();
+  usePushRegistration();
 
   useEffect(() => {
     setAudioModeAsync({
@@ -60,6 +73,18 @@ function Router() {
       interruptionMode: "duckOthers",
     }).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        const link = response.notification.request.content.data?.deepLink as
+          | string
+          | undefined;
+        if (link) router.push(link as never);
+      },
+    );
+    return () => sub.remove();
+  }, [router]);
 
   if (isPending) return null;
   return (

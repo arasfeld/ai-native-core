@@ -394,3 +394,55 @@ async def bootstrap_tenant(body: BootstrapTenantRequest, request: Request) -> Re
         body.user_id,
     )
     return Response(status_code=204)
+
+
+# ── Push tokens ───────────────────────────────────────────────────────────────
+
+
+class PushTokenIn(BaseModel):
+    token: str
+    platform: str  # 'ios' | 'android' | 'web'
+
+
+@router.post("/push-tokens", status_code=204)
+async def register_push_token(
+    body: PushTokenIn,
+    request: Request,
+    current_user: CurrentUser,
+) -> Response:
+    """Register or refresh the current user's Expo push token (UPSERT on token)."""
+    if current_user.id.startswith("guest:"):
+        raise HTTPException(status_code=401, detail="Sign-in required")
+    if body.platform not in ("ios", "android", "web"):
+        raise HTTPException(status_code=400, detail="Invalid platform")
+    pool = request.app.state.db_pool
+    await pool.execute(
+        """
+        INSERT INTO push_tokens (user_id, token, platform, last_used_at)
+        VALUES ($1, $2, $3, NOW())
+        ON CONFLICT (token) DO UPDATE
+        SET user_id = EXCLUDED.user_id,
+            platform = EXCLUDED.platform,
+            last_used_at = NOW()
+        """,
+        current_user.id,
+        body.token,
+        body.platform,
+    )
+    return Response(status_code=204)
+
+
+@router.delete("/push-tokens/{token}", status_code=204)
+async def delete_push_token(
+    token: str,
+    request: Request,
+    current_user: CurrentUser,
+) -> Response:
+    """Unregister an Expo push token for the current user."""
+    pool = request.app.state.db_pool
+    await pool.execute(
+        "DELETE FROM push_tokens WHERE token = $1 AND user_id = $2",
+        token,
+        current_user.id,
+    )
+    return Response(status_code=204)
