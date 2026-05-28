@@ -136,25 +136,26 @@ ai-native-core/
 ### Package / Service Dependency Rules
 
 ```
-apps/extension  → packages/auth, packages/ui
-apps/mobile     → packages/ui, packages/types
-apps/playground → services/ai, services/agents, packages/prompts
-apps/server     → services/ai, services/agents, services/rag, services/tools, services/memory, packages/prompts
-apps/web        → packages/ui, packages/types, packages/auth, packages/emails, packages/env, packages/tokens
-apps/worker     → services/agents, services/tools
-services/agents → services/ai, services/tools, packages/prompts
-services/ai     → (no internal deps — base layer)
-services/memory → services/ai, services/rag
-services/rag    → services/ai
-services/tools  → services/ai (optional)
-packages/auth   → packages/db
-packages/db     → (no internal deps, SQL only)
-packages/emails → (no internal deps)
-packages/env    → (no internal deps)
-packages/prompts → (no internal deps)
-packages/tokens → (no internal deps)
-packages/types  → (no internal deps, generated)
-packages/ui     → (no internal deps)
+apps/extension    → packages/auth, packages/ui
+apps/mobile       → packages/ui-native, packages/types, packages/env, packages/tokens, packages/auth
+apps/playground   → services/ai, services/agents, packages/prompts
+apps/server       → services/ai, services/agents, services/rag, services/tools, services/memory, packages/prompts
+apps/web          → packages/ui, packages/types, packages/auth, packages/emails, packages/env, packages/tokens
+apps/worker       → services/agents, services/tools
+services/agents   → services/ai, services/tools, packages/prompts
+services/ai       → (no internal deps — base layer)
+services/memory   → services/ai, services/rag
+services/rag      → services/ai
+services/tools    → services/ai (optional)
+packages/auth     → packages/db
+packages/db       → (no internal deps, SQL only)
+packages/emails   → (no internal deps)
+packages/env      → (no internal deps)
+packages/prompts  → (no internal deps)
+packages/tokens   → (no internal deps)
+packages/types    → (no internal deps, generated)
+packages/ui       → (no internal deps) — web (shadcn/ui on Radix)
+packages/ui-native → (no internal deps) — mobile (Tailwind v4 via Uniwind, ported from chapters/heroui-native)
 ```
 
 **Rules:**

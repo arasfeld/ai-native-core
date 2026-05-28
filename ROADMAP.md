@@ -229,18 +229,20 @@ Goal: Instrument the product with PostHog, Sentry, health metrics, and an admin 
 
 ---
 
-## Phase 23 — Mobile Parity
+## Phase 23 — Mobile Parity ✅
 
 Goal: Bring the mobile app to feature parity with web — conversation history, profile, settings, attachments, voice, and push.
 
+Built on a new `@repo/ui-native` component library (ported from `chapters/packages/ui-native`, based on HeroUI Native) and a session-gated `(auth)` / `(drawer)` route split that requires sign-in before reaching chat. Auth UI (login, register, Google + GitHub OAuth, email verification, 2FA challenge, forgot password) shipped as part of this phase even though not listed as a numbered item — without it, mobile had no in-app sign-in path.
+
 | Priority | Item | Status | Notes |
 | -------- | ---- | ------ | ----- |
-| 112 | **Mobile conversation history** | ⬜ | List + switch past conversations; matches web UX |
-| 113 | **Mobile profile page** | ⬜ | View/edit name, email, avatar; linked from settings drawer |
-| 114 | **Mobile full settings** | ⬜ | Theme, notifications, account deletion, API keys |
-| 115 | **Mobile image attachment** | ⬜ | Expo ImagePicker; same image upload flow as web |
-| 116 | **Mobile voice I/O** | ⬜ | STT via Whisper (record + transcribe); TTS playback of responses |
-| 117 | **Mobile push notifications** | ⬜ | Expo Notifications; budget alerts, security alerts |
+| 112 | **Mobile conversation history** | ✅ | `app/(drawer)/history.tsx` — `GET /conversations`, debounced search via `/conversations/search`, rename + delete dialogs, pull-to-refresh. Tap row → chat hydrates from `?conversation=<id>` |
+| 113 | **Mobile profile page** | ✅ | `app/(drawer)/profile.tsx` — name + email edit via `authClient.updateUser` / `changeEmail`. Avatar render only; upload deferred until the server `upload-avatar` contract is confirmed for multipart |
+| 114 | **Mobile full settings** | ✅ | Nested `settings/` stack: Appearance (theme via `Uniwind.setTheme` + SecureStore), API keys (list/create/revoke against `/user/api-keys`, one-time secret + `expo-clipboard`), Account (typed-DELETE confirmation → `authClient.deleteUser`). 2FA enable UI deferred — needs `react-native-qrcode-svg` |
+| 115 | **Mobile image attachment** | ✅ | `📎` button → `@expo/react-native-action-sheet` (library / camera) → `expo-image-picker` (`base64: true`, `quality: 0.8`) → preview row → data-URL `file` parts via `useChat({ files })`. Assistant-generated images render via `expo-image` |
+| 116 | **Mobile voice I/O** | ✅ | `🎤` → `expo-audio` `useAudioRecorder` → `expo-file-system/legacy.uploadAsync` to `/media/transcribe` → fills input (user can edit before send). `🔊` on completed assistant messages → POST `/media/tts` → cache MP3 via `writeAsStringAsync` → `useAudioPlayer` |
+| 117 | **Mobile push notifications** | ✅ | `0015_push_tokens.sql` + Drizzle `pushTokens` table; `POST/DELETE /auth/push-tokens`; `services/push_notifications.send_expo_push` helper (best-effort, prunes `DeviceNotRegistered`); wired into `budget_notifications._notify`. Mobile `usePushRegistration` registers on session; root layout sets a foreground handler + deep-link tap router. Security-alert push (TS side) deferred |
 
 ---
 

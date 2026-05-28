@@ -150,6 +150,8 @@ Before scaffolding anything new, confirm it doesn't already exist:
 **AI:** streaming chat (SSE), RAG (pgvector), multi-modal (image input, DALL-E, Whisper, TTS), tool calling, LangGraph agents
 **Infrastructure:** rate limiting middleware, audit logging, ARQ background jobs, structured logging
 **Observability:** `/health/detailed` admin probe (db/redis/queue/llm), Sentry SDK on FastAPI + Next.js + Expo, PostHog product analytics on Next.js + Expo
+**Mobile parity:** in-app auth (login, register, OAuth, email verification, 2FA challenge), conversation history with search, profile editor, nested settings stack (theme, API keys, account deletion), image attachments, voice STT/TTS, Expo push for budget alerts. Mobile launches into `(auth)/login` when signed out — guest mode is web-only.
+**Mobile UI library:** `@repo/ui-native` — Tailwind v4 / Uniwind components (Button, TextField, Dialog, BottomSheet, Toast, etc.) ported from chapters/heroui-native. Wrap mobile screens in `<UIProvider>` (already done in `apps/mobile/app/_layout.tsx`).
 
 ## Roadmap
 
