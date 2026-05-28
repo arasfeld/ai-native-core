@@ -50,15 +50,27 @@ function PostHogIdentify() {
   return null;
 }
 
+function Router() {
+  const { data: session, isPending } = authClient.useSession();
+  if (isPending) return null;
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      {session ? (
+        <Stack.Screen name="(drawer)" />
+      ) : (
+        <Stack.Screen name="(auth)" />
+      )}
+    </Stack>
+  );
+}
+
 function AppShell() {
   return (
     <QueryClientProvider client={queryClient}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
           <UIProvider>
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(drawer)" />
-            </Stack>
+            <Router />
           </UIProvider>
         </SafeAreaProvider>
       </GestureHandlerRootView>
