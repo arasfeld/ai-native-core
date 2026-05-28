@@ -2,6 +2,7 @@ import { useChat } from "@ai-sdk/react";
 import { Button, Surface, Text, TextField } from "@repo/ui-native";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { fetch as expoFetch } from "expo/fetch";
+import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -13,6 +14,11 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AttachmentPicker } from "@/features/chat/AttachmentPicker";
+import { AttachmentPreviewRow } from "@/features/chat/AttachmentPreviewRow";
+import { MessageSpeakerButton } from "@/features/chat/MessageSpeakerButton";
+import type { ChatAttachment } from "@/features/chat/types";
+import { VoiceRecorder } from "@/features/chat/VoiceRecorder";
 import { useConversationMessages } from "@/features/conversations/api";
 import { useLocation } from "@/hooks/use-location";
 import { WEB_URL } from "@/lib/api";
@@ -46,11 +52,31 @@ function messagesToUIMessages(
   }));
 }
 
+type FileLikePart = {
+  type: "file";
+  mediaType?: string;
+  url?: string;
+};
+
+function isImagePart(part: unknown): part is FileLikePart {
+  if (!part || typeof part !== "object") return false;
+  const p = part as { type?: string; mediaType?: string };
+  return p.type === "file" && (p.mediaType?.startsWith("image/") ?? false);
+}
+
+function textOfMessage(message: UIMessage): string {
+  return message.parts
+    .filter((p): p is { type: "text"; text: string } => p.type === "text")
+    .map((p) => p.text)
+    .join("");
+}
+
 export default function ChatScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const flatListRef = useRef<FlatList>(null);
   const [input, setInput] = useState("");
+  const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
   const { coords } = useLocation();
   const coordsRef = useRef(coords);
   coordsRef.current = coords;
@@ -82,7 +108,6 @@ export default function ChatScreen() {
     onError: (err) => console.error("Chat error:", err),
   });
 
-  // Hydrate from server when ?conversation= changes.
   useEffect(() => {
     if (initialMessages && initialMessages.length > 0) {
       setMessages(messagesToUIMessages(initialMessages));
@@ -95,14 +120,23 @@ export default function ChatScreen() {
 
   const onSubmit = () => {
     const text = input.trim();
-    if (!text || isBusy) return;
-    sendMessage({ text });
+    if ((!text && attachments.length === 0) || isBusy) return;
+    sendMessage({
+      text,
+      files: attachments.map((a) => ({
+        type: "file" as const,
+        mediaType: a.mimeType,
+        url: `data:${a.mimeType};base64,${a.base64}`,
+      })),
+    });
     setInput("");
+    setAttachments([]);
   };
 
   const onNewConversation = () => {
     router.setParams({ conversation: undefined });
     setMessages([]);
+    setAttachments([]);
   };
 
   if (error) {
@@ -146,30 +180,50 @@ export default function ChatScreen() {
         onContentSizeChange={() =>
           flatListRef.current?.scrollToEnd({ animated: true })
         }
-        renderItem={({ item }) => (
-          <View
-            className={
-              "max-w-[80%] rounded-xl px-3.5 py-2.5" +
-              (item.role === "user"
-                ? "self-end bg-primary"
-                : "self-start bg-secondary")
-            }
-          >
-            {(item as UIMessage).parts.map((part, i) => {
-              if (part.type !== "text") return null;
-              const partKey = `${item.id}-${i}`;
-              return (
-                <Text
-                  key={partKey}
-                  tone={item.role === "user" ? "primary-foreground" : "default"}
-                  size="base"
-                >
-                  {part.text}
-                </Text>
-              );
-            })}
-          </View>
-        )}
+        renderItem={({ item }) => {
+          const isUser = item.role === "user";
+          const text = textOfMessage(item);
+          return (
+            <View
+              className={
+                "max-w-[80%] gap-2 rounded-xl px-3.5 py-2.5" +
+                (isUser ? "self-end bg-primary" : "self-start bg-secondary")
+              }
+            >
+              {(item as UIMessage).parts.map((part, i) => {
+                if (part.type === "text") {
+                  return (
+                    <Text
+                      // biome-ignore lint/suspicious/noArrayIndexKey: parts are append-only stream chunks; order is stable
+                      key={`${item.id}-${i}`}
+                      tone={isUser ? "primary-foreground" : "default"}
+                      size="base"
+                    >
+                      {part.text}
+                    </Text>
+                  );
+                }
+                if (isImagePart(part) && part.url) {
+                  return (
+                    <Image
+                      // biome-ignore lint/suspicious/noArrayIndexKey: parts are append-only stream chunks; order is stable
+                      key={`${item.id}-${i}`}
+                      source={{ uri: part.url }}
+                      style={{ width: 200, height: 200, borderRadius: 8 }}
+                      contentFit="cover"
+                    />
+                  );
+                }
+                return null;
+              })}
+              {!isUser && !isBusy && text ? (
+                <View className="self-end">
+                  <MessageSpeakerButton text={text} />
+                </View>
+              ) : null}
+            </View>
+          );
+        }}
         ListFooterComponent={
           isBusy ? (
             <View className="self-start rounded-xl bg-secondary px-3.5 py-2.5">
@@ -184,32 +238,50 @@ export default function ChatScreen() {
         }
       />
 
-      <Surface
-        variant="default"
-        radius="none"
-        className="flex-row items-end gap-2 border-border/60 border-t px-3 pt-2"
-        style={{ paddingBottom: insets.bottom + 8 }}
-      >
-        <TextField className="flex-1">
-          <TextField.Input
-            value={input}
-            onChangeText={setInput}
-            placeholder="Message..."
-            multiline
-            onSubmitEditing={onSubmit}
-          />
-        </TextField>
-        <Button
-          variant="primary"
-          size="md"
-          isIconOnly
-          isDisabled={!input.trim() || isBusy}
-          isLoading={isBusy}
-          onPress={onSubmit}
+      <View>
+        <AttachmentPreviewRow
+          attachments={attachments}
+          onRemove={(id) =>
+            setAttachments((cur) => cur.filter((a) => a.id !== id))
+          }
+        />
+        <Surface
+          variant="default"
+          radius="none"
+          className="flex-row items-end gap-2 border-border/60 border-t px-3 pt-2"
+          style={{ paddingBottom: insets.bottom + 8 }}
         >
-          ↑
-        </Button>
-      </Surface>
+          <AttachmentPicker
+            onAdd={(a) => setAttachments((cur) => [...cur, a])}
+            disabled={isBusy}
+          />
+          <TextField className="flex-1">
+            <TextField.Input
+              value={input}
+              onChangeText={setInput}
+              placeholder="Message..."
+              multiline
+              onSubmitEditing={onSubmit}
+            />
+          </TextField>
+          <VoiceRecorder
+            onTranscript={(text) =>
+              setInput((cur) => (cur ? `${cur} ${text}` : text))
+            }
+            disabled={isBusy}
+          />
+          <Button
+            variant="primary"
+            size="md"
+            isIconOnly
+            isDisabled={(!input.trim() && attachments.length === 0) || isBusy}
+            isLoading={isBusy}
+            onPress={onSubmit}
+          >
+            ↑
+          </Button>
+        </Surface>
+      </View>
     </KeyboardAvoidingView>
   );
 }

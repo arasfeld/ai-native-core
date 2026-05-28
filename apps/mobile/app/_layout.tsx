@@ -2,6 +2,7 @@ import "../global.css";
 import { UIProvider } from "@repo/ui-native";
 import * as Sentry from "@sentry/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { setAudioModeAsync } from "expo-audio";
 import { Stack } from "expo-router";
 import { PostHogProvider, usePostHog } from "posthog-react-native";
 import { useEffect } from "react";
@@ -52,6 +53,14 @@ function PostHogIdentify() {
 
 function Router() {
   const { data: session, isPending } = authClient.useSession();
+
+  useEffect(() => {
+    setAudioModeAsync({
+      playsInSilentMode: true,
+      interruptionMode: "duckOthers",
+    }).catch(() => {});
+  }, []);
+
   if (isPending) return null;
   return (
     <Stack screenOptions={{ headerShown: false }}>
