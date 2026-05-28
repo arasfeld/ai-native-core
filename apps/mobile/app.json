@@ -29,6 +29,19 @@
         {
           "locationWhenInUsePermission": "Allow AI Native to use your location to provide weather and nearby place information."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow AI Native to access your photos to attach images to chat.",
+          "cameraPermission": "Allow AI Native to access the camera to take photos for chat."
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow AI Native to access the microphone to transcribe voice messages."
+        }
       ]
     ],
     "experiments": {
