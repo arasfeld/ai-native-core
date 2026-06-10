@@ -30,6 +30,84 @@ async def ingest_document(ctx, document_url: str, tenant_id: str = "default") ->
     return {"chunks_stored": stored}
 
 
+async def ingest_document_content(
+    ctx,
+    document_id: str,
+    tenant_id: str,
+    content: str | None = None,
+    source_url: str | None = None,
+) -> dict:
+    """Background task: chunk + embed for a `documents` row.
+
+    Updates the row's `status`, `chunks_count`, and `error_message` so the
+    user-facing UI can show progress / failure. Exactly one of `content` or
+    `source_url` must be set — if `source_url` is given, the URL is fetched
+    first.
+    """
+    import asyncpg
+    from ai import get_llm
+    from rag import PgVectorRetriever, chunk_text
+    from rag.ingest.loaders import load_url
+
+    database_url = os.environ.get("DATABASE_URL", "")
+    log.info("worker.documents.ingest.start", document_id=document_id, tenant=tenant_id)
+
+    conn = await asyncpg.connect(database_url)
+    try:
+        try:
+            if content is None and source_url:
+                content = await load_url(source_url)
+            if not content:
+                raise ValueError("No content to ingest")
+
+            chunks = chunk_text(content)
+            llm = get_llm()
+            retriever = PgVectorRetriever(llm=llm, database_url=database_url)
+            stored = await retriever.store(
+                chunks,
+                metadata={"tenant": tenant_id, "source": source_url or document_id},
+                document_id=document_id,
+            )
+            await conn.execute(
+                """
+                UPDATE documents
+                   SET status = 'ready',
+                       chunks_count = $2,
+                       error_message = NULL,
+                       updated_at = NOW()
+                 WHERE id = $1::uuid
+                """,
+                document_id,
+                stored,
+            )
+            log.info(
+                "worker.documents.ingest.complete",
+                document_id=document_id,
+                chunks=stored,
+            )
+            return {"document_id": document_id, "chunks_stored": stored}
+        except Exception as exc:
+            log.error(
+                "worker.documents.ingest.failed",
+                document_id=document_id,
+                error=str(exc),
+            )
+            await conn.execute(
+                """
+                UPDATE documents
+                   SET status = 'failed',
+                       error_message = $2,
+                       updated_at = NOW()
+                 WHERE id = $1::uuid
+                """,
+                document_id,
+                str(exc)[:500],
+            )
+            raise
+    finally:
+        await conn.close()
+
+
 async def run_agent(
     ctx,
     message: str,
@@ -89,7 +167,7 @@ async def run_agent(
 class WorkerSettings:
     """ARQ worker configuration."""
 
-    functions = [ingest_document, run_agent]
+    functions = [ingest_document, ingest_document_content, run_agent]
     redis_settings = RedisSettings.from_dsn(REDIS_URL)
     max_jobs = 10
     job_timeout = 300  # 5 minutes

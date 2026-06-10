@@ -18,7 +18,13 @@ const PUBLIC_PATHS = [
 ];
 
 // Paths that always require authentication
-const PROTECTED_PATHS = ["/admin", "/billing", "/onboarding", "/settings"];
+const PROTECTED_PATHS = [
+  "/admin",
+  "/billing",
+  "/documents",
+  "/onboarding",
+  "/settings",
+];
 
 export async function proxy(req: NextRequest): Promise<NextResponse> {
   const { pathname } = req.nextUrl;

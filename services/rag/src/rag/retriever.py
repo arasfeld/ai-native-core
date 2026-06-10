@@ -93,7 +93,12 @@ class PgVectorRetriever:
                 for r in rows
             ]
 
-    async def store(self, chunks: list[str], metadata: dict | None = None) -> int:
+    async def store(
+        self,
+        chunks: list[str],
+        metadata: dict | None = None,
+        document_id: str | None = None,
+    ) -> int:
         """Embed and store text chunks in pgvector. Returns number stored."""
         # Embed all chunks in parallel
         embeddings = await asyncio.gather(*[self.llm.embed(chunk) for chunk in chunks])
@@ -103,11 +108,12 @@ class PgVectorRetriever:
             for chunk, embedding in zip(chunks, embeddings, strict=True):
                 await conn.execute(
                     """
-                    INSERT INTO document_chunks (content, embedding, metadata)
-                    VALUES ($1, $2::vector, $3::jsonb)
+                    INSERT INTO document_chunks (content, embedding, metadata, document_id)
+                    VALUES ($1, $2::vector, $3::jsonb, $4::uuid)
                     """,
                     chunk,
                     _vec_str(embedding),
                     meta_json,
+                    document_id,
                 )
             return len(chunks)

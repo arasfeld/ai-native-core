@@ -10,6 +10,7 @@ import {
 } from "@repo/ui/components/dropdown-menu";
 import {
   CreditCardIcon,
+  FileTextIcon,
   LogOutIcon,
   SettingsIcon,
   ShieldIcon,
@@ -55,6 +56,10 @@ export function UserMenu(): JSX.Element | null {
         <DropdownMenuItem onClick={() => router.push("/billing")}>
           <CreditCardIcon className="mr-2 size-4" />
           Billing
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => router.push("/documents")}>
+          <FileTextIcon className="mr-2 size-4" />
+          Knowledge
         </DropdownMenuItem>
         {/* In a real app, gate this behind an admin role check */}
         <DropdownMenuItem onClick={() => router.push("/admin")}>

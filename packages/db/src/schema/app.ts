@@ -67,12 +67,41 @@ export const userApiKeys = pgTable(
   ],
 );
 
+export const documents = pgTable(
+  "documents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: text("tenant_id").notNull(),
+    userId: text("user_id").notNull(),
+    name: text("name").notNull(),
+    mimeType: text("mime_type"),
+    sourceUrl: text("source_url"),
+    sizeBytes: integer("size_bytes"),
+    status: text("status").notNull().default("processing"),
+    errorMessage: text("error_message"),
+    chunksCount: integer("chunks_count").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("documents_tenant_created_idx").on(table.tenantId, table.createdAt),
+    index("documents_user_id_idx").on(table.userId),
+  ],
+);
+
 export const documentChunks = pgTable(
   "document_chunks",
   {
     id: bigint("id", { mode: "number" })
       .primaryKey()
       .generatedAlwaysAsIdentity(),
+    documentId: uuid("document_id").references(() => documents.id, {
+      onDelete: "cascade",
+    }),
     content: text("content").notNull(),
     embedding: vector("embedding", { dimensions: 1536 }),
     metadata: jsonb("metadata").notNull().default({}),
@@ -86,6 +115,7 @@ export const documentChunks = pgTable(
       "hnsw",
       table.embedding.op("vector_cosine_ops"),
     ),
+    index("document_chunks_document_id_idx").on(table.documentId),
   ],
 );
 

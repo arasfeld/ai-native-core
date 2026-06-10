@@ -198,7 +198,7 @@ Goal: Keep users informed with transactional emails, in-app notifications, budge
 | 99 | **In-app notification center** | ✅ | Bell icon + drawer; mark read/unread; system + billing notifications |
 | 100 | **Budget warning notifications** | ✅ | Email + in-app alert at 80% and 100% of monthly token budget |
 | 101 | **Security alerts** | ✅ | better-auth `session.create.after` hook fires `maybeAlertOnNewLogin`: if the new session's IP is unseen across the user's other sessions (and they have ≥1 prior session), insert a `security_alert` in-app notification and send a `SecurityAlertEmail` (React Email + Resend) with device, IP, time, and a deep link to `/settings?tab=profile`. Best-effort — never throws. Signup is skipped because the first session has no priors. |
-| 102 | **Mobile push notifications** | ⬜ | Expo Notifications + push token management |
+| 102 | **Mobile push notifications** | ✅ | Delivered as Phase 23 #117 (`push_tokens` table, `POST/DELETE /auth/push-tokens`, `services/push_notifications`, mobile `usePushRegistration`) |
 
 ---
 
@@ -225,7 +225,7 @@ Goal: Instrument the product with PostHog, Sentry, health metrics, and an admin 
 | 108 | **PostHog integration** | ✅ | `posthog-js` (Next.js App Router) + `posthog-react-native` (Expo); both gated on a key env var so they no-op locally. Web captures `$pageview` on route changes; mobile enables lifecycle autocapture. Both call `posthog.identify(user.id, …)` when a better-auth session is present and `posthog.reset()` on logout. |
 | 109 | **Sentry integration** | ✅ | Error tracking + performance monitoring across FastAPI (`sentry-sdk[fastapi]`), Next.js (`@sentry/nextjs` with tunnel route + sourcemap upload), and Expo (`@sentry/react-native`); all gated on a DSN env var so it no-ops in local dev |
 | 110 | **Health metrics endpoint** | ✅ | `GET /health/detailed` (admin-gated) — DB `SELECT 1`, ARQ Redis ping, queued_jobs probe, `llm.embed` with bounded timeouts; aggregates ok/degraded/down |
-| 111 | **Admin analytics dashboard** | ⬜ | MRR, retention, DAU, token usage trends; built on PostHog or direct DB queries |
+| 111 | **Admin analytics dashboard** | ✅ | Delivered as Phase 16 #82 (`/admin/analytics` — KPI cards + recharts) |
 
 ---
 
@@ -278,10 +278,75 @@ Goal: Expose the existing RAG pipeline through a user-facing UI — upload, mana
 
 | Priority | Item | Status | Notes |
 | -------- | ---- | ------ | ----- |
-| 126 | **Document upload UI** | ⬜ | Drag-drop + file list + delete; triggers existing `ingest_document` worker job |
+| 126 | **Document upload UI** | ✅ | `/documents` page (`features/documents/DocumentsPage`) — drag-drop, file picker (text/markdown/JSON, 5 MB cap), list, typed delete confirm. Worker job `ingest_document_content` chunks + embeds, updates `documents.status` from `processing` → `ready`/`failed`; chunks FK-cascade on delete |
 | 127 | **Knowledge base scoping** | ⬜ | Per-user and per-org knowledge bases; RAG toggle per conversation |
-| 128 | **URL/web ingestion** | ⬜ | Submit a URL → crawl + chunk + embed |
-| 129 | **Document status + source attribution** | ⬜ | Processing status indicator in UI; inline source citations in chat |
+| 128 | **URL/web ingestion** | ✅ | `POST /documents/url` enqueues `ingest_document_content` with `source_url`; worker fetches via `rag.ingest.loaders.load_url`. URL input on the same `/documents` page |
+| 129 | **Document status + source attribution** | 🟡 | UI half done: per-row status badge (Processing/Ready/Failed) + error message; list polls every 4s while any doc is processing. Inline source citations in chat deferred |
+
+---
+
+## Phase 27 — Reliability & Cost Management
+
+Goal: Make the AI stack production-grade — provider failover when calls fail, retry policies inside `BaseLLM`, and accurate cost accounting in dollars (not just tokens) so budgets and analytics reflect real spend.
+
+| Priority | Item | Status | Notes |
+| -------- | ---- | ------ | ----- |
+| 130 | **Provider failover / circuit breaker** | ⬜ | On 5xx/timeout/rate-limit from the configured primary, `services/ai` falls back to a secondary; fallback chain configured per-feature in `ai_feature_configs` |
+| 131 | **LLM retry with exponential backoff** | ⬜ | Transient errors retry inside `BaseLLM`; 4xx and content-policy errors bubble immediately so callers can surface them |
+| 132 | **Per-model unit cost config** | ⬜ | `model_pricing` table (provider, model, input/output USD per 1M tokens); seeded for OpenAI/Anthropic/OpenRouter; admin UI for overrides |
+| 133 | **Token → dollar cost computation** | ⬜ | `session_token_usage` gains `cost_usd`; `TenantMonthlyBudget` can enforce either tokens or dollars; guests stay token-capped |
+| 134 | **Cost analytics** | ⬜ | `/billing/usage` and `/admin/analytics` add a `$` view — spend by model, feature, period; cost projection for end-of-month |
+
+---
+
+## Phase 28 — MCP & Tool Ecosystem
+
+Goal: Adopt Model Context Protocol so the platform can both expose its agents/tools to external MCP clients (Claude Desktop, Cursor, etc.) and consume third-party MCP servers as drop-in tools for our agents.
+
+| Priority | Item | Status | Notes |
+| -------- | ---- | ------ | ----- |
+| 135 | **MCP server (outbound)** | ⬜ | Expose `services/tools` registry + chat/RAG agents over MCP; support stdio and SSE transports; API-key authenticated |
+| 136 | **MCP client (inbound)** | ⬜ | `services/tools` can register external MCP servers; tools auto-discovered and made available to agents |
+| 137 | **MCP server management UI** | ⬜ | Per-tenant or global MCP server connections; add/remove from admin and (optionally) user settings |
+| 138 | **Tool permission model** | ⬜ | Per-feature/per-tenant allowlist of which tools (built-in or MCP-sourced) the agent may call; default-deny for new MCP servers |
+
+---
+
+## Phase 29 — Safety & Guardrails
+
+Goal: Protect users, tenants, and the platform from prompt injection, PII leakage, and harmful model outputs — the gate to enterprise and regulated-industry deployments.
+
+| Priority | Item | Status | Notes |
+| -------- | ---- | ------ | ----- |
+| 139 | **Prompt injection detection** | ⬜ | Heuristic + classifier pass on untrusted inputs (RAG'd documents, web-fetched URLs, tool outputs); flag, sanitize, or block per tenant policy |
+| 140 | **PII redaction (input)** | ⬜ | Detect and redact emails, phone numbers, SSNs, card numbers before sending to LLM provider; per-tenant toggle and pattern list |
+| 141 | **Output content moderation** | ⬜ | Moderation pass on completed responses (OpenAI Moderation API or open-source); admin-configurable thresholds and action (flag/block) |
+| 142 | **Abuse detection** | ⬜ | Anomaly detection on per-user/per-IP request patterns; auto-throttle suspected abuse; audit-logged |
+
+---
+
+## Phase 30 — Workspaces & Projects
+
+Goal: Let users organize conversations into projects (ChatGPT/Claude-style) with shared instructions, scoped knowledge bases, and org-level collaboration. Pairs naturally with Phase 26 (Document & Knowledge Management).
+
+| Priority | Item | Status | Notes |
+| -------- | ---- | ------ | ----- |
+| 143 | **Project containers** | ⬜ | New `projects` table; conversations optionally belong to a project; sidebar grouping on web and mobile |
+| 144 | **Project-level system instructions** | ⬜ | Extends Phase 18 #94 — project instructions stack additively with global + per-conversation |
+| 145 | **Project-scoped knowledge base** | ⬜ | RAG retrieval can be filtered to documents attached to the active project; default scope honors the user's last project |
+| 146 | **Project collaboration** | ⬜ | Within an org, share a project with members; per-role access (view/edit/admin); audit-logged invites |
+
+---
+
+## Phase 31 — Sharing & Growth
+
+Goal: Add lightweight viral surfaces — public shareable conversation links, an embeddable read-only widget, and a "fork this chat" CTA that converts viewers into signups.
+
+| Priority | Item | Status | Notes |
+| -------- | ---- | ------ | ----- |
+| 147 | **Public conversation share links** | ⬜ | "Share" action mints a read-only public URL; revocable; tracked in `shared_conversations` with `view_count` and `created_by` |
+| 148 | **Conversation embed widget** | ⬜ | Iframe-able read-only conversation view for blog posts / docs sites; respects light/dark theme via query param |
+| 149 | **"Continue this chat" CTA** | ⬜ | Viewer of a shared link can fork the conversation into their own account; attributed to the original sharer for referral credit |
 
 ---
 

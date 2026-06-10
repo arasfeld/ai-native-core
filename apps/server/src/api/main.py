@@ -28,6 +28,7 @@ from .routers import (
     billing,
     chat,
     conversations,
+    documents,
     feedback,
     health,
     ingest,
@@ -386,3 +387,4 @@ app.include_router(audit_logs.router)
 app.include_router(referrals.router)
 app.include_router(feedback.router)
 app.include_router(admin_evals.router)
+app.include_router(documents.router)
