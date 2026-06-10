@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from agents import build_chat_graph, build_rag_graph
-from ai import BaseLLM, FailoverLLM, create_llm, get_llm
+from ai import BaseLLM, FailoverLLM, RetryLLM, create_llm, get_llm
 from rag import PgVectorRetriever
 from tools import registry
 
@@ -26,9 +26,9 @@ class AgentFactory:
     def _get_llm(self, feature: str) -> BaseLLM:
         cfg = self._ai_config.get(feature)
         if not cfg or not cfg.get("enabled", True):
-            return get_llm()  # fallback to singleton
+            return RetryLLM(get_llm())  # fallback to singleton
 
-        primary = create_llm(provider=cfg.get("provider"), model=cfg.get("model"))
+        primary = RetryLLM(create_llm(provider=cfg.get("provider"), model=cfg.get("model")))
 
         fallbacks_cfg = cfg.get("fallback_providers") or []
         fallbacks: list[BaseLLM] = []
@@ -36,7 +36,9 @@ class AgentFactory:
             if not isinstance(fb, dict) or not fb.get("provider"):
                 continue
             try:
-                fallbacks.append(create_llm(provider=fb["provider"], model=fb.get("model")))
+                fallbacks.append(
+                    RetryLLM(create_llm(provider=fb["provider"], model=fb.get("model")))
+                )
             except Exception:
                 # A misconfigured fallback (missing API key etc.) must not break
                 # the request — silently drop it from the chain.
