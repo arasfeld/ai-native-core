@@ -284,18 +284,32 @@ async def lifespan(app: FastAPI):
         await conn.execute(_CREATE_MESSAGE_FEEDBACK)
         await conn.execute(_CREATE_EVAL_RUNS)
 
-    # Load runtime AI config from DB (populated by migration 0002)
+    # Load runtime AI config from DB (populated by migrations 0002 + 0017)
     try:
         config_rows = await pool.fetch("SELECT * FROM ai_feature_configs")
-        ai_config = {
-            row["feature"]: {
+        ai_config = {}
+        for row in config_rows:
+            raw_fallbacks = row.get("fallback_providers") if hasattr(row, "get") else None
+            if raw_fallbacks is None:
+                # asyncpg Records don't support .get() — fall back to KeyError catch
+                try:
+                    raw_fallbacks = row["fallback_providers"]
+                except (KeyError, TypeError):
+                    raw_fallbacks = None
+            if isinstance(raw_fallbacks, str):
+                import json
+
+                try:
+                    raw_fallbacks = json.loads(raw_fallbacks)
+                except json.JSONDecodeError:
+                    raw_fallbacks = []
+            ai_config[row["feature"]] = {
                 "feature": row["feature"],
                 "provider": row["provider"],
                 "model": row["model"],
                 "enabled": row["enabled"],
+                "fallback_providers": list(raw_fallbacks or []),
             }
-            for row in config_rows
-        }
     except Exception:
         ai_config = {}
     app.state.ai_config = ai_config

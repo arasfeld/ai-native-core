@@ -291,7 +291,7 @@ Goal: Make the AI stack production-grade — provider failover when calls fail, 
 
 | Priority | Item | Status | Notes |
 | -------- | ---- | ------ | ----- |
-| 130 | **Provider failover / circuit breaker** | ⬜ | On 5xx/timeout/rate-limit from the configured primary, `services/ai` falls back to a secondary; fallback chain configured per-feature in `ai_feature_configs` |
+| 130 | **Provider failover / circuit breaker** | ✅ | `services/ai/failover.py` — `FailoverLLM` wraps a primary + ordered fallbacks; retries on 5xx/timeout/rate-limit (detected by exception class name + `status_code >= 500`). Streaming only fails over before the first token. `bind_tools` propagates to tool-capable providers only. Configured per-feature via new `fallback_providers JSONB` column on `ai_feature_configs` (migration `0017_ai_failover.sql`); `AgentFactory._get_llm` wraps when the chain is non-empty; admin `PUT /admin/ai-config/{feature}` accepts the chain |
 | 131 | **LLM retry with exponential backoff** | ⬜ | Transient errors retry inside `BaseLLM`; 4xx and content-policy errors bubble immediately so callers can surface them |
 | 132 | **Per-model unit cost config** | ⬜ | `model_pricing` table (provider, model, input/output USD per 1M tokens); seeded for OpenAI/Anthropic/OpenRouter; admin UI for overrides |
 | 133 | **Token → dollar cost computation** | ⬜ | `session_token_usage` gains `cost_usd`; `TenantMonthlyBudget` can enforce either tokens or dollars; guests stay token-capped |

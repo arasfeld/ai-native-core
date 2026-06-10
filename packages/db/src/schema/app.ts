@@ -16,11 +16,17 @@ import {
 } from "drizzle-orm/pg-core";
 
 // Runtime AI configuration — one row per feature, updated without redeployment.
+// `fallbackProviders` is an ordered list of {provider, model?} objects; on a
+// transient error from the primary, services/ai walks the chain in order.
 export const aiFeatureConfigs = pgTable("ai_feature_configs", {
   feature: text("feature").primaryKey(), // 'chat' | 'rag' | 'embeddings' | 'image_gen' | 'memory'
   provider: text("provider").notNull(), // 'ollama' | 'openai' | 'anthropic' | 'openrouter'
   model: text("model"), // null = provider default
   enabled: boolean("enabled").notNull().default(true),
+  fallbackProviders: jsonb("fallback_providers")
+    .$type<Array<{ provider: string; model?: string | null }>>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
