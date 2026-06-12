@@ -7,6 +7,7 @@ import json
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from decimal import Decimal
 
 import asyncpg
 import structlog
@@ -26,18 +27,30 @@ CREATE INDEX IF NOT EXISTS chat_sessions_session_id_idx
     ON chat_sessions (session_id, created_at);
 
 CREATE TABLE IF NOT EXISTS session_token_usage (
-    id          BIGSERIAL PRIMARY KEY,
-    session_id  TEXT        NOT NULL,
-    tenant_id   TEXT,
-    tokens      INTEGER     NOT NULL,
-    recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    id            BIGSERIAL PRIMARY KEY,
+    session_id    TEXT        NOT NULL,
+    tenant_id     TEXT,
+    tokens        INTEGER     NOT NULL,
+    provider      TEXT,
+    model         TEXT,
+    input_tokens  INTEGER,
+    output_tokens INTEGER,
+    cost_usd      NUMERIC(12, 6),
+    recorded_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 ALTER TABLE session_token_usage
-    ADD COLUMN IF NOT EXISTS tenant_id TEXT;
+    ADD COLUMN IF NOT EXISTS tenant_id     TEXT,
+    ADD COLUMN IF NOT EXISTS provider      TEXT,
+    ADD COLUMN IF NOT EXISTS model         TEXT,
+    ADD COLUMN IF NOT EXISTS input_tokens  INTEGER,
+    ADD COLUMN IF NOT EXISTS output_tokens INTEGER,
+    ADD COLUMN IF NOT EXISTS cost_usd      NUMERIC(12, 6);
 CREATE INDEX IF NOT EXISTS session_token_usage_session_id_idx
     ON session_token_usage (session_id);
 CREATE INDEX IF NOT EXISTS session_token_usage_tenant_id_idx
     ON session_token_usage (tenant_id, recorded_at);
+CREATE INDEX IF NOT EXISTS session_token_usage_provider_model_idx
+    ON session_token_usage (provider, model);
 """
 
 
@@ -137,15 +150,40 @@ class SessionStore:
         log.info("memory.session.cleared", session_id=session_id)
 
     async def add_token_usage(
-        self, session_id: str, tokens: int, tenant_id: str | None = None
+        self,
+        session_id: str,
+        tokens: int,
+        tenant_id: str | None = None,
+        *,
+        provider: str | None = None,
+        model: str | None = None,
+        input_tokens: int | None = None,
+        output_tokens: int | None = None,
+        cost_usd: Decimal | None = None,
     ) -> None:
-        """Record token consumption for a session turn."""
+        """Record token consumption for a session turn.
+
+        ``provider``/``model`` and the input/output split are optional so
+        callers without that information (older callers, embedding endpoints,
+        background jobs) still get a row written. ``cost_usd`` should be
+        precomputed by the caller against the ``model_pricing`` cache.
+        """
         async with self._conn() as conn:
             await conn.execute(
-                "INSERT INTO session_token_usage (session_id, tenant_id, tokens) VALUES ($1, $2, $3)",
+                """
+                INSERT INTO session_token_usage
+                  (session_id, tenant_id, tokens, provider, model,
+                   input_tokens, output_tokens, cost_usd)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                """,
                 session_id,
                 tenant_id,
                 tokens,
+                provider,
+                model,
+                input_tokens,
+                output_tokens,
+                cost_usd,
             )
 
     async def get_token_usage(self, session_id: str) -> int:
@@ -170,3 +208,22 @@ class SessionStore:
                 tenant_id,
             )
         return int(row["total"])
+
+    async def get_monthly_tenant_cost(self, tenant_id: str) -> Decimal:
+        """Return total USD cost recorded for a tenant in the current calendar month.
+
+        Rows with NULL ``cost_usd`` (older usage, Ollama, embedding endpoints
+        without a pricing entry) are treated as zero so the sum stays
+        well-defined.
+        """
+        async with self._conn() as conn:
+            row = await conn.fetchrow(
+                """
+                SELECT COALESCE(SUM(cost_usd), 0) AS total
+                FROM session_token_usage
+                WHERE tenant_id = $1
+                  AND date_trunc('month', recorded_at) = date_trunc('month', NOW())
+                """,
+                tenant_id,
+            )
+        return Decimal(row["total"])

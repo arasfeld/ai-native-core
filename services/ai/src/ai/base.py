@@ -16,12 +16,21 @@ class Usage(BaseModel):
     prompt_tokens: int = 0
     completion_tokens: int = 0
     total_tokens: int = 0
+    # Provider that produced this usage (e.g. "openai", "anthropic"). Set by
+    # the provider implementation so cost can be computed from session_token_usage
+    # without re-deriving which backend actually answered.
+    provider: str | None = None
+    # Model identifier as returned by the provider (e.g. "gpt-4o-mini",
+    # "claude-haiku-4-5-20251001"). Joined with ``provider`` against the
+    # ``model_pricing`` table at recording time.
+    model: str | None = None
 
 
 class LLMResponse(BaseModel):
     content: str
     usage: Usage | None = None
     model: str | None = None
+    provider: str | None = None
     tool_calls: list[dict[str, Any]] | None = None  # populated when LLM requests tool calls
 
 

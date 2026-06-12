@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 import asyncpg
 import structlog
 from langchain_core.messages import BaseMessage
@@ -38,8 +40,28 @@ class SessionRepository:
     async def save_message(self, session_id: str, role: str, content) -> None:
         await self._store.add_message(session_id, role, content)
 
-    async def add_token_usage(self, session_id: str, tokens: int, tenant_id: str) -> None:
-        await self._store.add_token_usage(session_id, tokens, tenant_id=tenant_id)
+    async def add_token_usage(
+        self,
+        session_id: str,
+        tokens: int,
+        tenant_id: str,
+        *,
+        provider: str | None = None,
+        model: str | None = None,
+        input_tokens: int | None = None,
+        output_tokens: int | None = None,
+        cost_usd: Decimal | None = None,
+    ) -> None:
+        await self._store.add_token_usage(
+            session_id,
+            tokens,
+            tenant_id=tenant_id,
+            provider=provider,
+            model=model,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            cost_usd=cost_usd,
+        )
 
     async def get_token_limit(self, user_id: str) -> int:
         if user_id.startswith(_GUEST_PREFIX):
@@ -50,6 +72,28 @@ class SessionRepository:
             user_id,
         )
         return row["total"] if row else self._default_limit
+
+    async def get_cost_limit(self, user_id: str) -> Decimal | None:
+        """Return the monthly dollar cap for a tenant, or None if token-capped.
+
+        Guests always return None — they're enforced in tokens.
+        """
+        if user_id.startswith(_GUEST_PREFIX):
+            return None
+        row = await self._pool.fetchrow(
+            "SELECT cost_limit_usd FROM tenants WHERE id = $1",
+            user_id,
+        )
+        if row is None:
+            return None
+        # asyncpg.Record exposes a Mapping interface; a missing column raises
+        # KeyError. Guard for fixtures that return a plain dict without the
+        # column populated.
+        try:
+            value = row["cost_limit_usd"]
+        except (KeyError, IndexError):
+            return None
+        return Decimal(value) if value is not None else None
 
     async def get_or_create_tenant(self, user_id: str, email: str) -> None:
         """Ensure a tenant row + owner membership row exist for this user (idempotent)."""
@@ -78,9 +122,18 @@ class SessionRepository:
         )
 
     async def check_budget(self, session_id: str, user_id: str) -> None:
-        """Raise BudgetExceeded if the tenant has exceeded their monthly token budget."""
-        limit = await self.get_token_limit(user_id)
-        budget = TenantMonthlyBudget(self._store, limit=limit)
+        """Raise BudgetExceeded if the tenant has exceeded their monthly budget.
+
+        Cost-capped tenants (``cost_limit_usd`` set on ``tenants``) are
+        enforced in USD; everyone else (including guests) is enforced in
+        tokens.
+        """
+        cost_limit = await self.get_cost_limit(user_id)
+        if cost_limit is not None:
+            budget = TenantMonthlyBudget(self._store, cost_limit_usd=cost_limit)
+        else:
+            limit = await self.get_token_limit(user_id)
+            budget = TenantMonthlyBudget(self._store, limit=limit)
         await budget.check(user_id)
 
     async def auto_title_conversation(self, conversation_id: str, title: str) -> None:

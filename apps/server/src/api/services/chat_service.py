@@ -6,10 +6,12 @@ import asyncio
 import json
 import uuid
 from collections.abc import AsyncIterator
+from decimal import Decimal
 from typing import Any
 
 import structlog
 from agents import trace_chat
+from ai.pricing import PricingTable
 from langchain_core.messages import HumanMessage
 from memory import MemoryExtractor, estimate_tokens
 
@@ -31,11 +33,13 @@ class ChatService:
         agent_factory: AgentFactory,
         session_repo: SessionRepository,
         extractor: MemoryExtractor | None = None,
+        pricing: PricingTable | None = None,
     ) -> None:
         self._context_service = context_service
         self._agent_factory = agent_factory
         self._session_repo = session_repo
         self._extractor = extractor
+        self._pricing = pricing
 
     async def _fetch_global_instructions(self, user_id: str) -> str:
         row = await self._session_repo._pool.fetchrow(
@@ -133,6 +137,10 @@ class ChatService:
 
         accumulated: list[str] = []
         real_usage_total = 0
+        real_prompt_tokens = 0
+        real_completion_tokens = 0
+        usage_provider: str | None = None
+        usage_model: str | None = None
         message_for_trace = (
             request.message if isinstance(request.message, str) else str(request.message)
         )
@@ -166,10 +174,26 @@ class ChatService:
                         yield f"data: {event.content}\n\n"
                     elif event.type == "usage" and event.usage:
                         real_usage_total = event.usage.total_tokens
+                        real_prompt_tokens = event.usage.prompt_tokens
+                        real_completion_tokens = event.usage.completion_tokens
+                        usage_provider = event.usage.provider
+                        usage_model = event.usage.model
 
                 full_reply = "".join(accumulated)
                 estimated_tokens = estimate_tokens(request.message) + estimate_tokens(full_reply)
                 tokens_used = real_usage_total or estimated_tokens
+
+                # Compute dollar cost from the pricing cache. Without provider/model
+                # (Ollama doesn't stream usage), or for a model we have no rate for,
+                # cost stays NULL — callers distinguish "unpriced" from "$0".
+                cost_usd: Decimal | None = None
+                if self._pricing and usage_provider and real_usage_total:
+                    cost_usd = self._pricing.compute_cost(
+                        provider=usage_provider,
+                        model=usage_model,
+                        input_tokens=real_prompt_tokens,
+                        output_tokens=real_completion_tokens,
+                    )
 
                 if run_tree is not None:
                     run_tree.add_outputs({"response": full_reply})
@@ -179,6 +203,9 @@ class ChatService:
                             "tokens_estimated": estimated_tokens,
                             "tokens_recorded": tokens_used,
                             "tokens_source": "real" if real_usage_total else "estimate",
+                            "provider": usage_provider,
+                            "model": usage_model,
+                            "cost_usd": str(cost_usd) if cost_usd is not None else None,
                         }
                     )
 
@@ -186,7 +213,16 @@ class ChatService:
             # provider exposed it (OpenAI/Anthropic/OpenRouter); fall back to the
             # estimate for providers that don't stream usage (Ollama).
             await self._session_repo.save_message(session_id, "assistant", full_reply)
-            await self._session_repo.add_token_usage(session_id, tokens_used, budget_key)
+            await self._session_repo.add_token_usage(
+                session_id,
+                tokens_used,
+                budget_key,
+                provider=usage_provider,
+                model=usage_model,
+                input_tokens=real_prompt_tokens or None,
+                output_tokens=real_completion_tokens or None,
+                cost_usd=cost_usd,
+            )
 
             log.info(
                 "chat.stream.complete",
@@ -196,6 +232,9 @@ class ChatService:
                 tokens_estimated=estimated_tokens,
                 tokens_recorded=tokens_used,
                 source="real" if real_usage_total else "estimate",
+                provider=usage_provider,
+                model=usage_model,
+                cost_usd=str(cost_usd) if cost_usd is not None else None,
             )
 
             # Background: budget threshold notifications (registered users only)

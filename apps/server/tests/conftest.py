@@ -1,3 +1,4 @@
+from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -18,14 +19,17 @@ def mock_store():
     store.add_token_usage = AsyncMock()
     store.get_token_usage = AsyncMock(return_value=0)
     store.get_monthly_tenant_usage = AsyncMock(return_value=0)
+    store.get_monthly_tenant_cost = AsyncMock(return_value=Decimal("0"))
     return store
 
 
 @pytest.fixture
 def mock_pool():
     pool = AsyncMock()
-    # `get_token_limit` SQL aliases `token_limit + referral_bonus_tokens` AS `total`.
-    pool.fetchrow = AsyncMock(return_value={"total": 50_000})
+    # `get_token_limit` SQL aliases `token_limit + referral_bonus_tokens` AS `total`;
+    # `get_cost_limit` reads `cost_limit_usd`. Returning a dict with both keys
+    # keeps the same fixture usable across call sites.
+    pool.fetchrow = AsyncMock(return_value={"total": 50_000, "cost_limit_usd": None})
     pool.execute = AsyncMock()
     return pool
 

@@ -10,6 +10,8 @@ from ..utils import messages_to_dicts, parse_openai_usage
 class OpenRouterProvider:
     """OpenRouter provider — OpenAI-compatible API with access to many models."""
 
+    provider_name = "openrouter"
+
     def __init__(self) -> None:
         self.client = AsyncOpenAI(
             api_key=os.environ["OPENROUTER_API_KEY"],
@@ -29,10 +31,15 @@ class OpenRouterProvider:
             messages=messages_to_dicts(messages),
             **kwargs,
         )
+        usage = parse_openai_usage(response)
+        if usage is not None:
+            usage.provider = self.provider_name
+            usage.model = response.model
         return LLMResponse(
             content=response.choices[0].message.content or "",
-            usage=parse_openai_usage(response),
+            usage=usage,
             model=response.model,
+            provider=self.provider_name,
         )
 
     async def stream(self, messages: list[Message], **kwargs) -> AsyncIterator[str]:
@@ -73,6 +80,8 @@ class OpenRouterProvider:
                         prompt_tokens=chunk.usage.prompt_tokens,
                         completion_tokens=chunk.usage.completion_tokens,
                         total_tokens=chunk.usage.total_tokens,
+                        provider=self.provider_name,
+                        model=getattr(chunk, "model", None) or self.model,
                     ),
                 )
 

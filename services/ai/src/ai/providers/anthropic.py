@@ -10,6 +10,8 @@ from ..base import LLMResponse, Message, StreamEvent, Usage
 class AnthropicProvider:
     """Anthropic Claude LLM provider."""
 
+    provider_name = "anthropic"
+
     def __init__(self) -> None:
         self.client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
         self.model = os.environ.get("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001")
@@ -156,12 +158,15 @@ class AnthropicProvider:
                 prompt_tokens=response.usage.input_tokens,
                 completion_tokens=response.usage.output_tokens,
                 total_tokens=response.usage.input_tokens + response.usage.output_tokens,
+                provider=self.provider_name,
+                model=response.model,
             )
 
         return LLMResponse(
             content=text_content,
             usage=usage,
             model=response.model,
+            provider=self.provider_name,
             tool_calls=tool_calls,
         )
 
@@ -204,6 +209,8 @@ class AnthropicProvider:
                         prompt_tokens=final.usage.input_tokens,
                         completion_tokens=final.usage.output_tokens,
                         total_tokens=final.usage.input_tokens + final.usage.output_tokens,
+                        provider=self.provider_name,
+                        model=getattr(final, "model", None) or self.model,
                     ),
                 )
 

@@ -13,6 +13,8 @@ from ..utils import messages_to_dicts, parse_openai_usage
 class OpenAIProvider:
     """OpenAI LLM provider."""
 
+    provider_name = "openai"
+
     def __init__(self) -> None:
         self.client = AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"])
         self.model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
@@ -65,10 +67,15 @@ class OpenAIProvider:
                 for tc in msg.tool_calls
             ]
 
+        usage = parse_openai_usage(response)
+        if usage is not None:
+            usage.provider = self.provider_name
+            usage.model = response.model
         return LLMResponse(
             content=msg.content or "",
-            usage=parse_openai_usage(response),
+            usage=usage,
             model=response.model,
+            provider=self.provider_name,
             tool_calls=tool_calls,
         )
 
@@ -110,6 +117,8 @@ class OpenAIProvider:
                         prompt_tokens=chunk.usage.prompt_tokens,
                         completion_tokens=chunk.usage.completion_tokens,
                         total_tokens=chunk.usage.total_tokens,
+                        provider=self.provider_name,
+                        model=getattr(chunk, "model", None) or self.model,
                     ),
                 )
 

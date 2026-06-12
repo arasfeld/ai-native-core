@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
+from decimal import Decimal
 
 import stripe
 import structlog
@@ -32,6 +33,13 @@ class PlanInfo(BaseModel):
     referral_bonus_tokens: int
     tokens_used_this_month: int
     tokens_remaining: int
+    # When the tenant is cost-capped (``cost_limit_usd`` set), these surface
+    # the dollar budget alongside the existing token counters so the UI can
+    # render either view. Always populated with the month-to-date cost; the
+    # limit/remaining fields are None for tenants without a cost cap.
+    cost_used_this_month_usd: Decimal
+    cost_limit_usd: Decimal | None = None
+    cost_remaining_usd: Decimal | None = None
 
 
 class CheckoutResponse(BaseModel):
@@ -81,6 +89,7 @@ async def _get_tenant(pool, tenant_id: str) -> dict:
     row = await pool.fetchrow(
         "SELECT id, name, plan, token_limit, "
         "       COALESCE(referral_bonus_tokens, 0) AS referral_bonus_tokens, "
+        "       cost_limit_usd, "
         "       stripe_customer_id, stripe_subscription_id "
         "FROM tenants WHERE id = $1",
         tenant_id,
@@ -102,6 +111,20 @@ async def _get_monthly_usage(pool, tenant_id: str) -> int:
         tenant_id,
     )
     return int(row["total"])
+
+
+async def _get_monthly_cost(pool, tenant_id: str) -> Decimal:
+    """Return total USD spent by this tenant in the current calendar month."""
+    row = await pool.fetchrow(
+        """
+        SELECT COALESCE(SUM(cost_usd), 0) AS total
+        FROM session_token_usage
+        WHERE tenant_id = $1
+          AND recorded_at >= date_trunc('month', NOW())
+        """,
+        tenant_id,
+    )
+    return Decimal(row["total"])
 
 
 async def _ensure_stripe_customer(pool, tenant: dict) -> str:
@@ -134,14 +157,21 @@ async def get_plan(request: Request, current_user: CurrentUser) -> PlanInfo:
     pool = request.app.state.db_pool
     tenant = await _get_tenant(pool, current_user.id)
     used = await _get_monthly_usage(pool, current_user.id)
+    cost_used = await _get_monthly_cost(pool, current_user.id)
     bonus = int(tenant["referral_bonus_tokens"])
     total_limit = int(tenant["token_limit"]) + bonus
+    cost_limit_raw = tenant.get("cost_limit_usd")
+    cost_limit = Decimal(cost_limit_raw) if cost_limit_raw is not None else None
+    cost_remaining = max(Decimal("0"), cost_limit - cost_used) if cost_limit is not None else None
     return PlanInfo(
         plan=tenant["plan"],
         token_limit=total_limit,
         referral_bonus_tokens=bonus,
         tokens_used_this_month=used,
         tokens_remaining=max(0, total_limit - used) if total_limit > 0 else -1,
+        cost_used_this_month_usd=cost_used,
+        cost_limit_usd=cost_limit,
+        cost_remaining_usd=cost_remaining,
     )
 
 

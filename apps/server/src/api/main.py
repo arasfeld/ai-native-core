@@ -358,6 +358,7 @@ async def lifespan(app: FastAPI):
         agent_factory=agent_factory,
         session_repo=session_repo,
         extractor=extractor,
+        pricing=app.state.pricing,
     )
 
     try:

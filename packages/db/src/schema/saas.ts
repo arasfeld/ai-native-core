@@ -10,7 +10,14 @@
  *   3. Remove check_budget calls from ContextService / SessionRepository
  *   4. Remove `export * from "./schema/saas"` from schema.ts
  */
-import { integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  integer,
+  numeric,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { user } from "./auth";
 
 export const tenants = pgTable("tenants", {
@@ -19,6 +26,8 @@ export const tenants = pgTable("tenants", {
   plan: text("plan").notNull().default("free"), // "free" | "pro"
   tokenLimit: integer("token_limit").notNull().default(100_000),
   referralBonusTokens: integer("referral_bonus_tokens").notNull().default(0),
+  // When set, the monthly budget is enforced in USD instead of tokens.
+  costLimitUsd: numeric("cost_limit_usd", { precision: 10, scale: 4 }),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
   createdAt: timestamp("created_at", { withTimezone: true })

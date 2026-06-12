@@ -10,6 +10,8 @@ from ..utils import messages_to_dicts, parse_openai_usage
 class OllamaProvider:
     """Ollama provider — local inference via OpenAI-compatible API."""
 
+    provider_name = "ollama"
+
     def __init__(self) -> None:
         base_url = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
         timeout = float(os.environ.get("OLLAMA_TIMEOUT", "60"))
@@ -34,10 +36,15 @@ class OllamaProvider:
             messages=messages_to_dicts(messages),
             **kwargs,
         )
+        usage = parse_openai_usage(response)
+        if usage is not None:
+            usage.provider = self.provider_name
+            usage.model = self.model
         return LLMResponse(
             content=response.choices[0].message.content or "",
-            usage=parse_openai_usage(response),
+            usage=usage,
             model=self.model,
+            provider=self.provider_name,
         )
 
     async def stream(self, messages: list[Message], **kwargs) -> AsyncIterator[str]:

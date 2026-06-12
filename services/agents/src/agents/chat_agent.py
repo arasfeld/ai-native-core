@@ -147,10 +147,16 @@ class ChatAgent(BaseAgent):
 
 
 def _add_usage(a: Usage, b: Usage) -> Usage:
+    # Provider/model come from whichever provider actually answered. After the
+    # first event there is always one, and tool-loop turns within a single
+    # ChatAgent.stream call all share the same backend, so "last writer wins"
+    # is correct and matches what `b` carries.
     return Usage(
         prompt_tokens=a.prompt_tokens + b.prompt_tokens,
         completion_tokens=a.completion_tokens + b.completion_tokens,
         total_tokens=a.total_tokens + b.total_tokens,
+        provider=b.provider or a.provider,
+        model=b.model or a.model,
     )
 
 
