@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { label: "Evals", href: "/admin/evals" },
   { label: "Users", href: "/admin/users" },
   { label: "Tenants", href: "/admin/tenants" },
+  { label: "Pricing", href: "/admin/pricing" },
   { label: "RBAC", href: "/admin/rbac" },
   { label: "Audit Log", href: "/admin/audit-log" },
   { label: "AI Config", href: "/admin" },

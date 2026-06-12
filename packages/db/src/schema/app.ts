@@ -8,6 +8,7 @@ import {
   jsonb,
   numeric,
   pgTable,
+  primaryKey,
   smallint,
   text,
   timestamp,
@@ -31,6 +32,33 @@ export const aiFeatureConfigs = pgTable("ai_feature_configs", {
     .defaultNow()
     .notNull(),
 });
+
+// Per-model unit pricing (USD per 1M tokens). Seeded with public list prices
+// in migration 0018; admins can override via PUT /admin/pricing (sets
+// `isOverride = true` so re-seeds skip the row).
+export const modelPricing = pgTable(
+  "model_pricing",
+  {
+    provider: text("provider").notNull(),
+    model: text("model").notNull(),
+    inputUsdPerMtok: numeric("input_usd_per_mtok", {
+      precision: 12,
+      scale: 6,
+    }).notNull(),
+    outputUsdPerMtok: numeric("output_usd_per_mtok", {
+      precision: 12,
+      scale: 6,
+    }).notNull(),
+    isOverride: boolean("is_override").notNull().default(false),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.provider, table.model] }),
+    index("model_pricing_provider_idx").on(table.provider),
+  ],
+);
 
 export const memoryEntries = pgTable("memory_entries", {
   id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),

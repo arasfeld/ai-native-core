@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 import asyncpg
 import sentry_sdk
 import structlog
-from ai import get_llm
+from ai import get_llm, load_pricing
 from arq.connections import RedisSettings
 from arq.connections import create_pool as arq_create_pool
 from fastapi import FastAPI
@@ -21,6 +21,7 @@ from .routers import (
     admin,
     admin_analytics,
     admin_evals,
+    admin_pricing,
     admin_tenants,
     admin_users,
     audit_logs,
@@ -265,6 +266,19 @@ CREATE INDEX IF NOT EXISTS eval_runs_category_created_idx ON eval_runs (category
 CREATE INDEX IF NOT EXISTS eval_runs_scorer_created_idx   ON eval_runs (scorer, created_at DESC);
 """
 
+_CREATE_MODEL_PRICING = """
+CREATE TABLE IF NOT EXISTS model_pricing (
+  provider             TEXT           NOT NULL,
+  model                TEXT           NOT NULL,
+  input_usd_per_mtok   NUMERIC(12, 6) NOT NULL,
+  output_usd_per_mtok  NUMERIC(12, 6) NOT NULL,
+  is_override          BOOLEAN        NOT NULL DEFAULT FALSE,
+  updated_at           TIMESTAMPTZ    NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (provider, model)
+);
+CREATE INDEX IF NOT EXISTS model_pricing_provider_idx ON model_pricing (provider);
+"""
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -283,6 +297,7 @@ async def lifespan(app: FastAPI):
         await conn.execute(_CREATE_REFERRALS)
         await conn.execute(_CREATE_MESSAGE_FEEDBACK)
         await conn.execute(_CREATE_EVAL_RUNS)
+        await conn.execute(_CREATE_MODEL_PRICING)
 
     # Load runtime AI config from DB (populated by migrations 0002 + 0017)
     try:
@@ -313,6 +328,8 @@ async def lifespan(app: FastAPI):
     except Exception:
         ai_config = {}
     app.state.ai_config = ai_config
+
+    app.state.pricing = await load_pricing(pool)
 
     store = SessionStore(pool=pool)
     await store.ensure_table()
@@ -391,6 +408,7 @@ app.include_router(admin.router)
 app.include_router(admin_users.router)
 app.include_router(admin_tenants.router)
 app.include_router(admin_analytics.router)
+app.include_router(admin_pricing.router)
 app.include_router(rbac.router)
 app.include_router(conversations.router)
 app.include_router(user_api_keys.router)
