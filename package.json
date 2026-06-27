@@ -5,6 +5,7 @@
     "build": "turbo run build",
     "check": "biome check --write .",
     "check-types": "turbo run check-types",
+    "lint": "biome check .",
     "clean": "turbo run clean && rm -rf node_modules",
     "db:generate": "turbo -F @repo/db db:generate",
     "db:migrate": "turbo -F @repo/db db:migrate",
