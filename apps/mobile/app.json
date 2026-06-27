@@ -40,7 +40,12 @@
         {
           "microphonePermission": "Allow AI Native to access the microphone to transcribe voice messages."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker",
+      "@sentry/react-native",
+      "expo-image",
+      "expo-localization",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true

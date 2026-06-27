@@ -4,3 +4,6 @@
 
 expo-env.d.ts
 # @end expo-cli
+
+# Local Expo machine state (devices, type cache) — not for version control
+.expo/
