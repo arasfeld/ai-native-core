@@ -13,7 +13,6 @@ class Settings(BaseSettings):
     cors_origin: str = "http://localhost:3000"
     port: int = 8000
     redis_url: str = "redis://localhost:6379"
-    auth_secret: str = "change-me-in-production"
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
     stripe_pro_price_id: str = ""  # Stripe Price ID for the "pro" plan
